@@ -264,6 +264,26 @@ if ($meiliOk) {
 }
 
 $totalPages = max(1, ceil($totalCount / $perPage));
+
+// Логируем поисковый запрос
+if (!empty($cleanQuery) || !empty($categoryFilter)) {
+    try {
+        $logIp = $_SERVER["HTTP_X_FORWARDED_FOR"] ?? $_SERVER["REMOTE_ADDR"] ?? "";
+        $logIp = trim(explode(",", $logIp)[0]);
+        $logStatus = $totalCount > 0 ? "found" : "not_found";
+        $logQuery = !empty($cleanQuery) ? $cleanQuery : $categoryFilter;
+        $pdo->prepare("INSERT INTO search_logs (query, country_code, city_id, results_count, status, ip) VALUES (?,?,?,?,?,?)")
+            ->execute([$logQuery, $countryCode, $cityFilter ?: null, $totalCount, $logStatus, $logIp]);
+    } catch (Exception $e) { error_log("search_log error: " . $e->getMessage()); }
+}
+
+// Логируем просмотр страницы
+try {
+    $pvIp = $_SERVER["HTTP_X_FORWARDED_FOR"] ?? $_SERVER["REMOTE_ADDR"] ?? "";
+    $pvIp = trim(explode(",", $pvIp)[0]);
+    $pdo->prepare("INSERT INTO page_views (page, ip, country_code) VALUES (?,?,?)")
+        ->execute(["results", $pvIp, $countryCode]);
+} catch (Exception $e) { error_log("page_view error: " . $e->getMessage()); }
 $page       = min($page, $totalPages);
 
 // Декодируем JSON поля для шаблона

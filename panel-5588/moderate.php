@@ -1,52 +1,45 @@
 <?php
+define('ADMIN_PANEL', true);
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../config/database.php";
-require_once __DIR__ . "/../config/helpers.php";
-require_once __DIR__ . "/../config/meilisearch.php";
+require_once __DIR__ . "/layout.php";
 requireAdmin();
 
 $pdo = getDbConnection();
 
-// Обработка действий
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action    = $_POST["action"] ?? "";
     $serviceId = (int)($_POST["service_id"] ?? 0);
-
     if ($serviceId > 0) {
         if ($action === "approve") {
             $pdo->prepare("UPDATE services SET status='approved', is_visible=1 WHERE id=?")->execute([$serviceId]);
-            // Добавляем в Meilisearch
-            $row = $pdo->prepare("SELECT s.*, c.name AS city_name, c.name_lat AS city_slug FROM services s LEFT JOIN cities c ON s.city_id = c.id WHERE s.id = ? LIMIT 1");
-            $row->execute([$serviceId]);
-            $svcRow = $row->fetch(PDO::FETCH_ASSOC);
-            if ($svcRow) meiliAddDocument(meiliPrepareDoc($svcRow));
-            // Email пользователю
+            if (file_exists(__DIR__ . '/../config/meilisearch.php')) {
+                require_once __DIR__ . '/../config/meilisearch.php';
+                $row = $pdo->prepare("SELECT s.*, c.name AS city_name, c.name_lat AS city_slug FROM services s LEFT JOIN cities c ON s.city_id = c.id WHERE s.id = ?");
+                $row->execute([$serviceId]);
+                $svcRow = $row->fetch(PDO::FETCH_ASSOC);
+                if ($svcRow) meiliAddDocument(meiliPrepareDoc($svcRow));
+            }
             $svc = $pdo->prepare("SELECT s.name, u.email, u.name as uname FROM services s JOIN users u ON s.user_id=u.id WHERE s.id=?");
             $svc->execute([$serviceId]);
             $svc = $svc->fetch();
-            if ($svc) {
-                require_once __DIR__ . "/../config/email.php";
-                sendStatusEmail($svc["email"], $svc["uname"], $svc["name"], "approved", "");
-            }
+            if ($svc) { require_once __DIR__ . "/../config/email.php"; sendStatusEmail($svc["email"], $svc["uname"], $svc["name"], "approved", ""); }
         } elseif ($action === "reject") {
             $comment = trim($_POST["comment"] ?? "");
             $pdo->prepare("UPDATE services SET status='rejected', is_visible=0, moderation_comment=? WHERE id=?")->execute([$comment, $serviceId]);
-            // Удаляем из Meilisearch
-            meiliDeleteDocument($serviceId);
+            if (file_exists(__DIR__ . '/../config/meilisearch.php')) { require_once __DIR__ . '/../config/meilisearch.php'; meiliDeleteDocument($serviceId); }
             $svc = $pdo->prepare("SELECT s.name, u.email, u.name as uname FROM services s JOIN users u ON s.user_id=u.id WHERE s.id=?");
             $svc->execute([$serviceId]);
             $svc = $svc->fetch();
-            if ($svc) {
-                require_once __DIR__ . "/../config/email.php";
-                sendStatusEmail($svc["email"], $svc["uname"], $svc["name"], "rejected", $comment);
-            }
+            if ($svc) { require_once __DIR__ . "/../config/email.php"; sendStatusEmail($svc["email"], $svc["uname"], $svc["name"], "rejected", $comment); }
         }
     }
     header("Location: /panel-5588/moderate.php");
     exit;
 }
 
-// Загружаем pending сервисы
+$pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+
 $services = $pdo->query("
     SELECT s.*, u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s
@@ -57,170 +50,193 @@ $services = $pdo->query("
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 $categories = [
-    "health"=>"🏥 Здоровье","legal"=>"⚖️ Юридические","family"=>"👨‍👩‍👧 Семья",
-    "shops"=>"🛒 Магазины","home"=>"🏠 Дом и быт","education"=>"📚 Образование",
-    "business"=>"💼 Бизнес","transport"=>"🚗 Транспорт","events"=>"📷 События",
-    "it"=>"💻 IT","realestate"=>"🏢 Недвижимость"
+    "health"=>"Здоровье","legal"=>"Юридические","family"=>"Семья",
+    "shops"=>"Магазины","home"=>"Дом","education"=>"Образование",
+    "business"=>"Бизнес","transport"=>"Транспорт","events"=>"События",
+    "it"=>"IT","realestate"=>"Недвижимость"
 ];
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Модерация — Poisq Admin</title>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#F5F5F7; color:#1F2937; }
-.header {
-    background:#fff; padding:14px 16px;
-    border-bottom:1px solid #E5E7EB;
-    display:flex; align-items:center; gap:12px;
-    position:sticky; top:0; z-index:10;
-}
-.back { font-size:20px; text-decoration:none; color:#374151; }
-.header-title { font-size:17px; font-weight:700; flex:1; }
-.count { background:#F59E0B; color:#fff; font-size:12px; font-weight:700; padding:2px 8px; border-radius:99px; }
-.main { padding:12px; max-width:600px; margin:0 auto; }
-.empty { text-align:center; padding:60px 20px; color:#9CA3AF; font-size:16px; }
-.card {
-    background:#fff; border-radius:14px; margin-bottom:14px;
-    box-shadow:0 1px 4px rgba(0,0,0,0.06); overflow:hidden;
-}
-.card-photos { display:flex; gap:4px; padding:10px 10px 0; overflow-x:auto; }
-.card-photos img { width:90px; height:70px; object-fit:cover; border-radius:8px; flex-shrink:0; }
-.card-body { padding:14px; }
-.card-name { font-size:17px; font-weight:700; margin-bottom:4px; }
-.card-meta { font-size:12px; color:#9CA3AF; margin-bottom:10px; }
-.card-desc { font-size:14px; color:#374151; line-height:1.5; margin-bottom:12px; max-height:80px; overflow:hidden; }
-.card-desc.expanded { max-height:none; }
-.btn-expand { font-size:12px; color:#2E73D8; background:none; border:none; cursor:pointer; padding:0; margin-bottom:12px; }
-.contacts { background:#F9FAFB; border-radius:10px; padding:10px 12px; margin-bottom:12px; }
-.contact-row { display:flex; align-items:center; gap:8px; font-size:13px; padding:3px 0; }
-.contact-row a { color:#2E73D8; text-decoration:none; }
-.user-info { font-size:12px; color:#6B7280; margin-bottom:12px; padding:8px 10px; background:#F0F9FF; border-radius:8px; }
-.actions { display:flex; gap:8px; }
-.btn-approve {
-    flex:1; padding:13px; background:#10B981; color:#fff;
-    border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;
-}
-.btn-reject {
-    flex:1; padding:13px; background:#FEF2F2; color:#EF4444;
-    border:1.5px solid #FECACA; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;
-}
-.btn-approve:active { background:#059669; }
-.btn-reject:active { background:#FEE2E2; }
-/* Модалка отклонения */
-.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:flex-end; }
-.overlay.active { display:flex; }
-.modal { background:#fff; border-radius:20px 20px 0 0; padding:24px 20px; width:100%; }
-.modal-title { font-size:17px; font-weight:700; margin-bottom:16px; }
-.reason-list { margin-bottom:14px; }
-.reason-btn {
-    display:block; width:100%; text-align:left; padding:11px 14px;
-    background:#F9FAFB; border:1.5px solid #E5E7EB; border-radius:10px;
-    font-size:14px; cursor:pointer; margin-bottom:8px;
-}
-.reason-btn.selected { border-color:#EF4444; background:#FEF2F2; color:#DC2626; }
-textarea {
-    width:100%; padding:12px; border:1.5px solid #D1D5DB; border-radius:10px;
-    font-size:14px; resize:none; height:80px; outline:none; font-family:inherit;
-}
-textarea:focus { border-color:#EF4444; }
-.modal-actions { display:flex; gap:8px; margin-top:12px; }
-.btn-cancel { flex:1; padding:13px; background:#F5F5F7; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; }
-.btn-confirm-reject { flex:1; padding:13px; background:#EF4444; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
-</style>
-</head>
-<body>
-<div class="header">
-    <a href="/panel-5588/dashboard.php" class="back">←</a>
-    <div class="header-title">Модерация</div>
-    <?php if (count($services) > 0): ?>
-    <span class="count"><?php echo count($services); ?></span>
-    <?php endif; ?>
-</div>
-<div class="main">
+
 <?php if (empty($services)): ?>
-    <div class="empty">✅ Нет сервисов на модерации</div>
+<div class="panel">
+    <div class="empty-state" style="padding:64px 24px;">
+        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-title">Нет сервисов на модерации</div>
+        <div class="empty-state-text">Все сервисы проверены. Возвращайтесь позже.</div>
+    </div>
+</div>
 <?php else: ?>
-    <?php foreach ($services as $svc):
-        $photos = json_decode($svc["photo"] ?? "[]", true) ?: [];
-        $cat    = $categories[$svc["category"]] ?? $svc["category"];
-    ?>
-    <div class="card">
-        <?php if (!empty($photos)): ?>
-        <div class="card-photos">
-            <?php foreach (array_slice($photos, 0, 4) as $p): ?>
-            <img src="<?php echo htmlspecialchars($p); ?>" alt="" onerror="this.style.display='none'">
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-        <div class="card-body">
-            <div class="card-name"><?php echo htmlspecialchars($svc["name"]); ?></div>
-            <div class="card-meta">
-                <?php echo $cat; ?> &bull;
-                <?php echo htmlspecialchars($svc["city_name"] ?? ""); ?>,
-                <?php echo strtoupper($svc["country_code"]); ?> &bull;
+
+<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:14px;color:var(--text-secondary);">Ожидают проверки:</span>
+    <span style="font-size:14px;font-weight:700;color:var(--warning)"><?php echo count($services); ?> сервисов</span>
+    <span style="font-size:13px;color:var(--text-light)">· Сортировка: сначала старые</span>
+</div>
+
+<?php foreach ($services as $svc):
+    $photos = json_decode($svc["photo"] ?? "[]", true) ?: [];
+    $cat    = $categories[$svc["category"]] ?? $svc["category"];
+    $langs  = json_decode($svc["languages"] ?? "[]", true) ?: [];
+    $svcs   = json_decode($svc["services"] ?? "[]", true) ?: [];
+    $social = json_decode($svc["social"] ?? "{}", true) ?: [];
+?>
+<div class="panel" style="margin-bottom:20px;">
+    <div class="panel-header">
+        <div>
+            <div class="panel-title"><?php echo htmlspecialchars($svc["name"]); ?></div>
+            <div style="font-size:12px;color:var(--text-light);margin-top:2px;">
+                #<?php echo $svc['id']; ?> ·
+                <?php echo $cat; ?> ·
+                <?php echo htmlspecialchars($svc["city_name"] ?? ""); ?>, <?php echo strtoupper($svc["country_code"]); ?> ·
                 <?php echo date("d.m.Y H:i", strtotime($svc["created_at"])); ?>
             </div>
-            <div class="card-desc" id="desc-<?php echo $svc["id"]; ?>">
+        </div>
+        <div style="display:flex;gap:8px;">
+            <a href="/panel-5588/edit.php?id=<?php echo $svc['id']; ?>" class="btn btn-secondary btn-sm">✏️ Редактировать</a>
+            <a href="https://poisq.com/service/<?php echo $svc['id']; ?>-preview" target="_blank" class="btn btn-secondary btn-sm">👁 Превью</a>
+        </div>
+    </div>
+
+    <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+        <!-- Левая колонка -->
+        <div>
+            <!-- Фото -->
+            <?php if (!empty($photos)): ?>
+            <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;">
+                <?php foreach (array_slice($photos, 0, 5) as $p): ?>
+                <img src="<?php echo htmlspecialchars($p); ?>" alt=""
+                     style="width:80px;height:64px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--border)"
+                     onerror="this.style.display='none'">
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Описание -->
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;max-height:120px;overflow:hidden;" id="desc-<?php echo $svc['id']; ?>">
                 <?php echo nl2br(htmlspecialchars($svc["description"] ?? "")); ?>
             </div>
-            <button class="btn-expand" onclick="toggleDesc(<?php echo $svc['id']; ?>)">Читать полностью</button>
-            <div class="contacts">
+            <button onclick="toggleDesc(<?php echo $svc['id']; ?>)" style="font-size:12px;color:var(--primary);background:none;border:none;cursor:pointer;padding:0;margin-bottom:14px;">
+                Читать полностью ↓
+            </button>
+
+            <!-- Услуги -->
+            <?php if (!empty($svcs)): ?>
+            <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Услуги</div>
+                <?php foreach (array_slice($svcs, 0, 4) as $sv): ?>
+                <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border-light);">
+                    <span><?php echo htmlspecialchars($sv['name'] ?? ''); ?></span>
+                    <span style="color:var(--text-secondary)"><?php echo htmlspecialchars($sv['price'] ?? ''); ?>€</span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Правая колонка -->
+        <div>
+            <!-- Контакты -->
+            <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Контакты</div>
                 <?php if ($svc["phone"]): ?>
-                <div class="contact-row">📞 <a href="tel:<?php echo htmlspecialchars($svc['phone']); ?>"><?php echo htmlspecialchars($svc["phone"]); ?></a></div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;">
+                    <span style="color:var(--text-light);width:16px">📞</span>
+                    <a href="tel:<?php echo htmlspecialchars($svc['phone']); ?>" style="color:var(--primary);text-decoration:none"><?php echo htmlspecialchars($svc["phone"]); ?></a>
+                </div>
                 <?php endif; ?>
                 <?php if ($svc["whatsapp"]): ?>
-                <div class="contact-row">💬 <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/','',$svc['whatsapp']); ?>"><?php echo htmlspecialchars($svc["whatsapp"]); ?></a></div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;">
+                    <span style="color:var(--text-light);width:16px">💬</span>
+                    <span><?php echo htmlspecialchars($svc["whatsapp"]); ?></span>
+                </div>
                 <?php endif; ?>
                 <?php if ($svc["email"]): ?>
-                <div class="contact-row">✉️ <?php echo htmlspecialchars($svc["email"]); ?></div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;">
+                    <span style="color:var(--text-light);width:16px">✉️</span>
+                    <span><?php echo htmlspecialchars($svc["email"]); ?></span>
+                </div>
                 <?php endif; ?>
                 <?php if ($svc["address"]): ?>
-                <div class="contact-row">📍 <?php echo htmlspecialchars($svc["address"]); ?></div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;">
+                    <span style="color:var(--text-light);width:16px">📍</span>
+                    <span><?php echo htmlspecialchars($svc["address"]); ?></span>
+                </div>
                 <?php endif; ?>
                 <?php if ($svc["website"]): ?>
-                <div class="contact-row">🌐 <a href="<?php echo htmlspecialchars($svc['website']); ?>" target="_blank"><?php echo htmlspecialchars($svc["website"]); ?></a></div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+                    <span style="color:var(--text-light);width:16px">🌐</span>
+                    <a href="<?php echo htmlspecialchars($svc['website']); ?>" target="_blank" style="color:var(--primary);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?php echo htmlspecialchars($svc["website"]); ?></a>
+                </div>
                 <?php endif; ?>
             </div>
-            <div class="user-info">
-                👤 <?php echo htmlspecialchars($svc["user_name"]); ?> — <?php echo htmlspecialchars($svc["user_email"]); ?>
+
+            <!-- Владелец -->
+            <div style="background:var(--primary-light);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--primary-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Владелец</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)"><?php echo htmlspecialchars($svc["user_name"]); ?></div>
+                <div style="font-size:12px;color:var(--text-secondary)"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
             </div>
-            <div class="actions">
+
+            <!-- Языки -->
+            <?php if (!empty($langs)): ?>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+                <?php foreach ($langs as $l): ?>
+                <span class="badge badge-blue"><?php echo htmlspecialchars($l); ?></span>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Действия -->
+            <div style="display:flex;gap:8px;">
                 <form method="POST" style="flex:1">
                     <input type="hidden" name="action" value="approve">
                     <input type="hidden" name="service_id" value="<?php echo $svc['id']; ?>">
-                    <button type="submit" class="btn-approve" style="width:100%">✅ Одобрить</button>
+                    <button type="submit" class="btn btn-success" style="width:100%;justify-content:center;">
+                        <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                        Одобрить
+                    </button>
                 </form>
-                <button class="btn-reject" onclick="openReject(<?php echo $svc['id']; ?>)">❌ Отклонить</button>
+                <button class="btn btn-danger" style="flex:1;justify-content:center;" onclick="openReject(<?php echo $svc['id']; ?>)">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    Отклонить
+                </button>
             </div>
         </div>
     </div>
-    <?php endforeach; ?>
-<?php endif; ?>
 </div>
+<?php endforeach; ?>
+<?php endif; ?>
 
 <!-- Модалка отклонения -->
-<div class="overlay" id="rejectOverlay" onclick="if(event.target===this)closeReject()">
-    <div class="modal">
-        <div class="modal-title">Причина отклонения</div>
-        <div class="reason-list">
-            <button class="reason-btn" onclick="selectReason(this, 'Недостаточно информации в описании')">Недостаточно информации в описании</button>
-            <button class="reason-btn" onclick="selectReason(this, 'Некорректные контактные данные')">Некорректные контактные данные</button>
-            <button class="reason-btn" onclick="selectReason(this, 'Фото низкого качества или отсутствуют')">Фото низкого качества или отсутствуют</button>
-            <button class="reason-btn" onclick="selectReason(this, 'Нарушение правил (спам/мошенничество)')">Нарушение правил (спам/мошенничество)</button>
+<div id="rejectOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-white);border-radius:var(--radius);padding:24px;width:100%;max-width:440px;margin:20px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:16px;">Причина отклонения</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+            <?php foreach ([
+                'Недостаточно информации в описании',
+                'Некорректные контактные данные',
+                'Фото низкого качества или отсутствуют',
+                'Нарушение правил (спам/мошенничество)',
+            ] as $reason): ?>
+            <button class="reason-btn" onclick="selectReason(this, '<?php echo addslashes($reason); ?>')"
+                style="text-align:left;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s;">
+                <?php echo $reason; ?>
+            </button>
+            <?php endforeach; ?>
         </div>
-        <textarea id="rejectComment" placeholder="Или напишите свою причину..."></textarea>
+        <textarea id="rejectComment" placeholder="Или напишите свою причину..."
+            style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;resize:none;height:80px;outline:none;margin-bottom:14px;"></textarea>
         <form method="POST" id="rejectForm">
             <input type="hidden" name="action" value="reject">
             <input type="hidden" name="service_id" id="rejectServiceId">
             <input type="hidden" name="comment" id="rejectCommentHidden">
         </form>
-        <div class="modal-actions">
-            <button class="btn-cancel" onclick="closeReject()">Отмена</button>
-            <button class="btn-confirm-reject" onclick="submitReject()">Отклонить</button>
+        <div style="display:flex;gap:8px;">
+            <button onclick="closeReject()" class="btn btn-secondary" style="flex:1;justify-content:center;">Отмена</button>
+            <button onclick="submitReject()" class="btn btn-danger" style="flex:1;justify-content:center;background:var(--danger);color:white;">Отклонить</button>
         </div>
     </div>
 </div>
@@ -228,20 +244,21 @@ textarea:focus { border-color:#EF4444; }
 <script>
 function toggleDesc(id) {
     const el = document.getElementById("desc-" + id);
-    el.classList.toggle("expanded");
+    el.style.maxHeight = el.style.maxHeight === 'none' ? '120px' : 'none';
 }
 function openReject(id) {
     document.getElementById("rejectServiceId").value = id;
     document.getElementById("rejectComment").value = "";
-    document.querySelectorAll(".reason-btn").forEach(b => b.classList.remove("selected"));
-    document.getElementById("rejectOverlay").classList.add("active");
+    document.querySelectorAll(".reason-btn").forEach(b => b.style.background = 'var(--bg)');
+    document.getElementById("rejectOverlay").style.display = "flex";
 }
 function closeReject() {
-    document.getElementById("rejectOverlay").classList.remove("active");
+    document.getElementById("rejectOverlay").style.display = "none";
 }
 function selectReason(btn, text) {
-    document.querySelectorAll(".reason-btn").forEach(b => b.classList.remove("selected"));
-    btn.classList.add("selected");
+    document.querySelectorAll(".reason-btn").forEach(b => b.style.background = 'var(--bg)');
+    btn.style.background = 'var(--danger-bg)';
+    btn.style.borderColor = 'var(--danger)';
     document.getElementById("rejectComment").value = text;
 }
 function submitReject() {
@@ -250,6 +267,12 @@ function submitReject() {
     document.getElementById("rejectCommentHidden").value = comment;
     document.getElementById("rejectForm").submit();
 }
+document.getElementById("rejectOverlay").addEventListener("click", function(e) {
+    if (e.target === this) closeReject();
+});
 </script>
-</body>
-</html>
+
+<?php
+$content = ob_get_clean();
+renderLayout('Модерация', $content, $pendingCount);
+?>

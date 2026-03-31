@@ -61,6 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['code'])) {
                 $stmt->execute([$email, $hashedPassword, $name]);
                 $userId = $pdo->lastInsertId();
                 
+                // Уведомление админу о новом пользователе
+                try {
+                    require_once 'config/email.php';
+                    sendAdminNewUserEmail($name, $email);
+                } catch (Exception $e) {
+                    error_log('Admin notify error: ' . $e->getMessage());
+                }
+                
                 // 🔧 Помечаем код как использованный
                 $stmt = $pdo->prepare("UPDATE verification_codes SET used = 1 WHERE id = ?");
                 $stmt->execute([$verification['id']]);

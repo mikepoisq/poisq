@@ -1,6 +1,8 @@
 <?php
+define('ADMIN_PANEL', true);
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/layout.php";
 requireAdmin();
 
 $pdo = getDbConnection();
@@ -11,110 +13,226 @@ $approvedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='appro
 $rejectedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='rejected'")->fetchColumn();
 $draftCount     = $pdo->query("SELECT COUNT(*) FROM services WHERE status='draft'")->fetchColumn();
 $totalUsers     = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$blockedUsers   = $pdo->query("SELECT COUNT(*) FROM users WHERE is_blocked=1")->fetchColumn();
 $newToday       = $pdo->query("SELECT COUNT(*) FROM services WHERE DATE(created_at) = CURDATE()")->fetchColumn();
-?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Дашборд — Poisq Admin</title>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #F5F5F7; color: #1F2937; min-height: 100vh;
-}
-.header {
-    background: #fff; padding: 14px 16px;
-    border-bottom: 1px solid #E5E7EB;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 10;
-}
-.header-logo { font-size: 20px; font-weight: 800; color: #2E73D8; }
-.header-sub { font-size: 11px; color: #9CA3AF; }
-.logout { font-size: 13px; color: #EF4444; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 8px; background: #FEF2F2; }
-.main { padding: 16px; max-width: 600px; margin: 0 auto; }
-.section-title { font-size: 12px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
-.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.card {
-    background: #fff; border-radius: 12px; padding: 16px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.card-value { font-size: 28px; font-weight: 800; color: #1F2937; }
-.card-label { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
-.card.pending .card-value { color: #F59E0B; }
-.card.approved .card-value { color: #10B981; }
-.card.rejected .card-value { color: #EF4444; }
-.card.draft .card-value { color: #9CA3AF; }
-.btn {
-    display: block; width: 100%; padding: 15px;
-    border-radius: 12px; font-size: 16px; font-weight: 700;
-    text-align: center; text-decoration: none; margin-bottom: 10px;
-    transition: opacity 0.15s;
-}
-.btn:active { opacity: 0.8; }
-.btn-primary { background: #2E73D8; color: #fff; }
-.btn-secondary { background: #fff; color: #374151; border: 1.5px solid #E5E7EB; }
-.badge {
-    display: inline-block; background: #EF4444; color: #fff;
-    font-size: 12px; font-weight: 700; padding: 2px 7px;
-    border-radius: 99px; margin-left: 6px; vertical-align: middle;
-}
-</style>
-</head>
-<body>
-<div class="header">
-    <div>
-        <div class="header-logo">Poisq</div>
-        <div class="header-sub">Панель управления</div>
-    </div>
-    <a href="/panel-5588/logout.php" class="logout">Выйти</a>
-</div>
-<div class="main">
-    <div class="section-title">Быстрые действия</div>
-    <a href="/panel-5588/moderate.php" class="btn btn-primary">
-        🔍 На модерацию
-        <?php if ($pendingCount > 0): ?>
-        <span class="badge"><?php echo $pendingCount; ?></span>
-        <?php endif; ?>
-    </a>
-    <a href="/panel-5588/services.php" class="btn btn-secondary">📋 Все сервисы</a>
+$viewsToday     = $pdo->query("SELECT COUNT(*) FROM page_views WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+$viewsWeek      = $pdo->query("SELECT COUNT(*) FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
+$viewsMonth     = $pdo->query("SELECT COUNT(*) FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)")->fetchColumn();
+$searchToday    = $pdo->query("SELECT COUNT(*) FROM search_logs WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+$searchFound    = $pdo->query("SELECT COUNT(*) FROM search_logs WHERE DATE(created_at) = CURDATE() AND status='found'")->fetchColumn();
+$searchNotFound = $pdo->query("SELECT COUNT(*) FROM search_logs WHERE DATE(created_at) = CURDATE() AND status='not_found'")->fetchColumn();
 
-    <div class="section-title">Статистика</div>
-    <div class="cards">
-        <div class="card pending">
-            <div class="card-value"><?php echo $pendingCount; ?></div>
-            <div class="card-label">Ожидают модерации</div>
-        </div>
-        <div class="card approved">
-            <div class="card-value"><?php echo $approvedCount; ?></div>
-            <div class="card-label">Опубликовано</div>
-        </div>
-        <div class="card rejected">
-            <div class="card-value"><?php echo $rejectedCount; ?></div>
-            <div class="card-label">Отклонено</div>
-        </div>
-        <div class="card draft">
-            <div class="card-value"><?php echo $draftCount; ?></div>
-            <div class="card-label">Черновики</div>
-        </div>
+$recentServices = $pdo->query("
+    SELECT s.id, s.name, s.status, s.category, s.created_at,
+           u.name as user_name, c.name as city_name, s.country_code
+    FROM services s
+    JOIN users u ON s.user_id = u.id
+    LEFT JOIN cities c ON s.city_id = c.id
+    WHERE s.status = 'pending'
+    ORDER BY s.created_at ASC
+    LIMIT 5
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$recentUsers = $pdo->query("
+    SELECT id, name, email, created_at
+    FROM users
+    ORDER BY created_at DESC
+    LIMIT 5
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$recentSearches = $pdo->query("
+    SELECT query, country_code, results_count, status, created_at
+    FROM search_logs
+    ORDER BY created_at DESC
+    LIMIT 8
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$categories = [
+    "health"=>"Здоровье","legal"=>"Юридические","family"=>"Семья",
+    "shops"=>"Магазины","home"=>"Дом","education"=>"Образование",
+    "business"=>"Бизнес","transport"=>"Транспорт","events"=>"События",
+    "it"=>"IT","realestate"=>"Недвижимость"
+];
+
+ob_start();
+?>
+
+<!-- Статистика сервисов -->
+<div class="stat-grid stat-grid-4">
+    <div class="stat-card yellow">
+        <div class="stat-card-label">На модерации</div>
+        <div class="stat-card-value"><?php echo $pendingCount; ?></div>
+        <div class="stat-card-sub">Ожидают проверки</div>
     </div>
-    <div class="cards" style="margin-top:10px">
-        <div class="card">
-            <div class="card-value"><?php echo $totalServices; ?></div>
-            <div class="card-label">Всего сервисов</div>
-        </div>
-        <div class="card">
-            <div class="card-value"><?php echo $totalUsers; ?></div>
-            <div class="card-label">Пользователей</div>
-        </div>
+    <div class="stat-card green">
+        <div class="stat-card-label">Опубликовано</div>
+        <div class="stat-card-value"><?php echo $approvedCount; ?></div>
+        <div class="stat-card-sub">Активных сервисов</div>
     </div>
-    <?php if ($newToday > 0): ?>
-    <div style="margin-top:10px; background:#EFF6FF; border-radius:12px; padding:14px 16px; font-size:14px; color:#1D4ED8; font-weight:600;">
-        🆕 Сегодня добавлено: <?php echo $newToday; ?> сервис(ов)
+    <div class="stat-card blue">
+        <div class="stat-card-label">Пользователей</div>
+        <div class="stat-card-value"><?php echo $totalUsers; ?></div>
+        <div class="stat-card-sub"><?php echo $blockedUsers; ?> заблокировано</div>
     </div>
-    <?php endif; ?>
+    <div class="stat-card">
+        <div class="stat-card-label">Всего сервисов</div>
+        <div class="stat-card-value"><?php echo $totalServices; ?></div>
+        <div class="stat-card-sub"><?php echo $draftCount; ?> черновиков</div>
+    </div>
 </div>
-</body>
-</html>
+
+<!-- Посещения и поиск -->
+<div class="stat-grid" style="grid-template-columns: repeat(6,1fr);">
+    <div class="stat-card blue">
+        <div class="stat-card-label">Визиты сегодня</div>
+        <div class="stat-card-value" style="font-size:22px"><?php echo $viewsToday; ?></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">За 7 дней</div>
+        <div class="stat-card-value" style="font-size:22px"><?php echo $viewsWeek; ?></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">За 30 дней</div>
+        <div class="stat-card-value" style="font-size:22px"><?php echo $viewsMonth; ?></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-label">Запросов сегодня</div>
+        <div class="stat-card-value" style="font-size:22px"><?php echo $searchToday; ?></div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-card-label">Найдено</div>
+        <div class="stat-card-value" style="font-size:22px"><?php echo $searchFound; ?></div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-card-label">Не найдено</div>
+        <div class="stat-card-value" style="font-size:22px"><?php echo $searchNotFound; ?></div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+<!-- Ожидают модерации -->
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">🔍 На модерации</div>
+        <a href="/panel-5588/moderate.php" class="btn btn-primary btn-sm">
+            <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Все (<?php echo $pendingCount; ?>)
+        </a>
+    </div>
+    <div class="panel-body">
+        <?php if (empty($recentServices)): ?>
+        <div class="empty-state">
+            <div class="empty-state-icon">✅</div>
+            <div class="empty-state-title">Всё проверено!</div>
+            <div class="empty-state-text">Нет сервисов на модерации</div>
+        </div>
+        <?php else: ?>
+        <table class="table">
+            <thead><tr>
+                <th>Сервис</th>
+                <th>Категория</th>
+                <th>Дата</th>
+                <th></th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($recentServices as $s): ?>
+            <tr>
+                <td>
+                    <div style="font-weight:600;font-size:13px"><?php echo htmlspecialchars($s['name']); ?></div>
+                    <div style="font-size:11px;color:var(--text-light)"><?php echo htmlspecialchars($s['user_name']); ?> · <?php echo htmlspecialchars($s['city_name'] ?? ''); ?></div>
+                </td>
+                <td><span style="font-size:12px;color:var(--text-secondary)"><?php echo $categories[$s['category']] ?? $s['category']; ?></span></td>
+                <td><span style="font-size:12px;color:var(--text-light)"><?php echo date('d.m H:i', strtotime($s['created_at'])); ?></span></td>
+                <td><a href="/panel-5588/edit.php?id=<?php echo $s['id']; ?>" class="btn btn-secondary btn-sm">✏️</a></td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Последние запросы -->
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">🔎 Поисковые запросы</div>
+        <a href="/panel-5588/analytics.php" class="btn btn-secondary btn-sm">Аналитика →</a>
+    </div>
+    <div class="panel-body">
+        <?php if (empty($recentSearches)): ?>
+        <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-title">Данных пока нет</div>
+            <div class="empty-state-text">Запросы появятся после поисков на сайте</div>
+        </div>
+        <?php else: ?>
+        <table class="table">
+            <thead><tr>
+                <th>Запрос</th>
+                <th>Страна</th>
+                <th>Статус</th>
+                <th>Время</th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($recentSearches as $s): ?>
+            <tr>
+                <td style="font-size:13px;font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    <?php echo htmlspecialchars($s['query'] ?: '—'); ?>
+                </td>
+                <td><span style="font-size:12px;font-weight:700;color:var(--text-secondary)"><?php echo strtoupper($s['country_code']); ?></span></td>
+                <td>
+                    <?php if ($s['status'] === 'found'): ?>
+                    <span class="badge badge-green">✓ <?php echo $s['results_count']; ?></span>
+                    <?php else: ?>
+                    <span class="badge badge-red">✗ 0</span>
+                    <?php endif; ?>
+                </td>
+                <td><span style="font-size:12px;color:var(--text-light)"><?php echo date('H:i', strtotime($s['created_at'])); ?></span></td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+    </div>
+</div>
+
+</div>
+
+<!-- Новые пользователи -->
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">👥 Новые пользователи</div>
+        <a href="/panel-5588/users.php" class="btn btn-secondary btn-sm">Все пользователи →</a>
+    </div>
+    <div class="panel-body">
+        <table class="table">
+            <thead><tr>
+                <th>Имя</th>
+                <th>Email</th>
+                <th>Дата регистрации</th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($recentUsers as $u): ?>
+            <tr>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">
+                            <?php echo mb_strtoupper(mb_substr($u['name'] ?: $u['email'], 0, 1)); ?>
+                        </div>
+                        <span style="font-size:13px;font-weight:600"><?php echo htmlspecialchars($u['name'] ?: '—'); ?></span>
+                    </div>
+                </td>
+                <td style="font-size:13px;color:var(--text-secondary)"><?php echo htmlspecialchars($u['email']); ?></td>
+                <td style="font-size:12px;color:var(--text-light)"><?php echo date('d.m.Y H:i', strtotime($u['created_at'])); ?></td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<?php
+$content = ob_get_clean();
+renderLayout('Дашборд', $content, (int)$pendingCount);
+?>
