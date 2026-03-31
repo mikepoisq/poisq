@@ -1,0 +1,496 @@
+<?php
+// useful.php — Полезное: список статей
+session_start();
+$isLoggedIn  = isset($_SESSION['user_id']);
+$userName    = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
+$userAvatar  = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
+$userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
+
+// -- ДАННЫЕ СТАТЕЙ ----------------------------------------------------------
+// TODO: заменить на запрос к БД:
+//   SELECT * FROM articles WHERE status='published' ORDER BY created_at DESC
+$articles = [
+  [
+    'id'       => 1,
+    'title'    => 'Как открыть банковский счёт во Франции',
+    'excerpt'  => 'Пошаговый гайд: какие документы нужны, какие банки открывают счёт без прописки и как избежать типичных ошибок.',
+    'category' => 'Финансы',
+    'date'     => '22.03.2026',
+    'photo'    => 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=80',
+    'read_time'=> '5 мин',
+  ],
+  [
+    'id'       => 2,
+    'title'    => 'Как получить вид на жительство в Германии',
+    'excerpt'  => 'Разбираем типы ВНЖ, сроки, документы и типичные причины отказа. Реальный опыт русскоязычных эмигрантов.',
+    'category' => 'Документы',
+    'date'     => '20.03.2026',
+    'photo'    => 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&q=80',
+    'read_time'=> '8 мин',
+  ],
+  [
+    'id'       => 3,
+    'title'    => 'Школы и детские сады для русскоязычных детей в Испании',
+    'excerpt'  => 'Где найти русскоязычных учителей, двуязычные школы и как помочь ребёнку адаптироваться за границей.',
+    'category' => 'Семья',
+    'date'     => '18.03.2026',
+    'photo'    => 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&q=80',
+    'read_time'=> '6 мин',
+  ],
+  [
+    'id'       => 4,
+    'title'    => 'Найти русскоязычного врача за рубежом: полный гайд',
+    'excerpt'  => 'Как искать специалистов, как работает страховка и можно ли лечиться без неё.',
+    'category' => 'Здоровье',
+    'date'     => '15.03.2026',
+    'photo'    => 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&q=80',
+    'read_time'=> '7 мин',
+  ],
+  [
+    'id'       => 5,
+    'title'    => 'Налоги для фрилансеров и ИП в Европе',
+    'excerpt'  => 'Как оформиться как самозанятый, что и когда платить, как не попасть на штраф.',
+    'category' => 'Финансы',
+    'date'     => '12.03.2026',
+    'photo'    => 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=400&q=80',
+    'read_time'=> '10 мин',
+  ],
+];
+
+$categoryStyle = [
+  'Финансы'  => 'background:#EEF2FF;color:#3B6CF4',
+  'Документы'=> 'background:#FEF3C7;color:#D97706',
+  'Семья'    => 'background:#FCE7F3;color:#DB2777',
+  'Здоровье' => 'background:#ECFDF5;color:#059669',
+];
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Полезное — Poisq</title>
+<meta name="description" content="Статьи и гайды для русскоязычных за рубежом: документы, финансы, здоровье, семья.">
+<link rel="canonical" href="https://poisq.com/useful.php">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --primary:       #3B6CF4;
+  --primary-light: #EEF2FF;
+  --primary-dark:  #2952D9;
+  --text:          #0F172A;
+  --text-secondary:#64748B;
+  --text-light:    #94A3B8;
+  --bg:            #FFFFFF;
+  --bg-secondary:  #F8FAFC;
+  --border:        #E2E8F0;
+  --border-light:  #F1F5F9;
+  --success:       #10B981;
+  --warning:       #F59E0B;
+  --danger:        #EF4444;
+  --radius:        16px;
+  --radius-sm:     12px;
+  --radius-xs:     10px;
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.07);
+}
+html, body { min-height: 100%; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg-secondary);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+.app-container {
+  max-width: 430px; margin: 0 auto;
+  background: var(--bg);
+  min-height: 100vh; display: flex; flex-direction: column;
+}
+
+/* -- HEADER -- */
+.page-header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-light);
+}
+.header-top {
+  display: flex; align-items: center;
+  padding: 10px 14px; height: 56px; gap: 10px;
+}
+.header-logo { flex: 1; display: flex; justify-content: center; }
+.header-logo img { height: 36px; width: auto; object-fit: contain; }
+.header-actions { width: 84px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.btn-grid {
+  width: 38px; height: 38px; border-radius: var(--radius-xs); border: none;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.btn-grid svg { width: 18px; height: 18px; fill: var(--text-secondary); }
+.btn-grid:active { transform: scale(0.92); background: var(--primary); }
+.btn-grid:active svg { fill: white; }
+.btn-burger {
+  width: 38px; height: 38px; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; gap: 5px;
+  padding: 8px; cursor: pointer; background: none; border: none;
+  border-radius: var(--radius-xs); flex-shrink: 0;
+}
+.btn-burger span { display: block; width: 20px; height: 2px; background: var(--text-light); border-radius: 2px; transition: all 0.2s; }
+.btn-burger:active { background: var(--primary-light); }
+.btn-burger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); background: var(--text); }
+.btn-burger.active span:nth-child(2) { opacity: 0; }
+.btn-burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--text); }
+
+/* -- HERO -- */
+.page-hero {
+  padding: 20px 16px 0;
+  background: var(--bg);
+}
+.hero-title {
+  font-size: 22px; font-weight: 800; color: var(--text);
+  letter-spacing: -0.5px; margin-bottom: 4px;
+}
+.hero-sub {
+  font-size: 14px; color: var(--text-secondary); font-weight: 500;
+  line-height: 1.5; margin-bottom: 16px;
+}
+
+/* -- ФИЛЬТР -- */
+.filter-row {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 0 16px 16px; scrollbar-width: none;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-light);
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px; border-radius: 99px;
+  border: 1.5px solid var(--border);
+  background: var(--bg); color: var(--text-secondary);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+  font-family: inherit;
+}
+.filter-chip.active {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+}
+.filter-chip:active { transform: scale(0.94); }
+
+/* -- СПИСОК СТАТЕЙ -- */
+.articles-list {
+  flex: 1; padding: 12px 14px 24px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+/* -- КАРТОЧКА СТАТЬИ -- */
+.article-card {
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  transition: transform 0.12s, box-shadow 0.12s;
+  cursor: pointer;
+}
+.article-card:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+.article-thumb {
+  width: 110px; height: 110px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.article-thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.article-body {
+  flex: 1; padding: 11px 12px 10px;
+  display: flex; flex-direction: column; min-width: 0;
+}
+.article-meta {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+}
+.article-category {
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 99px;
+  letter-spacing: 0.1px; flex-shrink: 0;
+}
+.article-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: var(--text-light); flex-shrink: 0;
+}
+.article-read-time {
+  font-size: 11px; color: var(--text-light); font-weight: 600; white-space: nowrap;
+}
+.article-title {
+  font-size: 14.5px; font-weight: 800;
+  color: var(--text); line-height: 1.35;
+  letter-spacing: -0.2px; margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.article-excerpt {
+  font-size: 12.5px; color: var(--text-secondary);
+  line-height: 1.5; font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+.article-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 7px;
+}
+.article-date { font-size: 11px; color: var(--text-light); font-weight: 600; }
+.article-more {
+  display: flex; align-items: center; gap: 2px;
+  font-size: 12px; color: var(--primary); font-weight: 700;
+}
+.article-more svg {
+  width: 13px; height: 13px;
+  stroke: var(--primary); fill: none; stroke-width: 2.5;
+}
+
+/* -- FOOTER -- */
+.page-footer {
+  background: var(--bg); border-top: 1px solid var(--border-light);
+  padding: 14px 16px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px;
+}
+.footer-link {
+  font-size: 12px; color: var(--text-secondary);
+  text-decoration: none; font-weight: 500;
+}
+.footer-link.active { color: var(--primary); font-weight: 700; }
+.footer-link:active { color: var(--primary); }
+
+/* -- SIDE MENU -- */
+.side-menu-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  z-index: 399; display: none; backdrop-filter: blur(2px);
+}
+.side-menu-overlay.active { display: block; }
+.side-menu {
+  position: fixed; top: 0; right: -290px; width: 270px; height: 100vh;
+  background: var(--bg); z-index: 400;
+  transition: right 0.28s cubic-bezier(.4,0,.2,1);
+  box-shadow: -6px 0 32px rgba(0,0,0,0.12);
+  display: flex; flex-direction: column;
+  border-radius: 20px 0 0 20px;
+}
+.side-menu.active { right: 0; }
+.side-menu-header {
+  padding: 28px 20px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+.side-user-avatar {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 20px;
+  margin-bottom: 10px; overflow: hidden;
+}
+.side-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.side-user-name { font-size: 16px; font-weight: 800; color: var(--text); }
+.side-user-sub  { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; margin-top: 2px; }
+.side-menu-items { flex: 1; overflow-y: auto; padding: 8px 0; }
+.menu-item {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 20px; color: var(--text);
+  text-decoration: none; font-size: 15px; font-weight: 600;
+  transition: background 0.15s;
+}
+.menu-item:active { background: var(--bg-secondary); }
+.menu-item.active-page { color: var(--primary); }
+.menu-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.menu-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+.mi-blue   { background: var(--primary-light); color: var(--primary); }
+.mi-green  { background: #ECFDF5; color: #059669; }
+.mi-orange { background: #FFF7ED; color: #EA580C; }
+.mi-red    { background: #FEF2F2; color: var(--danger); }
+.mi-purple { background: #F5F3FF; color: #7C3AED; }
+.menu-divider { height: 1px; background: var(--border-light); margin: 6px 20px; }
+
+::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<div class="app-container">
+
+  <!-- ШАПКА -->
+  <header class="page-header">
+    <div class="header-top">
+      <div style="width:84px;"></div>
+      <div class="header-logo">
+        <a href="/index.php"><img src="/logo.png" alt="Poisq"></a>
+      </div>
+      <div class="header-actions">
+        <button class="btn-grid" onclick="window.location.href='/index.php'" aria-label="На главную">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
+        <button class="btn-burger" id="menuToggle" aria-label="Меню">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="page-hero">
+    <div class="hero-title">Полезное</div>
+    <div class="hero-sub">Гайды, советы и инструкции для жизни за рубежом</div>
+  </div>
+
+  <!-- ФИЛЬТР -->
+  <div class="filter-row">
+    <button class="filter-chip active" onclick="filterArticles('all', this)">Все</button>
+    <button class="filter-chip" onclick="filterArticles('Финансы', this)">?? Финансы</button>
+    <button class="filter-chip" onclick="filterArticles('Документы', this)">?? Документы</button>
+    <button class="filter-chip" onclick="filterArticles('Семья', this)">???????? Семья</button>
+    <button class="filter-chip" onclick="filterArticles('Здоровье', this)">?? Здоровье</button>
+  </div>
+
+  <!-- СПИСОК -->
+  <div class="articles-list" id="articlesList">
+    <?php foreach ($articles as $a):
+      $style = $categoryStyle[$a['category']] ?? 'background:#F1F5F9;color:#64748B';
+    ?>
+    <a class="article-card"
+       href="/article.php?id=<?php echo (int)$a['id']; ?>"
+       data-category="<?php echo htmlspecialchars($a['category']); ?>">
+      <div class="article-thumb">
+        <img src="<?php echo htmlspecialchars($a['photo']); ?>"
+             alt="<?php echo htmlspecialchars($a['title']); ?>"
+             loading="lazy"
+             onerror="this.src='https://via.placeholder.com/110x110?text=??'">
+      </div>
+      <div class="article-body">
+        <div class="article-meta">
+          <span class="article-category" style="<?php echo $style; ?>">
+            <?php echo htmlspecialchars($a['category']); ?>
+          </span>
+          <span class="article-dot"></span>
+          <span class="article-read-time"><?php echo htmlspecialchars($a['read_time']); ?></span>
+        </div>
+        <div class="article-title"><?php echo htmlspecialchars($a['title']); ?></div>
+        <div class="article-excerpt"><?php echo htmlspecialchars($a['excerpt']); ?></div>
+        <div class="article-footer">
+          <span class="article-date"><?php echo htmlspecialchars($a['date']); ?></span>
+          <span class="article-more">
+            Читать
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </span>
+        </div>
+      </div>
+    </a>
+    <?php endforeach; ?>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="page-footer">
+    <a href="/useful.php"  class="footer-link active">Полезное</a>
+    <a href="/help.php"    class="footer-link">Помощь</a>
+    <a href="/terms.php"   class="footer-link">Условия</a>
+    <a href="/about.php"   class="footer-link">О нас</a>
+    <a href="/contact.php" class="footer-link">Контакт</a>
+  </div>
+
+</div><!-- /app-container -->
+
+<!-- SIDE MENU -->
+<div class="side-menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="sideMenu">
+  <div class="side-menu-header">
+    <div class="side-user-avatar">
+      <?php if ($isLoggedIn && $userAvatar): ?>
+        <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="">
+      <?php elseif ($isLoggedIn): ?>
+        <?php echo $userInitial; ?>
+      <?php else: ?>
+        ??
+      <?php endif; ?>
+    </div>
+    <div class="side-user-name"><?php echo $isLoggedIn ? htmlspecialchars($userName) : 'Гость'; ?></div>
+    <div class="side-user-sub"><?php echo $isLoggedIn ? htmlspecialchars($_SESSION['user_email'] ?? '') : 'Войдите в аккаунт'; ?></div>
+  </div>
+  <div class="side-menu-items">
+    <?php if ($isLoggedIn): ?>
+    <a href="/profile.php" class="menu-item">
+      <div class="menu-icon mi-blue"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      Личный кабинет
+    </a>
+    <a href="/my-services.php" class="menu-item">
+      <div class="menu-icon mi-green"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg></div>
+      Мои сервисы
+    </a>
+    <?php endif; ?>
+    <a href="/add-service.php" class="menu-item">
+      <div class="menu-icon mi-orange"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      Добавить сервис
+    </a>
+    <a href="/useful.php" class="menu-item active-page">
+      <div class="menu-icon mi-purple"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      Полезное
+    </a>
+    <div class="menu-divider"></div>
+    <?php if ($isLoggedIn): ?>
+    <a href="/logout.php" class="menu-item">
+      <div class="menu-icon mi-red"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+      Выйти
+    </a>
+    <?php else: ?>
+    <a href="/login.php" class="menu-item">
+      <div class="menu-icon mi-blue"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
+      Войти
+    </a>
+    <a href="/register.php" class="menu-item">
+      <div class="menu-icon mi-green"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+      Регистрация
+    </a>
+    <?php endif; ?>
+  </div>
+</div>
+
+<script>
+const menuToggle  = document.getElementById('menuToggle');
+const sideMenu    = document.getElementById('sideMenu');
+const menuOverlay = document.getElementById('menuOverlay');
+menuToggle.addEventListener('click', toggleMenu);
+function toggleMenu() {
+  const open = sideMenu.classList.toggle('active');
+  menuOverlay.classList.toggle('active', open);
+  menuToggle.classList.toggle('active', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+function closeMenu() {
+  sideMenu.classList.remove('active');
+  menuOverlay.classList.remove('active');
+  menuToggle.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function filterArticles(category, btn) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.article-card').forEach(card => {
+    card.style.display = (category === 'all' || card.dataset.category === category) ? 'flex' : 'none';
+  });
+}
+</script>
+</body>
+</html>

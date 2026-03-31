@@ -1,0 +1,358 @@
+<?php
+// api/suggest.php — Подсказки поиска
+// Параметры: ?q=офт&country=fr&city_id=12&city_slug=marseille
+// city_id / city_slug — город юзера из геолокации → приоритет в подсказках
+
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+
+$q         = trim($_GET['q'] ?? '');
+$country   = preg_replace('/[^a-z]/', '', strtolower($_GET['country'] ?? 'fr'));
+$userCityId   = intval($_GET['city_id']   ?? 0);
+$userCitySlug = preg_replace('/[^a-z0-9-]/', '', strtolower($_GET['city_slug'] ?? ''));
+
+if (mb_strlen($q) < 2) {
+    echo json_encode([]);
+    exit;
+}
+
+require_once __DIR__ . '/../config/database.php';
+
+// ─────────────────────────────────────────────────────────
+// Гибридный поиск: FULLTEXT для слов 4+ букв, LIKE для коротких
+// ─────────────────────────────────────────────────────────
+function buildSearchCondition(string $text, array &$params, string $alias = 's'): string {
+    $words = preg_split('/\s+/', trim($text));
+    $words = array_filter($words, fn($w) => mb_strlen($w) >= 2);
+
+    if (empty($words)) {
+        $params[] = '%' . $text . '%';
+        $params[] = '%' . $text . '%';
+        $params[] = '%' . $text . '%';
+        $params[] = '%' . $text . '%';
+        return "($alias.name LIKE ? OR $alias.description LIKE ? OR $alias.category LIKE ? OR $alias.subcategory LIKE ?)";
+    }
+
+    $longWords  = array_filter($words, fn($w) => mb_strlen($w) >= 4);
+    $shortWords = array_filter($words, fn($w) => mb_strlen($w) < 4);
+
+    $parts = [];
+
+    if (!empty($longWords)) {
+        $ftQuery = implode(' ', array_map(fn($w) => '+' . $w . '*', $longWords));
+        $params[] = $ftQuery;
+        $params[] = $ftQuery;
+        $parts[] = "(MATCH($alias.name, $alias.description, $alias.category, $alias.subcategory) AGAINST (? IN BOOLEAN MODE)
+                    OR MATCH($alias.name, $alias.description, $alias.category, $alias.subcategory) AGAINST (? IN NATURAL LANGUAGE MODE))";
+    }
+
+    foreach ($shortWords as $sw) {
+        $params[] = '%' . $sw . '%';
+        $params[] = '%' . $sw . '%';
+        $params[] = '%' . $sw . '%';
+        $params[] = '%' . $sw . '%';
+        $parts[] = "($alias.name LIKE ? OR $alias.description LIKE ? OR $alias.category LIKE ? OR $alias.subcategory LIKE ?)";
+    }
+
+    return implode(' AND ', $parts);
+}
+
+try {
+    $pdo = getDbConnection();
+    $results = [];
+
+    // Разбиваем запрос на слова
+    $words = preg_split('/\s+/', mb_strtolower($q));
+    $detectedCity = null;
+    $searchWords  = $words;
+
+    // Проверяем каждое слово — не город ли это?
+    $stmtCityCheck = $pdo->prepare("
+        SELECT id, name, name_lat, country_code
+        FROM cities
+        WHERE status = 'active'
+          AND (LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ?)
+        ORDER BY is_capital DESC
+        LIMIT 1
+    ");
+    foreach ($words as $i => $word) {
+        if (mb_strlen($word) < 4) continue;
+        $stmtCityCheck->execute(['%' . $word . '%', '%' . $word . '%']);
+        $city = $stmtCityCheck->fetch(PDO::FETCH_ASSOC);
+        if ($city) {
+            $detectedCity = $city;
+            $searchWords  = array_filter($words, fn($k) => $k !== $i, ARRAY_FILTER_USE_KEY);
+            break;
+        }
+    }
+
+    $cleanQ = trim(implode(' ', $searchWords));
+
+    // ─────────────────────────────────────────────────────────
+    // 1. ИЩЕМ СЕРВИСЫ
+    //    Приоритет:
+    //    а) Если юзер явно написал город — ищем в нём
+    //    б) Если город не написан, но известен из геолокации —
+    //       сначала ищем в городе юзера, потом по всей стране
+    // ─────────────────────────────────────────────────────────
+    $matchedServices = [];
+
+    if ($detectedCity) {
+        // Юзер сам написал город в запросе
+        if (!empty($cleanQ)) {
+            $params = [$detectedCity['id']];
+            $searchCond = buildSearchCondition($cleanQ, $params);
+            $stmtSvc = $pdo->prepare("
+                SELECT DISTINCT s.id AS service_id, s.name AS service_name, s.city_id, s.photo,
+                       c.name AS city_name, c.name_lat AS city_slug, s.country_code
+                FROM services s
+                LEFT JOIN cities c ON s.city_id = c.id
+                WHERE s.status = 'approved'
+                  AND s.is_visible = 1
+                  AND s.city_id = ?
+                  AND $searchCond
+                ORDER BY s.views DESC
+                LIMIT 8
+            ");
+            $stmtSvc->execute($params);
+        } else {
+            $stmtSvc = $pdo->prepare("
+                SELECT DISTINCT s.name AS service_name, s.city_id,
+                       c.name AS city_name, c.name_lat AS city_slug, s.country_code
+                FROM services s
+                LEFT JOIN cities c ON s.city_id = c.id
+                WHERE s.status = 'approved'
+                  AND s.is_visible = 1
+                  AND s.city_id = ?
+                ORDER BY s.views DESC
+                LIMIT 8
+            ");
+            $stmtSvc->execute([$detectedCity['id']]);
+        }
+        $matchedServices = $stmtSvc->fetchAll(PDO::FETCH_ASSOC);
+
+    } elseif ($userCityId > 0) {
+        // Город не написан, но известен из геолокации
+        // Сначала ищем в городе юзера (до 5 результатов)
+        $paramsCity = [$userCityId];
+        $searchCondCity = buildSearchCondition($cleanQ ?: $q, $paramsCity);
+        $stmtCity = $pdo->prepare("
+            SELECT DISTINCT s.id AS service_id, s.name AS service_name, s.city_id, s.photo,
+                   c.name AS city_name, c.name_lat AS city_slug, s.country_code,
+                   1 AS priority
+            FROM services s
+            LEFT JOIN cities c ON s.city_id = c.id
+            WHERE s.status = 'approved'
+              AND s.is_visible = 1
+              AND s.city_id = ?
+              AND $searchCondCity
+            ORDER BY s.views DESC
+            LIMIT 5
+        ");
+        $stmtCity->execute($paramsCity);
+        $cityResults = $stmtCity->fetchAll(PDO::FETCH_ASSOC);
+
+        // Затем ищем по всей стране (до 5, исключая уже найденные)
+        $paramsCountry = [];
+        $searchCondCountry = buildSearchCondition($cleanQ ?: $q, $paramsCountry);
+        $paramsCountry[] = $country;
+
+        // Исключаем city_id юзера чтобы не дублировать
+        $stmtCountry = $pdo->prepare("
+            SELECT DISTINCT s.id AS service_id, s.name AS service_name, s.city_id, s.photo,
+                   c.name AS city_name, c.name_lat AS city_slug, s.country_code,
+                   0 AS priority
+            FROM services s
+            LEFT JOIN cities c ON s.city_id = c.id
+            WHERE s.status = 'approved'
+              AND s.is_visible = 1
+              AND s.city_id != $userCityId
+              AND $searchCondCountry
+            ORDER BY
+              s.country_code = ? DESC,
+              s.views DESC
+            LIMIT 5
+        ");
+        $stmtCountry->execute($paramsCountry);
+        $countryResults = $stmtCountry->fetchAll(PDO::FETCH_ASSOC);
+
+        // Объединяем: сначала город юзера, потом остальные
+        $matchedServices = array_merge($cityResults, $countryResults);
+
+    } else {
+        // Город неизвестен — ищем по стране
+        $params = [];
+        $searchCond = buildSearchCondition($cleanQ ?: $q, $params);
+        $params[] = $country;
+
+        $stmtSvc = $pdo->prepare("
+            SELECT DISTINCT s.id AS service_id, s.name AS service_name, s.city_id, s.photo,
+                   c.name AS city_name, c.name_lat AS city_slug, s.country_code,
+                   0 AS priority
+            FROM services s
+            LEFT JOIN cities c ON s.city_id = c.id
+            WHERE s.status = 'approved'
+              AND s.is_visible = 1
+              AND $searchCond
+            ORDER BY
+              s.country_code = ? DESC,
+              s.views DESC
+            LIMIT 8
+        ");
+        $stmtSvc->execute($params);
+        $matchedServices = $stmtSvc->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 2. Подсказки городов по последнему слову
+    //    "офт мар" → "офтальмолог • Марсель", "офт • Мадрид"
+    // ─────────────────────────────────────────────────────────
+    $citySuggestions = [];
+    if (!$detectedCity && mb_strlen($q) >= 2) {
+        $lastWord = end($words);
+        if (mb_strlen($lastWord) >= 2) {
+            $stmtCities = $pdo->prepare("
+                SELECT id, name, name_lat, country_code
+                FROM cities
+                WHERE (name LIKE ? OR name_lat LIKE ?)
+                  AND status = 'active'
+                ORDER BY
+                  country_code = ? DESC,
+                  is_capital DESC,
+                  name ASC
+                LIMIT 3
+            ");
+            $stmtCities->execute(['%' . $lastWord . '%', '%' . $lastWord . '%', $country]);
+            $citySuggestions = $stmtCities->fetchAll(PDO::FETCH_ASSOC);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 2б. ПОИСК ПО СТРАНАМ
+    // ─────────────────────────────────────────────────────────
+    $countryNames = [
+        'fr'=>['франция','france'],'de'=>['германия','germany','deutschland'],
+        'es'=>['испания','spain'],'it'=>['италия','italy'],
+        'gb'=>['англия','великобритания','england','britain'],
+        'us'=>['сша','америка','usa'],'ca'=>['канада','canada'],
+        'au'=>['австралия','australia'],
+        'ch'=>['швейцария','швейцарии','швейцарию','switzerland','suisse'],
+        'at'=>['австрия','австрии','austria'],'be'=>['бельгия','belgium'],
+        'nl'=>['нидерланды','голландия','netherlands'],
+        'pt'=>['португалия','portugal'],'gr'=>['греция','greece'],
+        'pl'=>['польша','poland'],'cz'=>['чехия','czech'],
+        'se'=>['швеция','sweden'],'no'=>['норвегия','norway'],
+        'dk'=>['дания','denmark'],'fi'=>['финляндия','finland'],
+        'ie'=>['ирландия','ireland'],'nz'=>['новая зеландия','new zealand'],
+        'ae'=>['оаэ','дубай','dubai','uae'],'il'=>['израиль','israel'],
+        'tr'=>['турция','turkey'],'th'=>['таиланд','thailand'],
+        'jp'=>['япония','japan'],'kr'=>['корея','korea'],
+        'sg'=>['сингапур','singapore'],'hk'=>['гонконг','hong kong'],
+        'mx'=>['мексика','mexico'],'br'=>['бразилия','brazil'],
+        'ar'=>['аргентина','argentina'],'cl'=>['чили','chile'],
+        'co'=>['колумбия','colombia'],'za'=>['юар','south africa'],
+        'ru'=>['россия','russia'],'ua'=>['украина','украины','ukraine'],
+        'by'=>['беларусь','белоруссия','belarus'],'kz'=>['казахстан','kazakhstan'],
+        'cy'=>['кипр','кипре','cyprus'],
+    ];
+    $detectedSearchCountry = null;
+    $wordsLower = array_map('mb_strtolower', $words);
+    foreach ($countryNames as $code => $aliases) {
+        foreach ($aliases as $alias) {
+            foreach ($wordsLower as $wi => $word) {
+                if (mb_strpos($alias, $word) !== false && mb_strlen($word) >= 4) {
+                    $detectedSearchCountry = $code;
+                    $searchWords = array_filter($words, fn($k) => $k !== $wi, ARRAY_FILTER_USE_KEY);
+                    $cleanQ = trim(implode(' ', $searchWords));
+                    break 3;
+                }
+            }
+        }
+    }
+    if ($detectedSearchCountry && !$detectedCity && !empty($cleanQ)) {
+        $paramsC = [];
+        $searchCondC = buildSearchCondition($cleanQ, $paramsC);
+        $paramsC[] = $detectedSearchCountry;
+        $stmtC = $pdo->prepare("
+            SELECT DISTINCT s.id AS service_id, s.name AS service_name, s.city_id, s.photo,
+                   c.name AS city_name, c.name_lat AS city_slug, s.country_code,
+                   0 AS priority
+            FROM services s
+            LEFT JOIN cities c ON s.city_id = c.id
+            WHERE s.status = 'approved'
+              AND s.is_visible = 1
+              AND s.country_code = ?
+              AND \$searchCondC
+            ORDER BY s.views DESC
+            LIMIT 8
+        ");
+        $stmtC->execute($paramsC);
+        $matchedServices = $stmtC->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 3. ФОРМИРУЕМ РЕЗУЛЬТАТ
+    // ─────────────────────────────────────────────────────────
+    $seen = [];
+
+    foreach ($matchedServices as $svc) {
+        $key = mb_strtolower($svc['service_name']) . '_' . $svc['city_id'];
+        if (isset($seen[$key])) continue;
+        $seen[$key] = true;
+
+        $text = $svc['service_name'];
+        if ($svc['city_name']) $text .= ' • ' . $svc['city_name'];
+
+        $photo = null;
+        if (!empty($svc['photo'])) {
+            $photos = json_decode($svc['photo'], true);
+            if (is_array($photos) && !empty($photos[0])) {
+                $photo = $photos[0];
+            } elseif (is_string($svc['photo']) && strpos($svc['photo'], '/') !== false) {
+                $photo = $svc['photo'];
+            }
+        }
+
+        $results[] = [
+            'type'       => 'service',
+            'text'       => $text,
+            'q'          => $svc['service_name'],
+            'city_id'    => $svc['city_id'] ? (int)$svc['city_id'] : null,
+            'city_slug'  => $svc['city_slug'] ? strtolower($svc['city_slug']) : null,
+            'country'    => $svc['country_code'],
+            'photo'      => $photo,
+            'service_id' => isset($svc['service_id']) ? (int)$svc['service_id'] : null,
+        ];
+    }
+
+    foreach ($citySuggestions as $city) {
+        $queryWithoutLast = trim(implode(' ', array_slice($words, 0, -1)));
+        if ($queryWithoutLast) {
+            $results[] = [
+                'type'      => 'city_query',
+                'text'      => $queryWithoutLast . ' • ' . $city['name'],
+                'q'         => $queryWithoutLast,
+                'city_id'   => (int)$city['id'],
+                'city_slug' => $city['name_lat'] ? strtolower($city['name_lat']) : null,
+                'country'   => $city['country_code'],
+            ];
+        } else {
+            $results[] = [
+                'type'      => 'city_query',
+                'text'      => $city['name'],
+                'q'         => '',
+                'city_id'   => (int)$city['id'],
+                'city_slug' => $city['name_lat'] ? strtolower($city['name_lat']) : null,
+                'country'   => $city['country_code'],
+            ];
+        }
+    }
+
+    $results = array_slice($results, 0, 8);
+    echo json_encode($results, JSON_UNESCAPED_UNICODE);
+
+} catch (PDOException $e) {
+    error_log('Suggest API Error: ' . $e->getMessage());
+    echo json_encode([]);
+}
+?>

@@ -1,0 +1,16 @@
+
+RewriteEngine On
+RewriteBase /
+
+# Реальные файлы и папки не трогаем
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ЧПУ роутинг
+RewriteRule ^article/([a-z]{2,3})/([a-z0-9-]+)/?$ /article.php?country=$1&slug=$2 [L,QSA]
+RewriteRule ^service/(\d+)(?:-[^/]*)?/?$ /service.php?id=$1 [L,QSA]
+RewriteRule ^([a-z]{2})/?$ /results.php?country=$1 [L,QSA]
+RewriteRule ^([a-z]{2})/([a-z][a-z0-9-]*)/?$ /results.php?country=$1&city_slug=$2 [L,QSA]
+RewriteRule ^([a-z]{2})/([a-z][a-z0-9-]*)/(.+)$ /results.php?country=$1&city_slug=$2&q=$3 [L,QSA,B]
+RewriteRule ^([a-z]{2})/([^/]+)$ /results.php?country=$1&q=$2 [L,QSA,B]

@@ -1,0 +1,10 @@
+AuthType Basic
+AuthName "Poisq Admin"
+AuthUserFile /home/mike/web/poisq.com/public_html/panel-5588/.htpasswd
+Require valid-user
+
+RewriteEngine On
+RewriteBase /panel-5588/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
