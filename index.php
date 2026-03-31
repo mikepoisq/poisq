@@ -1162,7 +1162,28 @@ function clearHistory() {
   renderSoContent('');
 }
 
+function hideKeyboard() {
+  soInput.blur();
+  document.activeElement && document.activeElement.blur();
+  // Хак для Android — создаём временный input вне экрана
+  const tmp = document.createElement('input');
+  tmp.setAttribute('type', 'text');
+  tmp.setAttribute('readonly', 'readonly');
+  tmp.style.cssText = 'position:fixed;top:-100px;left:-100px;width:1px;height:1px;opacity:0;';
+  document.body.appendChild(tmp);
+  tmp.focus();
+  tmp.blur();
+  setTimeout(function() { document.body.removeChild(tmp); }, 300);
+  // Хак для Opera Android
+  if (/OPR|Opera/i.test(navigator.userAgent)) {
+    setTimeout(function() {
+      window.scrollTo(0, window.scrollY + 1);
+      window.scrollTo(0, window.scrollY - 1);
+    }, 50);
+  }
+}
 function closeSearchOverlay() {
+  hideKeyboard();
   searchOverlay.classList.remove('active');
   document.body.style.overflow = '';
   soInput.value = '';
@@ -1325,19 +1346,21 @@ function soGoTo(i) {
   if (!s) return;
   if (s.q) saveHistory(sanitizeQuery(s.q));
   closeSearchOverlay();
-  // Пересобираем URL с очищенным запросом
-  if (s.q) {
-    const clean = sanitizeQuery(s.q);
-    const c = s.country || localStorage.getItem('poisq_country') || 'fr';
-    const citySlug = s.city_slug || '';
-    if (citySlug) {
-      window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean);
+  // Небольшая задержка чтобы Android успел скрыть клавиатуру
+  setTimeout(function() {
+    if (s.q) {
+      const clean = sanitizeQuery(s.q);
+      const c = s.country || localStorage.getItem('poisq_country') || 'fr';
+      const citySlug = s.city_slug || '';
+      if (citySlug) {
+        window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean);
+      } else {
+        window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+      }
     } else {
-      window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+      window.location.href = s.url;
     }
-  } else {
-    window.location.href = s.url;
-  }
+  }, 100);
 }
 
 // Обычный поиск (по Enter или тег без city_id)
