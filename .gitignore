@@ -1,8 +1,16 @@
-# Загруженные файлы пользователей
+# Загруженные файлы
 uploads/
-# Временные файлы
-*.backup
+# Логи
+error_log
 *.log
-*.tmp
-# Конфиги с паролями (осторожно!)
-# config/database.php
+api/error_log
+# Бэкапы
+*.backup
+*.bak
+*.bak2
+*.bak3
+*.bak4
+*.save
+# Конфиги с паролями
+config/database.php
+config/email.php
