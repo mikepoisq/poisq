@@ -187,22 +187,20 @@ try {
         $userEmail = $_SESSION['user_email'] ?? '';
         $userName  = $_SESSION['user_name']  ?? 'Пользователь';
 
-        $emailSubject = "Сообщение от пользователя: {$subject}";
-        $emailBody = "
-        <div style='font-family:sans-serif;max-width:600px;margin:0 auto;padding:30px;'>
-          <h2 style='color:#3B6CF4;'>Новое сообщение от пользователя</h2>
-          <table style='width:100%;border-collapse:collapse;margin:16px 0;'>
-            <tr><td style='padding:8px 0;color:#64748B;font-size:14px;width:120px;'>От:</td><td style='font-weight:600;'>" . htmlspecialchars($userName) . " &lt;" . htmlspecialchars($userEmail) . "&gt;</td></tr>
-            <tr><td style='padding:8px 0;color:#64748B;font-size:14px;'>ID:</td><td>" . $userId . "</td></tr>
-            <tr><td style='padding:8px 0;color:#64748B;font-size:14px;'>Тема:</td><td style='font-weight:600;'>" . htmlspecialchars($subject) . "</td></tr>
-          </table>
-          <div style='background:#F8FAFC;border-radius:12px;padding:20px;border-left:4px solid #3B6CF4;'>
-            <p style='margin:0;line-height:1.6;'>" . nl2br(htmlspecialchars($message)) . "</p>
-          </div>
-        </div>";
-
-        // Отправляем на admin email напрямую через PHPMailer
-        $adminEmail = 'admin@poisq.com';
+        $emailSubject = "РЎРѕРѕР±С‰РµРЅРёРµ РѕС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ: " . $subject;
+        $emailBody = "<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:30px;\">"
+            . "<h2 style=\"color:#3B6CF4;\">" . "\xd0\x9d\xd0\xbe\xd0\xb2\xd0\xbe\xd0\xb5 \xd1\x81\xd0\xbe\xd0\xbe\xd0\xb1\xd1\x89\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xbe\xd1\x82 \xd0\xbf\xd0\xbe\xd0\xbb\xd1\x8c\xd0\xb7\xd0\xbe\xd0\xb2\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8f" . "</h2>"
+            . "<table style=\"width:100%;border-collapse:collapse;margin:16px 0;\">"
+            . "<tr><td style=\"padding:8px 0;color:#64748B;font-size:14px;width:80px;\">" . "\xd0\x9e\xd1\x82:" . "</td>"
+            . "<td style=\"font-weight:600;\">" . htmlspecialchars($userName) . " &lt;" . htmlspecialchars($userEmail) . "&gt;</td></tr>"
+            . "<tr><td style=\"padding:8px 0;color:#64748B;font-size:14px;\">ID:</td><td>" . $userId . "</td></tr>"
+            . "<tr><td style=\"padding:8px 0;color:#64748B;font-size:14px;\">" . "\xd0\xa2\xd0\xb5\xd0\xbc\xd0\xb0:" . "</td>"
+            . "<td style=\"font-weight:600;\">" . htmlspecialchars($subject) . "</td></tr>"
+            . "</table>"
+            . "<div style=\"background:#F8FAFC;border-radius:12px;padding:20px;border-left:4px solid #3B6CF4;\">"
+            . "<p style=\"margin:0;line-height:1.6;\">" . nl2br(htmlspecialchars($message)) . "</p>"
+            . "</div></div>";
+        $adminEmail = 'support@poisq.com';
         try {
             require_once __DIR__ . '/../phpmailer/Exception.php';
             require_once __DIR__ . '/../phpmailer/PHPMailer.php';
@@ -217,12 +215,14 @@ try {
             $mailer->Port       = SMTP_PORT;
             $mailer->CharSet    = 'UTF-8';
             $mailer->SMTPAutoTLS = false;
+            $mailer->SMTPOptions = ["ssl" => ["verify_peer" => false, "verify_peer_name" => false, "allow_self_signed" => true]];
+            $mailer->Encoding = "base64";
             $mailer->Timeout    = 30;
             $mailer->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
             $mailer->addAddress($adminEmail, 'Admin Poisq');
             $mailer->addReplyTo($userEmail, $userName);
             $mailer->isHTML(true);
-            $mailer->Subject = '=?UTF-8?B?' . base64_encode($emailSubject) . '?=';
+            $mailer->Subject = $emailSubject;
             $mailer->Body    = $emailBody;
             $mailer->send();
             $sent = true;
@@ -239,6 +239,24 @@ try {
     }
 
     echo json_encode(['success' => false, 'error' => 'Неизвестное действие']);
+
+
+    // ============================================
+    // РЎРћРҐР РђРќР•РќРР• Р“РћР РћР”Рђ РџРћР›Р¬Р—РћР’РђРўР•Р›РЇ
+    // ============================================
+    if ($action === 'save_city') {
+        $cityId = intval($_POST['city_id'] ?? 0);
+        if ($cityId <= 0) {
+            echo json_encode(['success' => false, 'error' => 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РіРѕСЂРѕРґ']); exit;
+        }
+        $stmt = $pdo->prepare("SELECT id FROM cities WHERE id = ?");
+        $stmt->execute([$cityId]);
+        if (!$stmt->fetch()) {
+            echo json_encode(['success' => false, 'error' => 'Р“РѕСЂРѕРґ РЅРµ РЅР°Р№РґРµРЅ']); exit;
+        }
+        $pdo->prepare("UPDATE users SET city_id = ? WHERE id = ?")->execute([$cityId, $userId]);
+        echo json_encode(['success' => true]); exit;
+    }
 
 } catch (PDOException $e) {
     error_log('update-profile.php error: ' . $e->getMessage());

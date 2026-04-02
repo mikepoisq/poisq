@@ -30,19 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Отправка письма через PHPMailer
         $sent = false;
         try {
-            require_once __DIR__ . '/phpmailer/phpmailer_phpmailer.php';
-            require_once __DIR__ . '/phpmailer/phpmailer_smtp.php';
-            require_once __DIR__ . '/phpmailer/phpmailer_exception.php';
+            require_once __DIR__ . '/config/email.php';
+            require_once __DIR__ . '/phpmailer/PHPMailer.php';
+            require_once __DIR__ . '/phpmailer/SMTP.php';
+            require_once __DIR__ . '/phpmailer/Exception.php';
 
             $mail = new PHPMailer\PHPMailer\PHPMailer(true);
             $mail->isSMTP();
-            $mail->Host       = 'mail.poisq.com';
-            $mail->SMTPAuth   = true;
-            $mail->Username   = 'noreply@poisq.com';
-            $mail->Password   = defined('SMTP_PASS') ? SMTP_PASS : '';
-            $mail->SMTPSecure = 'ssl';
-            $mail->Port       = 465;
-            $mail->CharSet    = 'UTF-8';
+            $mail->Host        = SMTP_HOST;
+            $mail->SMTPAuth    = true;
+            $mail->Username    = SMTP_USER;
+            $mail->Password    = SMTP_PASS;
+            $mail->SMTPSecure  = SMTP_SECURE;
+            $mail->Port        = SMTP_PORT;
+            $mail->CharSet     = 'UTF-8';
+            $mail->Encoding    = 'base64';
+            $mail->SMTPAutoTLS = false;
+            $mail->SMTPOptions = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true]];
+            $mail->Timeout     = 30;
 
             $mail->setFrom('noreply@poisq.com', 'Poisq');
             $mail->addAddress('support@poisq.com', 'Poisq Support');

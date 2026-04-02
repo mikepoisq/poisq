@@ -34,11 +34,12 @@ try {
     $slotsLeft = max(0, $maxSlots - $slotsUsed);
 
     // Настройки уведомлений пользователя
-    $stmtNotif = $pdo->prepare("SELECT notify_new_services, notify_views_freq FROM users WHERE id = ?");
+    $stmtNotif = $pdo->prepare("SELECT notify_new_services, notify_views_freq, city_id FROM users WHERE id = ?");
     $stmtNotif->execute([$_SESSION['user_id']]);
     $notifRow = $stmtNotif->fetch();
     $notifyNewServices = $notifRow['notify_new_services'] ?? 0;
     $notifyViewsFreq   = $notifRow['notify_views_freq']   ?? 'off';
+    $userCityId        = $notifRow['city_id']             ?? null;
 
     // Количество избранных сервисов
     $favCount = 0;
@@ -1041,6 +1042,29 @@ body {
 .wa-btn:active { opacity: 0.85; transform: scale(0.98); }
 .wa-btn svg { width: 22px; height: 22px; fill: white; }
 
+
+/* ══ City picker в уведомлениях ══ */
+.city-picker {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+  margin: -8px 0 12px 0;
+  border: 1px solid var(--border-light);
+}
+.notif-select {
+  flex: 1; width: 100%;
+  padding: 9px 32px 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-size: 13px; font-weight: 600; color: var(--text);
+  background: var(--bg); outline: none;
+  font-family: "Manrope", sans-serif;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  transition: border-color 0.15s; cursor: pointer;
+}
+.notif-select:focus { border-color: var(--primary); }
 </style>
 </head>
 <body>
@@ -1429,9 +1453,30 @@ body {
         </div>
         <label class="toggle">
           <input type="checkbox" id="toggleNewServices" <?php echo $notifyNewServices ? 'checked' : ''; ?>
-            onchange="saveNotifSetting('new_services', this.checked)">
+            onchange="toggleNewServicesNotif(this.checked)">
           <div class="toggle-track"><div class="toggle-thumb"></div></div>
         </label>
+      </div>
+
+      <!-- Выбор города для уведомлений -->
+      <div class="city-picker" id="cityPickerWrap" style="display:none;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <select id="notifCountrySelect" class="notif-select" onchange="loadNotifCities()">
+            <option value="">Выберите страну...</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="notifCitySelect" class="notif-select">
+            <option value="">Выберите город...</option>
+          </select>
+          <span id="citySaveStatus" style="font-size:12px;color:var(--success);display:none;">✓</span>
+        </div>
+        <button onclick="saveNotifCity()" id="saveCityBtn"
+          style="margin-top:10px;width:100%;padding:11px;border-radius:8px;border:none;
+                 background:var(--primary);color:white;font-size:14px;font-weight:700;
+                 font-family:inherit;cursor:pointer;transition:opacity 0.15s;">
+          Сохранить город
+        </button>
       </div>
 
       <!-- Уведомление 2: Просмотры -->
@@ -2244,6 +2289,124 @@ document.getElementById('selectViewsFreq')?.addEventListener('change', function(
 });
 
 // ══════════════════════════════════════════════
+// УВЕДОМЛЕНИЯ — ВЫБОР ГОРОДА
+// ══════════════════════════════════════════════
+
+const COUNTRIES = {
+  "fr":"Франция","de":"Германия","es":"Испания","it":"Италия","gb":"Великобритания",
+  "us":"США","ca":"Канада","au":"Австралия","nl":"Нидерланды","be":"Бельгия",
+  "ch":"Швейцария","at":"Австрия","pt":"Португалия","gr":"Греция","pl":"Польша",
+  "cz":"Чехия","se":"Швеция","no":"Норвегия","dk":"Дания","fi":"Финляндия",
+  "ie":"Ирландия","nz":"Новая Зеландия","ae":"ОАЭ","il":"Израиль","tr":"Турция",
+  "th":"Таиланд","jp":"Япония","kr":"Южная Корея","sg":"Сингапур","hk":"Гонконг",
+  "mx":"Мексика","br":"Бразилия","ar":"Аргентина","cl":"Чили","co":"Колумбия",
+  "za":"ЮАР","ru":"Россия","ua":"Украина","by":"Беларусь","kz":"Казахстан"
+};
+
+// Текущий city_id пользователя из БД
+let currentUserCityId = <?php echo json_encode($userCityId ?? null); ?>;
+
+async function toggleNewServicesNotif(checked) {
+  // Показываем/скрываем выбор города
+  const wrap = document.getElementById("cityPickerWrap");
+  wrap.style.display = checked ? "block" : "none";
+
+  // Сохраняем настройку
+  await saveNotifSetting("new_services", checked);
+
+  // Если включили — загружаем страны и города
+  if (checked) {
+    await initCityPicker();
+  }
+}
+
+async function initCityPicker() {
+  const countrySelect = document.getElementById("notifCountrySelect");
+
+  // Заполняем страны
+  countrySelect.innerHTML = "<option value=\"\">Выберите страну...</option>";
+  for (const [code, name] of Object.entries(COUNTRIES)) {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = name;
+    countrySelect.appendChild(opt);
+  }
+
+  // Определяем страну по IP
+  try {
+    const r = await fetch("api/get-user-country.php");
+    const d = await r.json();
+    const code = d.country_code || "fr";
+    countrySelect.value = code;
+    await loadNotifCities();
+  } catch(e) {
+    countrySelect.value = "fr";
+    await loadNotifCities();
+  }
+}
+
+async function loadNotifCities() {
+  const country = document.getElementById("notifCountrySelect").value;
+  const citySelect = document.getElementById("notifCitySelect");
+
+  if (!country) return;
+
+  citySelect.innerHTML = "<option value=\"\">Загрузка...</option>";
+
+  try {
+    const r = await fetch("api/get-cities.php?country=" + country);
+    const cities = await r.json();
+
+    citySelect.innerHTML = "<option value=\"\">Выберите город...</option>";
+    cities.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name + (c.is_capital == 1 ? " (столица)" : "");
+      citySelect.appendChild(opt);
+    });
+
+    // Если у пользователя уже сохранён город — выбираем его
+    if (currentUserCityId) {
+      citySelect.value = currentUserCityId;
+    }
+  } catch(e) {
+    citySelect.innerHTML = "<option value=\"\">Ошибка загрузки</option>";
+  }
+}
+
+async function saveNotifCity() {
+  const cityId = document.getElementById("notifCitySelect").value;
+  const status = document.getElementById("citySaveStatus");
+  if (!cityId) return;
+
+  try {
+    const fd = new FormData();
+    fd.append("action", "save_city");
+    fd.append("city_id", cityId);
+    const res = await fetch("api/update-profile.php", { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.success) {
+      currentUserCityId = parseInt(cityId);
+      status.style.display = "inline";
+      setTimeout(() => status.style.display = "none", 2000);
+      showToast("Город сохранён ✓");
+    } else {
+      showToast("Ошибка: " + (data.error || "неизвестная"));
+    }
+  } catch(e) {
+    showToast("Ошибка соединения");
+  }
+}
+
+// Инициализация при открытии шторки — если уведомления уже включены
+document.addEventListener("DOMContentLoaded", function() {
+  const toggle = document.getElementById("toggleNewServices");
+  if (toggle && toggle.checked) {
+    initCityPicker();
+  }
+});
+
+// ══════════════════════════════════════════════
 // АККОРДЕОН
 // ══════════════════════════════════════════════
 function toggleAccord(id) {
@@ -2362,6 +2525,29 @@ async function sendContactMessage() {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
+
+/* ══ City picker в уведомлениях ══ */
+.city-picker {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+  margin: -8px 0 12px 0;
+  border: 1px solid var(--border-light);
+}
+.notif-select {
+  flex: 1; width: 100%;
+  padding: 9px 32px 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-size: 13px; font-weight: 600; color: var(--text);
+  background: var(--bg); outline: none;
+  font-family: "Manrope", sans-serif;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  transition: border-color 0.15s; cursor: pointer;
+}
+.notif-select:focus { border-color: var(--primary); }
 </style>
 <script>
 function openSlotsModal() {
