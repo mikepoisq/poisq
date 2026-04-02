@@ -10,6 +10,18 @@ $isLoggedIn  = isset($_SESSION['user_id']);
 $userName    = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
 $userAvatar  = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
+
+// Проверка слотов
+$slotsLeft = 3;
+if ($isLoggedIn) {
+    try {
+        require_once __DIR__ . '/config/database.php';
+        $pdo = getDbConnection();
+        $st = $pdo->prepare("SELECT COUNT(*) FROM services WHERE user_id = ? AND status = 'approved'");
+        $st->execute([$_SESSION['user_id']]);
+        $slotsLeft = max(0, 3 - (int)$st->fetchColumn());
+    } catch (Exception $e) { $slotsLeft = 3; }
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -298,9 +310,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
         <a href="/"><img src="/logo.png" alt="Poisq" onerror="this.style.display='none'"></a>
       </div>
       <div style="width:84px;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+        <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
+        <button class="btn-add" onclick="openSlotsModal()" aria-label="Добавить сервис">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <?php else: ?>
         <a href="<?php echo $isLoggedIn ? '/add-service.php' : '/register.php'; ?>" class="btn-add" aria-label="Добавить сервис">
           <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </a>
+        <?php endif; ?>
         <button class="btn-burger" id="menuToggle" aria-label="Меню">
           <span></span><span></span><span></span>
         </button>
@@ -484,7 +502,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
       Мои сервисы
     </a>
     <?php endif; ?>
-    <a href="/add-service.php" class="menu-item">
+    <a href="<?php echo ($isLoggedIn && $slotsLeft <= 0) ? '#' : '/add-service.php'; ?>" class="menu-item" <?php if ($isLoggedIn && $slotsLeft <= 0): ?>onclick="openSlotsModal(); return false;"<?php endif; ?>>
       <div class="menu-icon mi-orange"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
       Добавить сервис
     </a>
@@ -627,5 +645,27 @@ function annErr(t, p) {
   return '<div class="ann-empty"><div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>' + t + '</h3><p>' + p + '</p></div>';
 }
 </script>
+<?php if ($isLoggedIn && $slotsLeft <= 0): ?>
+<div id="slotsModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;width:100%;max-width:430px;border-radius:24px 24px 0 0;padding:32px 24px 40px;animation:slideUpSlots 0.3s ease-out;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:#FEF2F2;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#EF4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div style="font-size:19px;font-weight:700;color:#1F2937;margin-bottom:8px;">Все слоты заняты</div>
+      <div style="font-size:14px;color:#6B7280;line-height:1.6;">Вы разместили максимальное количество сервисов (3 из 3).<br>Удалите один из существующих, чтобы добавить новый.</div>
+    </div>
+    <div style="background:#F0FDF4;border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#065F46;line-height:1.5;">💡 Перейдите в <strong>«Мои сервисы»</strong>, чтобы удалить или управлять сервисами</div>
+    <a href="/my-services.php" style="display:block;width:100%;padding:14px;background:#3B6CF4;color:white;border-radius:12px;text-align:center;font-size:15px;font-weight:600;text-decoration:none;margin-bottom:10px;">Перейти в Мои сервисы</a>
+    <button onclick="closeSlotsModal()" style="display:block;width:100%;padding:14px;background:#F3F4F6;color:#374151;border-radius:12px;border:none;font-size:15px;cursor:pointer;">Закрыть</button>
+  </div>
+</div>
+<style>@keyframes slideUpSlots{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>
+<script>
+function openSlotsModal(){document.getElementById("slotsModal").style.display="flex";document.body.style.overflow="hidden";}
+function closeSlotsModal(){document.getElementById("slotsModal").style.display="none";document.body.style.overflow="";}
+document.getElementById("slotsModal").addEventListener("click",function(e){if(e.target===this)closeSlotsModal();});
+</script>
+<?php endif; ?>
 </body>
 </html>
