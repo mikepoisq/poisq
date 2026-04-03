@@ -55,6 +55,33 @@ try {
 
         $pdo->prepare("UPDATE services SET status = 'pending', moderation_comment = NULL, updated_at = NOW() WHERE id = ? AND user_id = ?")->execute([$serviceId, $userId]);
 
+        // Отправляем уведомление администратору
+        try {
+            $info = $pdo->prepare("
+                SELECT s.name, s.category, c.name AS city_name, u.name AS owner_name, u.email AS owner_email
+                FROM services s
+                LEFT JOIN cities c ON s.city_id = c.id
+                LEFT JOIN users u ON s.user_id = u.id
+                WHERE s.id = ?
+            ");
+            $info->execute([$serviceId]);
+            $svcInfo = $info->fetch(PDO::FETCH_ASSOC);
+
+            if ($svcInfo) {
+                require_once __DIR__ . '/../config/email.php';
+                sendAdminModerationEmail(
+                    $serviceId,
+                    $svcInfo['name'],
+                    $svcInfo['category'] ?? '—',
+                    $svcInfo['city_name'] ?? '—',
+                    $svcInfo['owner_name'] ?? '—',
+                    $svcInfo['owner_email'] ?? '—'
+                );
+            }
+        } catch (Exception $e) {
+            error_log('Moderation notify error: ' . $e->getMessage());
+        }
+
         echo json_encode(['success' => true, 'message' => 'Сервис отправлен на модерацию']);
         exit;
     }
