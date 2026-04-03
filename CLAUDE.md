@@ -18,8 +18,8 @@ php /panel-5588/reindex.php
 php cron/notify-new-services.php
 php cron/notify-views-digest.php
 
-# View Apache/PHP errors
-tail -f /var/log/apache2/error.log
+# View Apache/PHP errors (domain-specific log)
+tail -f /var/log/apache2/domains/poisq.com.error.log
 ```
 
 ## Architecture
@@ -43,13 +43,15 @@ When services are created/updated/deleted, they must be synced to Meilisearch �
 
 ### Database Access
 
-`/config/database.php` returns a PDO singleton (`getDB()`). All queries use prepared statements. The config file is gitignored — it lives only on the server.
+`/config/database.php` returns a PDO singleton via `getDbConnection()`. All queries use prepared statements. The config file is gitignored — it lives only on the server.
 
 Key tables: `users`, `services`, `cities`, `verification_codes`, `favorites`, `page_views`, `search_logs`, `settings`.
 
 `services.status` values: `draft`, `pending`, `approved`, `rejected`.
 
 JSON columns on `services`: `photo` (array of paths or single string), `hours`, `languages`, `services` (list), `social`.
+
+`services.phone` stores the full international number including dial code (e.g. `+3364548583`). `add-service.php` and `edit-service.php` combine the `phone_country` POST field (dial code) with `phone` (bare number) at save time. Old records may lack the country code prefix.
 
 ### Authentication
 
@@ -64,7 +66,7 @@ JSON columns on `services`: `photo` (array of paths or single string), `hours`, 
 
 ### Email
 
-`/config/email.php` provides `sendVerificationEmail()` and `sendStatusEmail()` (service approved/rejected). Uses PHPMailer via SMTP on `mail.poisq.com:465` SSL. Config is gitignored.
+`/config/email.php` provides `sendVerificationEmail()`, `sendStatusEmail()` (service approved/rejected), and `sendAdminModerationEmail()` (notifies `support@poisq.com` when a service is submitted for moderation). Uses PHPMailer via SMTP on `mail.poisq.com:465` SSL. Config is gitignored.
 
 ### API Endpoints (`/api/`)
 
