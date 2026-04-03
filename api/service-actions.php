@@ -69,7 +69,7 @@ try {
 
             if ($svcInfo) {
                 require_once __DIR__ . '/../config/email.php';
-                sendAdminModerationEmail(
+                $sent = sendAdminModerationEmail(
                     $serviceId,
                     $svcInfo['name'],
                     $svcInfo['category'] ?? '—',
@@ -77,6 +77,7 @@ try {
                     $svcInfo['owner_name'] ?? '—',
                     $svcInfo['owner_email'] ?? '—'
                 );
+                error_log('Moderation email for service #' . $serviceId . ' (' . $svcInfo['name'] . '): ' . ($sent ? 'SENT' : 'FAILED'));
             }
         } catch (Exception $e) {
             error_log('Moderation notify error: ' . $e->getMessage());
