@@ -100,6 +100,20 @@ $countries = [
     ['code'=>'co','name'=>'Колумбия','flag'=>'🇨🇴'],      ['code'=>'za','name'=>'ЮАР','flag'=>'🇿🇦'],
 ];
 
+// Разбиваем сохранённый телефон на код страны и номер для формы редактирования
+$storedPhone = $service['phone'] ?? '';
+$editPhoneDial = '+33';
+$editPhoneNum  = $storedPhone;
+if (str_starts_with($storedPhone, '+')) {
+    foreach (['+375', '+380', '+998', '+996', '+994', '+993', '+992', '+977', '+974', '+972', '+971', '+966', '+965', '+964', '+963', '+961', '+960', '+962', '+856', '+855', '+853', '+852', '+850', '+84', '+82', '+81', '+66', '+65', '+64', '+63', '+62', '+61', '+60', '+58', '+57', '+56', '+55', '+54', '+53', '+52', '+51', '+49', '+48', '+47', '+46', '+45', '+44', '+43', '+41', '+40', '+39', '+36', '+34', '+33', '+32', '+31', '+30', '+27', '+20', '+7', '+1'] as $dial) {
+        if (str_starts_with($storedPhone, $dial)) {
+            $editPhoneDial = $dial;
+            $editPhoneNum  = substr($storedPhone, strlen($dial));
+            break;
+        }
+    }
+}
+
 // Находим флаг текущей страны
 $currentCountryFlag = '🏳️';
 $currentCountryName = $service['country_code'];
@@ -146,7 +160,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'subcategory' => trim($_POST['subcategory'] ?? ''),
         'name'        => trim($_POST['name']        ?? ''),
         'description' => trim($_POST['description'] ?? ''),
-        'phone'       => trim($_POST['phone']       ?? ''),
+        'phone'       => (function() {
+            $num = trim($_POST['phone'] ?? '');
+            $dial = trim($_POST['phone_country'] ?? '');
+            if ($num === '') return '';
+            return (str_starts_with($num, '+')) ? $num : $dial . $num;
+        })(),
         'whatsapp'    => trim($_POST['whatsapp']    ?? ''),
         'email'       => trim($_POST['email']       ?? ''),
         'website'     => trim($_POST['website']     ?? ''),
@@ -603,19 +622,25 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
         <div class="form-group">
           <label class="form-label">Телефон <span class="required">*</span></label>
           <div style="display:flex;gap:8px;">
-            <select class="form-select" id="phoneCountry" name="phone_country" style="width:120px;flex:none;">
-              <option value="+33"  data-flag="🇫🇷">🇫🇷 +33</option>
-              <option value="+7"   data-flag="🇷🇺">🇷🇺 +7</option>
-              <option value="+1"   data-flag="🇺🇸">🇺🇸 +1</option>
-              <option value="+44"  data-flag="🇬🇧">🇬🇧 +44</option>
-              <option value="+49"  data-flag="🇩🇪">🇩🇪 +49</option>
-              <option value="+34"  data-flag="🇪🇸">🇪🇸 +34</option>
-              <option value="+39"  data-flag="🇮🇹">🇮🇹 +39</option>
-              <option value="+380" data-flag="🇺🇦">🇺🇦 +380</option>
-              <option value="+375" data-flag="🇧🇾">🇧🇾 +375</option>
+            <select class="form-select" id="phoneCountry" name="phone_country" style="width:100px;flex:none;">
+              <?php
+              $dialOptions = [
+                '+33'=>'🇫🇷','+7'=>'🇷🇺','+375'=>'🇧🇾','+380'=>'🇺🇦','+7'=>'🇷🇺',
+                '+1'=>'🇺🇸','+44'=>'🇬🇧','+49'=>'🇩🇪','+34'=>'🇪🇸','+39'=>'🇮🇹',
+                '+41'=>'🇨🇭','+43'=>'🇦🇹','+32'=>'🇧🇪','+31'=>'🇳🇱','+48'=>'🇵🇱',
+                '+46'=>'🇸🇪','+47'=>'🇳🇴','+45'=>'🇩🇰','+358'=>'🇫🇮','+351'=>'🇵🇹',
+                '+30'=>'🇬🇷','+36'=>'🇭🇺','+40'=>'🇷🇴','+420'=>'🇨🇿','+7'=>'🇰🇿',
+                '+374'=>'🇦🇲','+994'=>'🇦🇿','+995'=>'🇬🇪','+998'=>'🇺🇿',
+                '+61'=>'🇦🇺','+64'=>'🇳🇿','+81'=>'🇯🇵','+82'=>'🇰🇷','+86'=>'🇨🇳',
+                '+91'=>'🇮🇳','+971'=>'🇦🇪','+972'=>'🇮🇱','+52'=>'🇲🇽','+55'=>'🇧🇷',
+              ];
+              foreach ($dialOptions as $dial => $flag):
+              ?>
+              <option value="<?php echo $dial; ?>" <?php echo $editPhoneDial === $dial ? 'selected' : ''; ?>><?php echo $flag; ?> <?php echo $dial; ?></option>
+              <?php endforeach; ?>
             </select>
             <input type="tel" class="form-input" id="phone" name="phone"
-              value="<?php echo htmlspecialchars($service['phone']); ?>" placeholder="6 12 34 56 78">
+              value="<?php echo htmlspecialchars($editPhoneNum); ?>" placeholder="6 12 34 56 78">
           </div>
           <div class="form-error" id="phoneError"></div>
         </div>

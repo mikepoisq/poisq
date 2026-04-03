@@ -144,7 +144,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'subcategory' => trim($_POST['subcategory'] ?? ''),
         'name' => trim($_POST['name'] ?? ''),
         'description' => trim($_POST['description'] ?? ''),
-        'phone' => trim($_POST['phone'] ?? ''),
+        'phone' => (function() {
+            $num = trim($_POST['phone'] ?? '');
+            $dial = trim($_POST['phone_country'] ?? '');
+            if ($num === '') return '';
+            return (str_starts_with($num, '+')) ? $num : $dial . $num;
+        })(),
         'whatsapp' => trim($_POST['whatsapp'] ?? ''),
         'email' => trim($_POST['email'] ?? ''),
         'website' => trim($_POST['website'] ?? ''),
