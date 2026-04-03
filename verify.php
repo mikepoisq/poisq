@@ -148,282 +148,373 @@ if (isset($_POST['resend'])) {
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Подтверждение email — Poisq</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/favicon.png">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        :root {
-            --primary: #2E73D8; --primary-light: #5EA1F0; --primary-dark: #1A5AB8;
-            --text: #1F2937; --text-secondary: #9CA3AF; --text-light: #6B7280;
-            --bg: #FFFFFF; --bg-secondary: #F5F5F7; --border: #D1D5DB; --border-light: #E5E7EB;
-            --success: #10B981; --warning: #F59E0B; --danger: #EF4444;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06); --shadow-md: 0 4px 16px rgba(46,115,216,0.15);
-        }
-        html { -webkit-overflow-scrolling: touch; overflow-y: auto; height: auto; }
-        body {
-            -webkit-overflow-scrolling: touch; overflow-y: auto; height: auto;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-secondary); color: var(--text); line-height: 1.5;
-            -webkit-font-smoothing: antialiased; touch-action: manipulation;
-        }
-        .app-container {
-            max-width: 430px; margin: 0 auto; background: var(--bg);
-            min-height: 100vh; min-height: 100dvh;
-            position: relative; display: flex; flex-direction: column;
-        }
-        .header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 14px; background: var(--bg);
-            border-bottom: 1px solid var(--border-light); flex-shrink: 0; height: 56px;
-        }
-        .header-left { display: flex; align-items: center; }
-        .btn-back {
-            width: 40px; height: 40px; border-radius: 12px; border: none;
-            background: var(--bg-secondary); color: var(--text);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; padding: 0; text-decoration: none;
-        }
-        .btn-back:active { transform: scale(0.95); background: var(--border); }
-        .btn-back svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
-        .header-title { flex: 1; text-align: center; font-size: 17px; font-weight: 600; color: var(--text); }
-        .header-spacer { width: 40px; }
-        .verify-container {
-            flex: 1; display: flex; flex-direction: column;
-            align-items: center; padding: 40px 20px 20px;
-        }
-        .verify-icon {
-            width: 80px; height: 80px; border-radius: 50%;
-            background: #E8F0FE; display: flex;
-            align-items: center; justify-content: center;
-            margin-bottom: 24px;
-        }
-        .verify-icon svg { width: 40px; height: 40px; stroke: var(--primary); fill: none; stroke-width: 2; }
-        .verify-title {
-            font-size: 24px; font-weight: 700; color: var(--text);
-            text-align: center; margin-bottom: 8px;
-        }
-        .verify-subtitle {
-            font-size: 15px; color: var(--text-secondary);
-            text-align: center; margin-bottom: 32px;
-            max-width: 280px; line-height: 1.5;
-        }
-        .verify-email {
-            font-size: 15px; color: var(--primary);
-            font-weight: 600; text-align: center;
-            margin-bottom: 32px;
-        }
-        .code-inputs {
-            display: flex; gap: 8px; justify-content: center;
-            margin-bottom: 24px; flex-wrap: wrap;
-        }
-        .code-input {
-            width: 44px; height: 56px; border: 2px solid var(--border);
-            border-radius: 12px; font-size: 24px; font-weight: 700;
-            text-align: center; color: var(--text); background: var(--bg);
-            outline: none; transition: all 0.2s ease;
-            -webkit-appearance: none; -moz-appearance: none; appearance: none;
-        }
-        .code-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(46,115,216,0.1);
-        }
-        .code-input.filled { border-color: var(--primary); background: #E8F0FE; }
-        .code-input.error { border-color: var(--danger); animation: shake 0.4s ease; }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-6px); }
-            75% { transform: translateX(6px); }
-        }
-        .btn-submit {
-            width: 100%; max-width: 280px; padding: 16px;
-            border-radius: 12px; border: none;
-            background: var(--primary); color: white;
-            font-size: 16px; font-weight: 600;
-            cursor: pointer; transition: all 0.2s ease;
-            margin-bottom: 16px;
-        }
-        .btn-submit:active { transform: scale(0.98); background: var(--primary-dark); }
-        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-        .resend-container { text-align: center; margin-top: 8px; }
-        .resend-text { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
-        .btn-resend {
-            font-size: 14px; color: var(--primary);
-            font-weight: 600; background: none; border: none;
-            cursor: pointer; padding: 8px 16px;
-        }
-        .btn-resend:disabled { color: var(--text-light); cursor: not-allowed; }
-        .btn-resend:active:not(:disabled) { text-decoration: underline; }
-        .alert {
-            width: 100%; max-width: 320px; padding: 14px 16px;
-            border-radius: 12px; font-size: 14px; margin-bottom: 16px;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .alert-error { background: #FEF2F2; color: var(--danger); border: 1px solid #FECACA; }
-        .alert-success { background: #F0FDF4; color: var(--success); border: 1px solid #BBF7D0; }
-        .alert svg { width: 20px; height: 20px; flex-shrink: 0; }
-        .verify-footer {
-            background: var(--bg-secondary); border-top: 1px solid var(--border-light);
-            flex-shrink: 0; padding: 16px 20px;
-        }
-        .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 14px; }
-        .footer-link { font-size: 12px; color: var(--text); text-decoration: none; }
-        .footer-link:active { color: var(--primary); }
-        @media (max-width: 380px) {
-            .code-input { width: 38px; height: 50px; font-size: 20px; }
-            .verify-title { font-size: 22px; }
-        }
-        ::-webkit-scrollbar { display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Подтверждение email — Poisq</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --primary:       #3B6CF4;
+  --primary-light: #EEF2FF;
+  --primary-dark:  #2952D9;
+  --text:          #0F172A;
+  --text-secondary:#64748B;
+  --text-light:    #94A3B8;
+  --bg:            #FFFFFF;
+  --bg-secondary:  #F8FAFC;
+  --border:        #E2E8F0;
+  --border-light:  #F1F5F9;
+  --success:       #10B981;
+  --success-bg:    #ECFDF5;
+  --danger:        #EF4444;
+  --danger-bg:     #FEF2F2;
+  --radius:    16px;
+  --radius-sm: 10px;
+  --radius-xs:  8px;
+}
+
+html { -webkit-overflow-scrolling: touch; overflow-y: auto; height: auto; }
+
+body {
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-secondary);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+  overflow-y: auto;
+}
+
+.app-container {
+  max-width: 430px;
+  margin: 0 auto;
+  background: var(--bg);
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+
+/* ── ШАПКА ── */
+.header {
+  display: flex; align-items: center;
+  padding: 0 16px;
+  height: 58px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  position: sticky; top: 0; z-index: 100;
+}
+
+.btn-back {
+  width: 38px; height: 38px;
+  border-radius: var(--radius-xs); border: none;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; text-decoration: none; flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-back:active { transform: scale(0.92); background: var(--border); }
+.btn-back svg { width: 18px; height: 18px; stroke: var(--text-secondary); fill: none; stroke-width: 2.5; }
+
+.header-title {
+  flex: 1; text-align: center;
+  font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.3px;
+}
+
+.header-spacer { width: 38px; flex-shrink: 0; }
+
+/* ── КОНТЕНТ ── */
+.verify-wrap {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 40px 24px 28px;
+}
+
+/* Иконка-круг */
+.verify-icon {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(59,108,244,0.15);
+}
+.verify-icon svg {
+  width: 36px; height: 36px;
+  stroke: var(--primary); fill: none; stroke-width: 2;
+}
+
+.verify-title {
+  font-size: 24px; font-weight: 800; color: var(--text);
+  text-align: center; letter-spacing: -0.5px; margin-bottom: 8px;
+}
+
+.verify-subtitle {
+  font-size: 14.5px; color: var(--text-secondary); font-weight: 500;
+  text-align: center; margin-bottom: 6px; max-width: 270px; line-height: 1.55;
+}
+
+.verify-email {
+  font-size: 14.5px; color: var(--primary); font-weight: 700;
+  text-align: center; margin-bottom: 28px; letter-spacing: -0.2px;
+}
+
+/* ── АЛЕРТЫ ── */
+.alert {
+  width: 100%; padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px; font-weight: 500;
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 16px;
+}
+.alert-error   { background: var(--danger-bg); color: #991B1B; border: 1px solid #FECACA; }
+.alert-success { background: var(--success-bg); color: #065F46; border: 1px solid #A7F3D0; }
+.alert svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── КОД ── */
+.code-inputs {
+  display: flex; gap: 9px; justify-content: center;
+  margin-bottom: 24px;
+}
+
+.code-input {
+  width: 46px; height: 56px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-size: 22px; font-weight: 800; color: var(--text);
+  text-align: center; background: var(--bg);
+  outline: none; font-family: 'Manrope', sans-serif;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  -webkit-appearance: none;
+}
+.code-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59,108,244,0.1);
+}
+.code-input.filled {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.code-input.error {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  animation: shake 0.38s ease;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
+}
+
+/* ── КНОПКИ ── */
+.btn-submit {
+  width: 100%; padding: 14px;
+  border-radius: var(--radius-xs); border: none;
+  background: var(--primary); color: white;
+  font-size: 15px; font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer; letter-spacing: -0.1px;
+  transition: opacity 0.15s, transform 0.1s;
+  margin-bottom: 20px;
+}
+.btn-submit:active { transform: scale(0.98); opacity: 0.88; }
+.btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.resend-wrap { text-align: center; }
+.resend-text {
+  font-size: 13.5px; color: var(--text-secondary); font-weight: 500;
+  margin-bottom: 6px;
+}
+.btn-resend {
+  font-size: 14px; font-weight: 700; color: var(--primary);
+  background: none; border: none; cursor: pointer;
+  font-family: 'Manrope', sans-serif;
+  padding: 6px 14px;
+  border-radius: var(--radius-xs);
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-resend:not(:disabled):active { background: var(--primary-light); }
+.btn-resend:disabled { color: var(--text-light); cursor: not-allowed; }
+
+/* ── ФУТЕР ── */
+.auth-footer {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-light);
+  flex-shrink: 0; padding: 14px 20px 18px;
+}
+.footer-links {
+  display: flex; flex-wrap: wrap;
+  justify-content: center; gap: 8px 16px;
+}
+.footer-link {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary); text-decoration: none;
+}
+.footer-link:active { color: var(--primary); }
+
+@media (max-width: 360px) {
+  .code-input  { width: 40px; height: 50px; font-size: 20px; }
+  .verify-title { font-size: 21px; }
+  .verify-wrap  { padding: 32px 16px 20px; }
+}
+::-webkit-scrollbar { display: none; }
+</style>
 </head>
 <body>
-    <div class="app-container">
-        <header class="header">
-            <div class="header-left">
-                <a href="register.php" class="btn-back" aria-label="Назад">
-                    <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                </a>
-            </div>
-            <div class="header-title">Подтверждение</div>
-            <div class="header-spacer"></div>
-        </header>
+<div class="app-container">
 
-        <main class="verify-container">
-            <div class="verify-icon">
-                <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            </div>
-            
-            <h1 class="verify-title">Подтвердите email</h1>
-            <p class="verify-subtitle">Мы отправили 6-значный код на ваш email</p>
-            <div class="verify-email"><?php echo htmlspecialchars($email); ?></div>
-            
-            <?php if ($error): ?>
-            <div class="alert alert-error">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <?php echo htmlspecialchars($error); ?>
-            </div>
-            <?php endif; ?>
-            
-            <?php if ($success): ?>
-            <div class="alert alert-success">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <?php echo htmlspecialchars($success); ?>
-            </div>
-            <?php endif; ?>
-            
-            <form method="POST" action="verify.php" id="verifyForm">
-                <div class="code-inputs">
-                    <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="one-time-code" data-index="0">
-                    <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="1">
-                    <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="2">
-                    <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="3">
-                    <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="4">
-                    <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="5">
-                </div>
-                
-                <input type="hidden" name="code" id="fullCode">
-                
-                <button type="submit" class="btn-submit" id="submitBtn" disabled>Подтвердить</button>
-            </form>
-            
-            <form method="POST" action="verify.php">
-                <div class="resend-container">
-                    <p class="resend-text">Не пришло письмо?</p>
-                    <button type="submit" name="resend" class="btn-resend" id="resendBtn" disabled>
-                        Отправить код ещё раз (<span id="timer">60</span>)
-                    </button>
-                </div>
-            </form>
-        </main>
+  <!-- ШАПКА -->
+  <header class="header">
+    <a href="register.php" class="btn-back" aria-label="Назад">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
+    <span class="header-title">Подтверждение</span>
+    <div class="header-spacer"></div>
+  </header>
 
-        <footer class="verify-footer">
-            <div class="footer-links">
-                <a href="#" class="footer-link">Как пользоваться</a>
-                <a href="#" class="footer-link">Условия</a>
-                <a href="#" class="footer-link">О нас</a>
-                <a href="contact.php" class="footer-link">Контакт</a>
-            </div>
-        </footer>
+  <!-- КОНТЕНТ -->
+  <main class="verify-wrap">
+
+    <div class="verify-icon">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
     </div>
 
-    <script>
-        const codeInputs = document.querySelectorAll('.code-input');
-        const fullCodeInput = document.getElementById('fullCode');
-        const submitBtn = document.getElementById('submitBtn');
-        const resendBtn = document.getElementById('resendBtn');
-        const timerSpan = document.getElementById('timer');
-        
-        codeInputs[0].focus();
-        
-        codeInputs.forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                const value = e.target.value;
-                if (!/^\d*$/.test(value)) { e.target.value = ''; return; }
-                if (value.length === 1 && index < 5) {
-                    codeInputs[index + 1].focus();
-                    e.target.classList.add('filled');
-                }
-                updateSubmitButton();
-                updateFullCode();
-            });
-            
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
-                    codeInputs[index - 1].focus();
-                    codeInputs[index - 1].value = '';
-                    codeInputs[index - 1].classList.remove('filled');
-                    updateSubmitButton();
-                    updateFullCode();
-                }
-            });
-            
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                if (pasteData.length === 6) {
-                    pasteData.split('').forEach((char, i) => {
-                        if (codeInputs[i]) {
-                            codeInputs[i].value = char;
-                            codeInputs[i].classList.add('filled');
-                        }
-                    });
-                    codeInputs[5].focus();
-                    updateSubmitButton();
-                    updateFullCode();
-                }
-            });
+    <h1 class="verify-title">Подтвердите email</h1>
+    <p class="verify-subtitle">Мы отправили 6-значный код на ваш адрес</p>
+    <div class="verify-email"><?php echo htmlspecialchars($email); ?></div>
+
+    <?php if ($error): ?>
+    <div class="alert alert-error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <?php echo htmlspecialchars($error); ?>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($success): ?>
+    <div class="alert alert-success">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      <?php echo htmlspecialchars($success); ?>
+    </div>
+    <?php endif; ?>
+
+    <form method="POST" action="verify.php" id="verifyForm">
+      <div class="code-inputs">
+        <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="one-time-code" data-index="0">
+        <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="1">
+        <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="2">
+        <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="3">
+        <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="4">
+        <input type="tel" class="code-input" maxlength="1" inputmode="numeric" autocomplete="off" data-index="5">
+      </div>
+      <input type="hidden" name="code" id="fullCode">
+      <button type="submit" class="btn-submit" id="submitBtn" disabled>Подтвердить</button>
+    </form>
+
+    <form method="POST" action="verify.php">
+      <div class="resend-wrap">
+        <p class="resend-text">Не получили письмо?</p>
+        <button type="submit" name="resend" class="btn-resend" id="resendBtn" disabled>
+          Отправить код ещё раз (<span id="timer">60</span>)
+        </button>
+      </div>
+    </form>
+
+  </main>
+
+  <footer class="auth-footer">
+    <div class="footer-links">
+      <a href="/help.php"    class="footer-link">Помощь</a>
+      <a href="/terms.php"   class="footer-link">Условия</a>
+      <a href="/about.php"   class="footer-link">О нас</a>
+      <a href="/contact.php" class="footer-link">Контакт</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  const codeInputs  = document.querySelectorAll('.code-input');
+  const fullCodeInput = document.getElementById('fullCode');
+  const submitBtn   = document.getElementById('submitBtn');
+  const resendBtn   = document.getElementById('resendBtn');
+  const timerSpan   = document.getElementById('timer');
+
+  codeInputs[0].focus();
+
+  codeInputs.forEach((input, index) => {
+    input.addEventListener('input', (e) => {
+      const value = e.target.value;
+      if (!/^\d*$/.test(value)) { e.target.value = ''; return; }
+      if (value.length === 1 && index < 5) {
+        codeInputs[index + 1].focus();
+        e.target.classList.add('filled');
+      }
+      updateSubmitButton();
+      updateFullCode();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+        codeInputs[index - 1].focus();
+        codeInputs[index - 1].value = '';
+        codeInputs[index - 1].classList.remove('filled');
+        updateSubmitButton();
+        updateFullCode();
+      }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+      if (pasteData.length === 6) {
+        pasteData.split('').forEach((char, i) => {
+          if (codeInputs[i]) {
+            codeInputs[i].value = char;
+            codeInputs[i].classList.add('filled');
+          }
         });
-        
-        function updateSubmitButton() {
-            const allFilled = Array.from(codeInputs).every(input => input.value.length === 1);
-            submitBtn.disabled = !allFilled;
-        }
-        
-        function updateFullCode() {
-            const code = Array.from(codeInputs).map(input => input.value).join('');
-            fullCodeInput.value = code;
-        }
-        
-        let timeLeft = 60;
-        const timer = setInterval(() => {
-            timeLeft--;
-            timerSpan.textContent = timeLeft;
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                resendBtn.disabled = false;
-                resendBtn.textContent = 'Отправить код ещё раз';
-            }
-        }, 1000);
-        
-        window.addEventListener('beforeunload', () => { clearInterval(timer); });
-    </script>
+        codeInputs[5].focus();
+        updateSubmitButton();
+        updateFullCode();
+      }
+    });
+  });
+
+  function updateSubmitButton() {
+    const allFilled = Array.from(codeInputs).every(input => input.value.length === 1);
+    submitBtn.disabled = !allFilled;
+  }
+
+  function updateFullCode() {
+    fullCodeInput.value = Array.from(codeInputs).map(input => input.value).join('');
+  }
+
+  let timeLeft = 60;
+  const timer = setInterval(() => {
+    timeLeft--;
+    timerSpan.textContent = timeLeft;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      resendBtn.disabled = false;
+      resendBtn.textContent = 'Отправить код ещё раз';
+    }
+  }, 1000);
+
+  window.addEventListener('beforeunload', () => { clearInterval(timer); });
+</script>
 </body>
 </html>
