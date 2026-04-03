@@ -633,6 +633,64 @@ opacity: 0;
 .country-item.selected .country-item-check {
 opacity: 1;
 }
+/* ── Dial code picker ── */
+.dial-picker { position: relative; width: 130px; flex: none; }
+.dial-trigger {
+  width: 100%; min-height: 50px;
+  display: flex; align-items: center; gap: 5px;
+  padding: 10px 10px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--bg);
+  cursor: pointer; font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none;
+}
+.dial-trigger:focus { outline: none; }
+.dial-trigger.open {
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46,115,216,0.1);
+}
+.dial-trigger-flag { font-size: 17px; flex-shrink: 0; }
+.dial-trigger-code {
+  font-size: 14px; font-weight: 500; color: var(--text);
+  flex: 1; text-align: left; white-space: nowrap;
+}
+.dial-trigger-arrow {
+  width: 14px; height: 14px; stroke: var(--text-secondary);
+  fill: none; stroke-width: 2.5; flex-shrink: 0; transition: transform 0.2s;
+}
+.dial-trigger.open .dial-trigger-arrow { transform: rotate(180deg); }
+.dial-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  min-width: 250px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.13);
+  z-index: 300; display: none; flex-direction: column; overflow: hidden;
+}
+.dial-dropdown.open { display: flex; }
+.dial-search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid var(--border-light); flex-shrink: 0;
+}
+.dial-search-wrap svg { width: 14px; height: 14px; stroke: var(--text-secondary); fill: none; stroke-width: 2; flex-shrink: 0; }
+.dial-search-input {
+  flex: 1; border: none; outline: none; font-size: 14px;
+  color: var(--text); background: transparent; font-family: inherit;
+}
+.dial-search-input::placeholder { color: var(--text-secondary); }
+.dial-list { max-height: 220px; overflow-y: auto; padding: 4px 0; -webkit-overflow-scrolling: touch; }
+.dial-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; cursor: pointer; transition: background 0.12s;
+}
+.dial-item:hover { background: var(--bg-secondary); }
+.dial-item.selected { background: rgba(46,115,216,0.07); }
+.dial-item-flag { font-size: 15px; flex-shrink: 0; width: 22px; text-align: center; }
+.dial-item-name { flex: 1; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dial-item-code { font-size: 12px; color: var(--text-secondary); font-weight: 500; flex-shrink: 0; }
+.dial-divider { height: 1px; background: var(--border-light); margin: 4px 0; }
+.dial-group-label {
+  font-size: 10.5px; font-weight: 700; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: 0.6px; padding: 5px 12px 2px;
+}
+.dial-empty { padding: 20px 12px; text-align: center; font-size: 13px; color: var(--text-secondary); }
 .hours-row {
 display: flex;
 flex-direction: column;
@@ -1177,48 +1235,21 @@ required minlength="100" maxlength="2000"><?php echo htmlspecialchars($formData[
 <div class="form-group">
 <label class="form-label">Телефон <span class="required">*</span></label>
 <div style="display: flex; gap: 8px;">
-<select class="form-select" id="phoneCountry" name="phone_country" style="width: 130px; flex: none;">
-<option value="+33">🇫🇷 +33</option>
-<option value="+49">🇩🇪 +49</option>
-<option value="+34">🇪🇸 +34</option>
-<option value="+39">🇮🇹 +39</option>
-<option value="+44">🇬🇧 +44</option>
-<option value="+1">🇺🇸 +1</option>
-<option value="+1">🇨🇦 +1</option>
-<option value="+61">🇦🇺 +61</option>
-<option value="+7">🇷🇺 +7</option>
-<option value="+380">🇺🇦 +380</option>
-<option value="+375">🇧🇾 +375</option>
-<option value="+7">🇰🇿 +7</option>
-<option value="+31">🇳🇱 +31</option>
-<option value="+32">🇧🇪 +32</option>
-<option value="+41">🇨🇭 +41</option>
-<option value="+43">🇦🇹 +43</option>
-<option value="+351">🇵🇹 +351</option>
-<option value="+30">🇬🇷 +30</option>
-<option value="+48">🇵🇱 +48</option>
-<option value="+420">🇨🇿 +420</option>
-<option value="+46">🇸🇪 +46</option>
-<option value="+47">🇳🇴 +47</option>
-<option value="+45">🇩🇰 +45</option>
-<option value="+358">🇫🇮 +358</option>
-<option value="+353">🇮🇪 +353</option>
-<option value="+64">🇳🇿 +64</option>
-<option value="+971">🇦🇪 +971</option>
-<option value="+972">🇮🇱 +972</option>
-<option value="+90">🇹🇷 +90</option>
-<option value="+66">🇹🇭 +66</option>
-<option value="+81">🇯🇵 +81</option>
-<option value="+82">🇰🇷 +82</option>
-<option value="+65">🇸🇬 +65</option>
-<option value="+852">🇭🇰 +852</option>
-<option value="+52">🇲🇽 +52</option>
-<option value="+55">🇧🇷 +55</option>
-<option value="+54">🇦🇷 +54</option>
-<option value="+56">🇨🇱 +56</option>
-<option value="+57">🇨🇴 +57</option>
-<option value="+27">🇿🇦 +27</option>
-</select>
+<div class="dial-picker" id="dialPicker">
+  <button type="button" class="dial-trigger" id="dialTrigger" onclick="toggleDialDropdown(event)">
+    <span class="dial-trigger-flag" id="dialSelectedFlag">🇫🇷</span>
+    <span class="dial-trigger-code" id="dialSelectedCode">+33</span>
+    <svg class="dial-trigger-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="dial-dropdown" id="dialDropdown">
+    <div class="dial-search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" class="dial-search-input" id="dialSearch" placeholder="Страна или +код…" oninput="filterDialList(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <div class="dial-list" id="dialList"></div>
+  </div>
+  <input type="hidden" name="phone_country" id="phoneCountry" value="+33">
+</div>
 <input type="tel" class="form-input" id="phone" name="phone"
 value="<?php echo htmlspecialchars($formData['phone'] ?? ''); ?>"
 placeholder="6 12 34 56 78" required>
@@ -1499,7 +1530,7 @@ const phoneCodes = {
 'br': '+55', 'ar': '+54', 'cl': '+56', 'co': '+57', 'za': '+27',
 };
 if (phoneCodes[code]) {
-document.getElementById('phoneCountry').value = phoneCodes[code];
+setPhoneDialCode(phoneCodes[code]);
 }
 // Подставляем символ валюты по стране
 const currencyMap = {
@@ -1941,6 +1972,271 @@ closeCountryModal();
 });
 document.getElementById('closeCountryModal').addEventListener('click', closeCountryModal);
 
+// ── Dial code picker ──────────────────────────────────────────────────────────
+const DIAL_POPULAR = ['ru','by','ua','kz','fr','de','es','it','gb','us','ca','au'];
+const DIAL_ALL = [
+  {code:'ru',flag:'🇷🇺',name:'Россия',dial:'+7'},
+  {code:'by',flag:'🇧🇾',name:'Беларусь',dial:'+375'},
+  {code:'ua',flag:'🇺🇦',name:'Украина',dial:'+380'},
+  {code:'kz',flag:'🇰🇿',name:'Казахстан',dial:'+7'},
+  {code:'fr',flag:'🇫🇷',name:'Франция',dial:'+33'},
+  {code:'de',flag:'🇩🇪',name:'Германия',dial:'+49'},
+  {code:'es',flag:'🇪🇸',name:'Испания',dial:'+34'},
+  {code:'it',flag:'🇮🇹',name:'Италия',dial:'+39'},
+  {code:'gb',flag:'🇬🇧',name:'Великобритания',dial:'+44'},
+  {code:'us',flag:'🇺🇸',name:'США',dial:'+1'},
+  {code:'ca',flag:'🇨🇦',name:'Канада',dial:'+1'},
+  {code:'au',flag:'🇦🇺',name:'Австралия',dial:'+61'},
+  {code:'at',flag:'🇦🇹',name:'Австрия',dial:'+43'},
+  {code:'az',flag:'🇦🇿',name:'Азербайджан',dial:'+994'},
+  {code:'dz',flag:'🇩🇿',name:'Алжир',dial:'+213'},
+  {code:'ao',flag:'🇦🇴',name:'Ангола',dial:'+244'},
+  {code:'ad',flag:'🇦🇩',name:'Андорра',dial:'+376'},
+  {code:'ag',flag:'🇦🇬',name:'Антигуа и Барбуда',dial:'+1268'},
+  {code:'ar',flag:'🇦🇷',name:'Аргентина',dial:'+54'},
+  {code:'am',flag:'🇦🇲',name:'Армения',dial:'+374'},
+  {code:'af',flag:'🇦🇫',name:'Афганистан',dial:'+93'},
+  {code:'bd',flag:'🇧🇩',name:'Бангладеш',dial:'+880'},
+  {code:'bb',flag:'🇧🇧',name:'Барбадос',dial:'+1246'},
+  {code:'bh',flag:'🇧🇭',name:'Бахрейн',dial:'+973'},
+  {code:'bz',flag:'🇧🇿',name:'Белиз',dial:'+501'},
+  {code:'be',flag:'🇧🇪',name:'Бельгия',dial:'+32'},
+  {code:'bj',flag:'🇧🇯',name:'Бенин',dial:'+229'},
+  {code:'bg',flag:'🇧🇬',name:'Болгария',dial:'+359'},
+  {code:'bo',flag:'🇧🇴',name:'Боливия',dial:'+591'},
+  {code:'ba',flag:'🇧🇦',name:'Босния и Герцеговина',dial:'+387'},
+  {code:'bw',flag:'🇧🇼',name:'Ботсвана',dial:'+267'},
+  {code:'br',flag:'🇧🇷',name:'Бразилия',dial:'+55'},
+  {code:'bn',flag:'🇧🇳',name:'Бруней',dial:'+673'},
+  {code:'bf',flag:'🇧🇫',name:'Буркина-Фасо',dial:'+226'},
+  {code:'bi',flag:'🇧🇮',name:'Бурунди',dial:'+257'},
+  {code:'bt',flag:'🇧🇹',name:'Бутан',dial:'+975'},
+  {code:'vu',flag:'🇻🇺',name:'Вануату',dial:'+678'},
+  {code:'va',flag:'🇻🇦',name:'Ватикан',dial:'+379'},
+  {code:'hu',flag:'🇭🇺',name:'Венгрия',dial:'+36'},
+  {code:'ve',flag:'🇻🇪',name:'Венесуэла',dial:'+58'},
+  {code:'vn',flag:'🇻🇳',name:'Вьетнам',dial:'+84'},
+  {code:'ga',flag:'🇬🇦',name:'Габон',dial:'+241'},
+  {code:'ht',flag:'🇭🇹',name:'Гаити',dial:'+509'},
+  {code:'gy',flag:'🇬🇾',name:'Гайана',dial:'+592'},
+  {code:'gm',flag:'🇬🇲',name:'Гамбия',dial:'+220'},
+  {code:'gh',flag:'🇬🇭',name:'Гана',dial:'+233'},
+  {code:'gt',flag:'🇬🇹',name:'Гватемала',dial:'+502'},
+  {code:'gn',flag:'🇬🇳',name:'Гвинея',dial:'+224'},
+  {code:'gw',flag:'🇬🇼',name:'Гвинея-Бисау',dial:'+245'},
+  {code:'hn',flag:'🇭🇳',name:'Гондурас',dial:'+504'},
+  {code:'hk',flag:'🇭🇰',name:'Гонконг',dial:'+852'},
+  {code:'gd',flag:'🇬🇩',name:'Гренада',dial:'+1473'},
+  {code:'gr',flag:'🇬🇷',name:'Греция',dial:'+30'},
+  {code:'ge',flag:'🇬🇪',name:'Грузия',dial:'+995'},
+  {code:'dk',flag:'🇩🇰',name:'Дания',dial:'+45'},
+  {code:'dj',flag:'🇩🇯',name:'Джибути',dial:'+253'},
+  {code:'dm',flag:'🇩🇲',name:'Доминика',dial:'+1767'},
+  {code:'do',flag:'🇩🇴',name:'Доминиканская Республика',dial:'+1809'},
+  {code:'eg',flag:'🇪🇬',name:'Египет',dial:'+20'},
+  {code:'zm',flag:'🇿🇲',name:'Замбия',dial:'+260'},
+  {code:'zw',flag:'🇿🇼',name:'Зимбабве',dial:'+263'},
+  {code:'il',flag:'🇮🇱',name:'Израиль',dial:'+972'},
+  {code:'in',flag:'🇮🇳',name:'Индия',dial:'+91'},
+  {code:'id',flag:'🇮🇩',name:'Индонезия',dial:'+62'},
+  {code:'jo',flag:'🇯🇴',name:'Иордания',dial:'+962'},
+  {code:'iq',flag:'🇮🇶',name:'Ирак',dial:'+964'},
+  {code:'ir',flag:'🇮🇷',name:'Иран',dial:'+98'},
+  {code:'ie',flag:'🇮🇪',name:'Ирландия',dial:'+353'},
+  {code:'is',flag:'🇮🇸',name:'Исландия',dial:'+354'},
+  {code:'ye',flag:'🇾🇪',name:'Йемен',dial:'+967'},
+  {code:'cv',flag:'🇨🇻',name:'Кабо-Верде',dial:'+238'},
+  {code:'kh',flag:'🇰🇭',name:'Камбоджа',dial:'+855'},
+  {code:'cm',flag:'🇨🇲',name:'Камерун',dial:'+237'},
+  {code:'qa',flag:'🇶🇦',name:'Катар',dial:'+974'},
+  {code:'ke',flag:'🇰🇪',name:'Кения',dial:'+254'},
+  {code:'cy',flag:'🇨🇾',name:'Кипр',dial:'+357'},
+  {code:'cn',flag:'🇨🇳',name:'Китай',dial:'+86'},
+  {code:'co',flag:'🇨🇴',name:'Колумбия',dial:'+57'},
+  {code:'km',flag:'🇰🇲',name:'Коморы',dial:'+269'},
+  {code:'cg',flag:'🇨🇬',name:'Конго',dial:'+242'},
+  {code:'cd',flag:'🇨🇩',name:'Конго Д.Р.',dial:'+243'},
+  {code:'xk',flag:'🇽🇰',name:'Косово',dial:'+383'},
+  {code:'cr',flag:'🇨🇷',name:'Коста-Рика',dial:'+506'},
+  {code:'ci',flag:'🇨🇮',name:'Кот-д\'Ивуар',dial:'+225'},
+  {code:'cu',flag:'🇨🇺',name:'Куба',dial:'+53'},
+  {code:'kw',flag:'🇰🇼',name:'Кувейт',dial:'+965'},
+  {code:'kg',flag:'🇰🇬',name:'Кыргызстан',dial:'+996'},
+  {code:'la',flag:'🇱🇦',name:'Лаос',dial:'+856'},
+  {code:'lv',flag:'🇱🇻',name:'Латвия',dial:'+371'},
+  {code:'ls',flag:'🇱🇸',name:'Лесото',dial:'+266'},
+  {code:'lr',flag:'🇱🇷',name:'Либерия',dial:'+231'},
+  {code:'lb',flag:'🇱🇧',name:'Ливан',dial:'+961'},
+  {code:'ly',flag:'🇱🇾',name:'Ливия',dial:'+218'},
+  {code:'li',flag:'🇱🇮',name:'Лихтенштейн',dial:'+423'},
+  {code:'lt',flag:'🇱🇹',name:'Литва',dial:'+370'},
+  {code:'lu',flag:'🇱🇺',name:'Люксембург',dial:'+352'},
+  {code:'mu',flag:'🇲🇺',name:'Маврикий',dial:'+230'},
+  {code:'mr',flag:'🇲🇷',name:'Мавритания',dial:'+222'},
+  {code:'mg',flag:'🇲🇬',name:'Мадагаскар',dial:'+261'},
+  {code:'mw',flag:'🇲🇼',name:'Малави',dial:'+265'},
+  {code:'my',flag:'🇲🇾',name:'Малайзия',dial:'+60'},
+  {code:'mv',flag:'🇲🇻',name:'Мальдивы',dial:'+960'},
+  {code:'ml',flag:'🇲🇱',name:'Мали',dial:'+223'},
+  {code:'mt',flag:'🇲🇹',name:'Мальта',dial:'+356'},
+  {code:'ma',flag:'🇲🇦',name:'Марокко',dial:'+212'},
+  {code:'mx',flag:'🇲🇽',name:'Мексика',dial:'+52'},
+  {code:'md',flag:'🇲🇩',name:'Молдова',dial:'+373'},
+  {code:'mc',flag:'🇲🇨',name:'Монако',dial:'+377'},
+  {code:'mn',flag:'🇲🇳',name:'Монголия',dial:'+976'},
+  {code:'mz',flag:'🇲🇿',name:'Мозамбик',dial:'+258'},
+  {code:'mm',flag:'🇲🇲',name:'Мьянма',dial:'+95'},
+  {code:'na',flag:'🇳🇦',name:'Намибия',dial:'+264'},
+  {code:'np',flag:'🇳🇵',name:'Непал',dial:'+977'},
+  {code:'ne',flag:'🇳🇪',name:'Нигер',dial:'+227'},
+  {code:'ng',flag:'🇳🇬',name:'Нигерия',dial:'+234'},
+  {code:'nl',flag:'🇳🇱',name:'Нидерланды',dial:'+31'},
+  {code:'ni',flag:'🇳🇮',name:'Никарагуа',dial:'+505'},
+  {code:'nz',flag:'🇳🇿',name:'Новая Зеландия',dial:'+64'},
+  {code:'no',flag:'🇳🇴',name:'Норвегия',dial:'+47'},
+  {code:'ae',flag:'🇦🇪',name:'ОАЭ',dial:'+971'},
+  {code:'om',flag:'🇴🇲',name:'Оман',dial:'+968'},
+  {code:'pk',flag:'🇵🇰',name:'Пакистан',dial:'+92'},
+  {code:'pa',flag:'🇵🇦',name:'Панама',dial:'+507'},
+  {code:'pg',flag:'🇵🇬',name:'Папуа Новая Гвинея',dial:'+675'},
+  {code:'py',flag:'🇵🇾',name:'Парагвай',dial:'+595'},
+  {code:'pe',flag:'🇵🇪',name:'Перу',dial:'+51'},
+  {code:'pl',flag:'🇵🇱',name:'Польша',dial:'+48'},
+  {code:'pt',flag:'🇵🇹',name:'Португалия',dial:'+351'},
+  {code:'rw',flag:'🇷🇼',name:'Руанда',dial:'+250'},
+  {code:'ro',flag:'🇷🇴',name:'Румыния',dial:'+40'},
+  {code:'sv',flag:'🇸🇻',name:'Сальвадор',dial:'+503'},
+  {code:'ws',flag:'🇼🇸',name:'Самоа',dial:'+685'},
+  {code:'sm',flag:'🇸🇲',name:'Сан-Марино',dial:'+378'},
+  {code:'st',flag:'🇸🇹',name:'Сан-Томе и Принсипи',dial:'+239'},
+  {code:'sa',flag:'🇸🇦',name:'Саудовская Аравия',dial:'+966'},
+  {code:'sn',flag:'🇸🇳',name:'Сенегал',dial:'+221'},
+  {code:'rs',flag:'🇷🇸',name:'Сербия',dial:'+381'},
+  {code:'sg',flag:'🇸🇬',name:'Сингапур',dial:'+65'},
+  {code:'sy',flag:'🇸🇾',name:'Сирия',dial:'+963'},
+  {code:'sk',flag:'🇸🇰',name:'Словакия',dial:'+421'},
+  {code:'si',flag:'🇸🇮',name:'Словения',dial:'+386'},
+  {code:'so',flag:'🇸🇴',name:'Сомали',dial:'+252'},
+  {code:'sd',flag:'🇸🇩',name:'Судан',dial:'+249'},
+  {code:'sr',flag:'🇸🇷',name:'Суринам',dial:'+597'},
+  {code:'sl',flag:'🇸🇱',name:'Сьерра-Леоне',dial:'+232'},
+  {code:'tj',flag:'🇹🇯',name:'Таджикистан',dial:'+992'},
+  {code:'th',flag:'🇹🇭',name:'Таиланд',dial:'+66'},
+  {code:'tw',flag:'🇹🇼',name:'Тайвань',dial:'+886'},
+  {code:'tz',flag:'🇹🇿',name:'Танзания',dial:'+255'},
+  {code:'tg',flag:'🇹🇬',name:'Того',dial:'+228'},
+  {code:'to',flag:'🇹🇴',name:'Тонга',dial:'+676'},
+  {code:'tt',flag:'🇹🇹',name:'Тринидад и Тобаго',dial:'+1868'},
+  {code:'tn',flag:'🇹🇳',name:'Тунис',dial:'+216'},
+  {code:'tm',flag:'🇹🇲',name:'Туркменистан',dial:'+993'},
+  {code:'tr',flag:'🇹🇷',name:'Турция',dial:'+90'},
+  {code:'ug',flag:'🇺🇬',name:'Уганда',dial:'+256'},
+  {code:'uz',flag:'🇺🇿',name:'Узбекистан',dial:'+998'},
+  {code:'uy',flag:'🇺🇾',name:'Уругвай',dial:'+598'},
+  {code:'fj',flag:'🇫🇯',name:'Фиджи',dial:'+679'},
+  {code:'ph',flag:'🇵🇭',name:'Филиппины',dial:'+63'},
+  {code:'fi',flag:'🇫🇮',name:'Финляндия',dial:'+358'},
+  {code:'hr',flag:'🇭🇷',name:'Хорватия',dial:'+385'},
+  {code:'cf',flag:'🇨🇫',name:'ЦАР',dial:'+236'},
+  {code:'td',flag:'🇹🇩',name:'Чад',dial:'+235'},
+  {code:'me',flag:'🇲🇪',name:'Черногория',dial:'+382'},
+  {code:'cz',flag:'🇨🇿',name:'Чехия',dial:'+420'},
+  {code:'cl',flag:'🇨🇱',name:'Чили',dial:'+56'},
+  {code:'ch',flag:'🇨🇭',name:'Швейцария',dial:'+41'},
+  {code:'se',flag:'🇸🇪',name:'Швеция',dial:'+46'},
+  {code:'lk',flag:'🇱🇰',name:'Шри-Ланка',dial:'+94'},
+  {code:'ec',flag:'🇪🇨',name:'Эквадор',dial:'+593'},
+  {code:'gq',flag:'🇬🇶',name:'Экваториальная Гвинея',dial:'+240'},
+  {code:'er',flag:'🇪🇷',name:'Эритрея',dial:'+291'},
+  {code:'sz',flag:'🇸🇿',name:'Эсватини',dial:'+268'},
+  {code:'ee',flag:'🇪🇪',name:'Эстония',dial:'+372'},
+  {code:'et',flag:'🇪🇹',name:'Эфиопия',dial:'+251'},
+  {code:'za',flag:'🇿🇦',name:'ЮАР',dial:'+27'},
+  {code:'kr',flag:'🇰🇷',name:'Южная Корея',dial:'+82'},
+  {code:'ss',flag:'🇸🇸',name:'Южный Судан',dial:'+211'},
+  {code:'jm',flag:'🇯🇲',name:'Ямайка',dial:'+1876'},
+  {code:'jp',flag:'🇯🇵',name:'Япония',dial:'+81'},
+];
+const DIAL_POPULAR_SET = new Set(DIAL_POPULAR);
+
+let _dialSelected = DIAL_ALL.find(c => c.code === 'fr');
+let _dialOpen = false;
+
+function renderDialList(query) {
+  const list = document.getElementById('dialList');
+  const q = query.trim().toLowerCase();
+  let items;
+  if (q) {
+    items = DIAL_ALL.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.dial.includes(q) ||
+      c.dial.replace('+','').startsWith(q.replace('+',''))
+    );
+    list.innerHTML = items.length
+      ? items.map(dialItemHTML).join('')
+      : '<div class="dial-empty">Ничего не найдено</div>';
+  } else {
+    const popular = DIAL_ALL.filter(c => DIAL_POPULAR_SET.has(c.code));
+    const rest    = DIAL_ALL.filter(c => !DIAL_POPULAR_SET.has(c.code));
+    list.innerHTML =
+      '<div class="dial-group-label">Популярные</div>' +
+      popular.map(dialItemHTML).join('') +
+      '<div class="dial-divider"></div>' +
+      rest.map(dialItemHTML).join('');
+  }
+}
+function dialItemHTML(c) {
+  const sel = _dialSelected && _dialSelected.code === c.code ? ' selected' : '';
+  return `<div class="dial-item${sel}" onclick="selectDialItem('${c.code}')">
+    <span class="dial-item-flag">${c.flag}</span>
+    <span class="dial-item-name">${c.name}</span>
+    <span class="dial-item-code">${c.dial}</span>
+  </div>`;
+}
+function selectDialItem(code) {
+  const c = DIAL_ALL.find(x => x.code === code);
+  if (!c) return;
+  _dialSelected = c;
+  document.getElementById('dialSelectedFlag').textContent = c.flag;
+  document.getElementById('dialSelectedCode').textContent = c.dial;
+  document.getElementById('phoneCountry').value = c.dial;
+  document.getElementById('dialSearch').value = '';
+  closeDialDropdown();
+}
+function setPhoneDialCode(dialCode) {
+  // Находим первую страну с таким кодом
+  const c = DIAL_ALL.find(x => x.dial === dialCode);
+  if (c) {
+    _dialSelected = c;
+    document.getElementById('dialSelectedFlag').textContent = c.flag;
+    document.getElementById('dialSelectedCode').textContent = c.dial;
+  } else {
+    document.getElementById('dialSelectedCode').textContent = dialCode;
+  }
+  document.getElementById('phoneCountry').value = dialCode;
+}
+function toggleDialDropdown(e) {
+  e.stopPropagation();
+  _dialOpen ? closeDialDropdown() : openDialDropdown();
+}
+function openDialDropdown() {
+  _dialOpen = true;
+  document.getElementById('dialDropdown').classList.add('open');
+  document.getElementById('dialTrigger').classList.add('open');
+  renderDialList('');
+  setTimeout(() => document.getElementById('dialSearch').focus(), 60);
+}
+function closeDialDropdown() {
+  _dialOpen = false;
+  document.getElementById('dialDropdown').classList.remove('open');
+  document.getElementById('dialTrigger').classList.remove('open');
+}
+function filterDialList(q) { renderDialList(q); }
+document.addEventListener('click', function(e) {
+  if (_dialOpen && !document.getElementById('dialPicker').contains(e.target)) closeDialDropdown();
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 // 🔧 ИНИЦИАЛИЗАЦИЯ: восстанавливаем данные после ошибки или устанавливаем страну по IP
 (async function initForm() {
 const initCountry = savedFormData.country || detectedCountry;
@@ -1978,10 +2274,7 @@ const phoneCodes = {
 'jp': '+81', 'kr': '+82', 'sg': '+65', 'hk': '+852', 'mx': '+52',
 'br': '+55', 'ar': '+54', 'cl': '+56', 'co': '+57', 'za': '+27',
 };
-if (phoneCodes[countryObj.code]) {
-  const phoneSelect = document.getElementById('phoneCountry');
-  if (phoneSelect) phoneSelect.value = phoneCodes[countryObj.code];
-}
+if (phoneCodes[countryObj.code]) setPhoneDialCode(phoneCodes[countryObj.code]);
 // Обновляем счётчик символов описания
 const desc = document.getElementById('description');
 if (desc && desc.value) {
