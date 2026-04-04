@@ -93,7 +93,14 @@ $detectedCountry = getCountryByIP();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Poisq — Поиск русскоговорящих сервисов за границей</title>
+<title>Poisq — русскоязычные сервисы за рубежом</title>
+<meta name="description" content="Найдите русскоязычных специалистов рядом с вами — врачей, юристов, репетиторов и других профессионалов в вашем городе">
+<meta property="og:title" content="Poisq — русскоязычные сервисы за рубежом">
+<meta property="og:description" content="Найдите русскоязычных специалистов рядом с вами — врачей, юристов, репетиторов и других профессионалов в вашем городе">
+<meta property="og:image" content="https://poisq.com/logo.png">
+<meta property="og:url" content="https://poisq.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon"            type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon"                 href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">

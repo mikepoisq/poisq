@@ -6,7 +6,6 @@ header('Content-Type: application/xml; charset=utf-8');
 
 $pdo = getDbConnection();
 
-// Все одобренные сервисы
 $stmtSvc = $pdo->query("
     SELECT id, name, updated_at
     FROM services
@@ -14,27 +13,6 @@ $stmtSvc = $pdo->query("
     ORDER BY updated_at DESC
 ");
 $services = $stmtSvc->fetchAll(PDO::FETCH_ASSOC);
-
-// Все активные страны (у которых есть хотя бы один сервис)
-$stmtCountries = $pdo->query("
-    SELECT DISTINCT country_code
-    FROM services
-    WHERE status = 'approved' AND is_visible = 1
-    ORDER BY country_code
-");
-$countries = $stmtCountries->fetchAll(PDO::FETCH_COLUMN);
-
-// Категории
-$categories = [
-    'health', 'legal', 'family', 'education', 'business',
-    'shops', 'home', 'transport', 'it', 'events', 'realestate',
-];
-
-// Популярные запросы для страниц поиска
-$popularQueries = [
-    'врач', 'юрист', 'репетитор', 'переводчик', 'психолог',
-    'стоматолог', 'бухгалтер', 'нотариус', 'фотограф', 'массаж',
-];
 
 echo '<?xml version="1.0" encoding="UTF-8"?>';
 ?>
@@ -47,36 +25,27 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
     <priority>1.0</priority>
   </url>
 
-  <!-- Страницы стран -->
-  <?php foreach ($countries as $cc): ?>
+  <!-- Статичные страницы -->
   <url>
-    <loc>https://poisq.com/results.php?country=<?php echo urlencode($cc); ?></loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <loc>https://poisq.com/about.php</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
-  <?php endforeach; ?>
-
-  <!-- Страницы категорий по странам -->
-  <?php foreach ($countries as $cc): ?>
-    <?php foreach ($categories as $cat): ?>
   <url>
-    <loc>https://poisq.com/results.php?country=<?php echo urlencode($cc); ?>&amp;category=<?php echo urlencode($cat); ?></loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <loc>https://poisq.com/help.php</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
-    <?php endforeach; ?>
-  <?php endforeach; ?>
-
-  <!-- Популярные поисковые запросы по странам -->
-  <?php foreach ($countries as $cc): ?>
-    <?php foreach ($popularQueries as $q): ?>
   <url>
-    <loc>https://poisq.com/results.php?q=<?php echo urlencode($q); ?>&amp;country=<?php echo urlencode($cc); ?></loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://poisq.com/contact.php</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
-    <?php endforeach; ?>
-  <?php endforeach; ?>
+  <url>
+    <loc>https://poisq.com/terms.php</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
 
   <!-- Карточки сервисов -->
   <?php foreach ($services as $s): ?>

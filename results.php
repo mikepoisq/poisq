@@ -356,6 +356,7 @@ $categories = [
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, follow">
 <?php
 // ── SEO мета-теги для results.php ───────────────────────
 $countryNames = [
@@ -408,7 +409,8 @@ if (!empty($extraParams)) $canonicalUrl .= '?' . implode('&', $extraParams);
 <meta property="og:description" content="<?php echo htmlspecialchars($seoDesc); ?>">
 <meta property="og:url" content="<?php echo htmlspecialchars($canonicalUrl); ?>">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://poisq.com/favicon.png">
+<meta property="og:image" content="https://poisq.com/logo.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">

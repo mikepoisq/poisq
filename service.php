@@ -203,10 +203,15 @@ try {
     exit;
 }
 
-$pageTitle       = htmlspecialchars($service['name']) . ' — ' . htmlspecialchars($service['category']);
-$pageDescription = htmlspecialchars(substr($service['description'] ?? '', 0, 160));
-$canonicalUrl    = serviceUrl($service['id'], $service['name']);
-$ogImage         = htmlspecialchars($service['photos'][0] ?? '');
+$pageTitle       = htmlspecialchars($service['name']) . ($service['city_name'] ? ' — ' . htmlspecialchars($service['city_name']) : '') . ' — Poisq';
+$pageDescription = htmlspecialchars(substr($service['description'] ?? '', 0, 150));
+$canonicalUrl    = 'https://poisq.com' . serviceUrl($service['id'], $service['name']);
+$rawPhoto        = $service['photos'][0] ?? '';
+if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
+    $ogImage = strpos($rawPhoto, 'http') === 0 ? htmlspecialchars($rawPhoto) : 'https://poisq.com' . htmlspecialchars($rawPhoto);
+} else {
+    $ogImage = 'https://poisq.com/logo.png';
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -221,6 +226,7 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
     <meta property="og:image" content="<?php echo $ogImage; ?>">
     <meta property="og:url" content="<?php echo $canonicalUrl; ?>">
     <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/png" href="/favicon.png">
     <script type="application/ld+json">
     <?php

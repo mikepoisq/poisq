@@ -1,4 +1,5 @@
 User-agent: *
+Disallow: /results.php
+Disallow: /*?*
 Allow: /
-
 Sitemap: https://poisq.com/sitemap.php
