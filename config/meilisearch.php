@@ -64,5 +64,6 @@ function meiliPrepareDoc(array $row): array {
         'verified'     => (int)($row['verified'] ?? 0),
         'created_at'   => isset($row['created_at']) ? strtotime($row['created_at']) : time(),
         'photo'        => $photo,
+        'languages'    => json_decode($row['languages'] ?? '[]', true) ?: [],
     ];
 }

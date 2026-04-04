@@ -45,6 +45,7 @@ if (isset($_SERVER['REDIRECT_URL']) === false &&
     if ($pg > 1)  $extra[] = 'page=' . $pg;
     if (isset($_GET['rating']) && floatval($_GET['rating']) > 0) $extra[] = 'rating=' . floatval($_GET['rating']);
     if (isset($_GET['verified'])) $extra[] = 'verified=1';
+    if (!empty($_GET['languages'])) $extra[] = 'languages=' . urlencode($_GET['languages']);
 
     $url = 'https://poisq.com' . $path;
     if (!empty($extra)) $url .= '?' . implode('&', $extra);
@@ -64,6 +65,10 @@ $citySlug       = preg_replace('/[^a-z0-9-]/', '', strtolower($_GET['city_slug']
 $cityFilter     = intval($_GET['city_id'] ?? 0);
 $ratingFilter   = floatval($_GET['rating'] ?? 0);
 $verifiedFilter = isset($_GET['verified']) ? 1 : 0;
+$languagesFilter = array_values(array_filter(
+    array_map('trim', explode(',', $_GET['languages'] ?? '')),
+    fn($l) => preg_match('/^[a-z]{2}$/', $l)
+));
 $page           = max(1, intval($_GET['page'] ?? 1));
 $perPage        = 10;
 
@@ -134,9 +139,13 @@ if (!empty($searchQuery) && $cityFilter === 0) {
 
 // Базовый фильтр Meilisearch
 $mf_parts = [];
-if ($verifiedFilter)           $mf_parts[] = "verified = 1";
-if (!empty($categoryFilter))   $mf_parts[] = "category = '$categoryFilter'";
-if ($ratingFilter > 0)         $mf_parts[] = "rating >= $ratingFilter";
+if ($verifiedFilter)             $mf_parts[] = "verified = 1";
+if (!empty($categoryFilter))     $mf_parts[] = "category = '$categoryFilter'";
+if ($ratingFilter > 0)           $mf_parts[] = "rating >= $ratingFilter";
+if (!empty($languagesFilter)) {
+    $langConds = array_map(fn($l) => "languages = '$l'", $languagesFilter);
+    $mf_parts[] = '(' . implode(' OR ', $langConds) . ')';
+}
 $mf = !empty($mf_parts) ? implode(' AND ', $mf_parts) : '';
 
 $userCityId = (int)($_SESSION['user_city_id'] ?? 0);
@@ -206,7 +215,7 @@ function fetchFullByIds(PDO $pdo, array $ids): array {
                s.rating, s.reviews_count, s.views,
                s.description, s.address, s.languages,
                s.services AS service_list, s.social,
-               s.verified, s.hours, s.created_at, s.group_link,
+               s.verified, s.verified_until, s.hours, s.created_at, s.group_link,
                c.name AS city_name, c.name_lat AS city_name_lat
         FROM services s LEFT JOIN cities c ON s.city_id = c.id
         WHERE s.id IN ($ph) ORDER BY FIELD(s.id, $ph)
@@ -249,6 +258,11 @@ if ($meiliOk) {
     if (!empty($categoryFilter)) { $where[] = "s.category=?"; $params[] = $categoryFilter; }
     if ($ratingFilter > 0)       { $where[] = "s.rating>=?"; $params[] = $ratingFilter; }
     if ($verifiedFilter)           $where[] = "s.verified=1";
+    if (!empty($languagesFilter)) {
+        $langConds = array_map(fn($l) => "JSON_CONTAINS(s.languages, ?)", $languagesFilter);
+        $where[] = '(' . implode(' OR ', $langConds) . ')';
+        foreach ($languagesFilter as $l) $params[] = json_encode($l);
+    }
     $wsql = implode(' AND ', $where);
     try {
         $cs = $pdo->prepare("SELECT COUNT(*) FROM services s WHERE $wsql");
@@ -261,7 +275,7 @@ if ($meiliOk) {
                    s.rating, s.reviews_count, s.views,
                    s.description, s.address, s.languages,
                    s.services AS service_list, s.social,
-                   s.verified, s.hours, s.created_at, s.group_link,
+                   s.verified, s.verified_until, s.hours, s.created_at, s.group_link,
                    c.name AS city_name, c.name_lat AS city_name_lat
             FROM services s LEFT JOIN cities c ON s.city_id = c.id
             WHERE $wsql
@@ -1042,6 +1056,20 @@ body {
 .ann-add-btn svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2.5; }
 .ann-add-free { font-size: 11.5px; color: var(--text-light); font-weight: 500; }
 
+/* ── ЯЗЫКОВАЯ МОДАЛКА ── */
+.lang-check-item {
+  display: flex; align-items: center;
+  padding: 13px 0; border-bottom: 1px solid var(--border-light);
+  cursor: pointer; gap: 12px;
+  font-size: 15px; font-weight: 600; color: var(--text);
+}
+.lang-check-item:last-child { border-bottom: none; }
+.lang-check-item input[type="checkbox"] {
+  width: 20px; height: 20px; flex-shrink: 0;
+  accent-color: var(--primary); cursor: pointer;
+}
+.lang-check-item .lang-flag { font-size: 20px; flex-shrink: 0; }
+
 </style>
 </head>
 <body>
@@ -1105,21 +1133,8 @@ body {
         onclick="toggleFilter('verified')"><span class="dot"></span> Проверено</div>
       <div class="filter-chip <?php echo $ratingFilter >= 4.5 ? 'active' : ''; ?>"
         onclick="toggleRating(4.5)">★ 4.5+</div>
-      <?php
-      $catLabelsClean = [
-        'health'     => 'Здоровье',
-        'legal'      => 'Юристы',
-        'family'     => 'Семья',
-        'education'  => 'Образование',
-        'business'   => 'Бизнес',
-        'shops'      => 'Магазины',
-      ];
-      foreach ($catLabelsClean as $key => $label): ?>
-      <div class="filter-chip <?php echo $categoryFilter === $key ? 'active' : ''; ?>"
-        onclick="setCategory('<?php echo $key; ?>')" data-cat="<?php echo $key; ?>">
-        <?php echo $label; ?>
-      </div>
-      <?php endforeach; ?>
+      <div class="filter-chip <?php echo !empty($languagesFilter) ? 'active' : ''; ?>"
+        id="langChip" onclick="openLangModal()">Языки<?php echo !empty($languagesFilter) ? ' (' . count($languagesFilter) . ')' : ''; ?></div>
       <div class="filter-chip" onclick="openFilterModal()">Фильтры ⚙</div>
     </div>
 
@@ -1229,7 +1244,7 @@ body {
         <div class="card-site-info">
           <div class="card-site-name">
             <?php echo htmlspecialchars($svc['name']); ?>
-            <?php if ($svc['verified']): ?>
+            <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
               <span class="verified-dot" title="Проверено">
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg>
               </span>
@@ -1419,7 +1434,7 @@ body {
       <div class="card-site-info">
         <div class="card-site-name">
           <?php echo htmlspecialchars($svc['name']); ?>
-          <?php if ($svc['verified']): ?>
+          <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
             <span class="verified-dot"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg></span>
           <?php endif; ?>
           <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
@@ -1599,6 +1614,45 @@ body {
   </div>
 </div>
 
+<!-- LANG MODAL -->
+<div class="filter-modal-overlay" id="langModalOverlay">
+  <div class="filter-modal" id="langModal">
+    <div class="filter-modal-handle"></div>
+    <div class="filter-modal-header">
+      <div class="filter-modal-title">Язык сервиса</div>
+      <button class="filter-reset" id="langResetBtn" onclick="resetLangs()" style="display:none">Сбросить</button>
+      <button class="filter-close" onclick="closeLangModal()" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="filter-modal-body">
+      <div class="filter-section" style="border-bottom:none;">
+        <?php
+        $langOptions = [
+          'ru' => ['flag' => '🇷🇺', 'name' => 'Русский'],
+          'en' => ['flag' => '🇬🇧', 'name' => 'Английский'],
+          'fr' => ['flag' => '🇫🇷', 'name' => 'Французский'],
+          'de' => ['flag' => '🇩🇪', 'name' => 'Немецкий'],
+          'es' => ['flag' => '🇪🇸', 'name' => 'Испанский'],
+        ];
+        foreach ($langOptions as $code => $info):
+        ?>
+        <label class="lang-check-item">
+          <input type="checkbox" class="lang-checkbox" value="<?php echo $code; ?>"
+            <?php echo in_array($code, $languagesFilter) ? 'checked' : ''; ?>
+            onchange="onLangChange()">
+          <span class="lang-flag"><?php echo $info['flag']; ?></span>
+          <span><?php echo $info['name']; ?></span>
+        </label>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <div class="filter-modal-footer">
+      <button class="filter-apply" onclick="applyLangs()">Применить</button>
+    </div>
+  </div>
+</div>
+
 <!-- SEARCH OVERLAY -->
 <div class="search-overlay" id="searchOverlay">
   <div class="so-header">
@@ -1626,6 +1680,7 @@ let currentCategory = '<?php echo $categoryFilter; ?>';
 let currentCity = <?php echo $cityFilter; ?>;
 let currentRating = <?php echo $ratingFilter; ?>;
 let currentVerified = <?php echo $verifiedFilter; ?>;
+let currentLanguages = <?php echo json_encode($languagesFilter); ?>;
 const countryCode = '<?php echo $countryCode; ?>';
 // === ПОИСК — OVERLAY ===
 const menuToggle = document.getElementById('menuToggle');
@@ -1951,6 +2006,7 @@ function resetFilters() {
   currentCity = 0;
   currentRating = 0;
   currentVerified = 0;
+  currentLanguages = [];
   const q = '<?php echo addslashes($searchQuery); ?>';
   window.location.href = '/' + countryCode + '/' + (q ? encodeURIComponent(q) : '');
 }
@@ -1963,9 +2019,56 @@ function applyFilters() {
   if (currentCity > 0) params.set('city_id', currentCity);
   if (currentRating > 0) params.set('rating', currentRating);
   if (currentVerified) params.set('verified', 1);
+  if (currentLanguages.length > 0) params.set('languages', currentLanguages.join(','));
   const base = '/' + countryCode + '/' + (q ? encodeURIComponent(q) : '');
   const qs = params.toString();
   window.location.href = base + (qs ? '?' + qs : '');
+}
+
+// === LANGUAGE MODAL ===
+const langOverlay = document.getElementById('langModalOverlay');
+const langResetBtn = document.getElementById('langResetBtn');
+
+function openLangModal() {
+  // Синхронизируем чекбоксы с currentLanguages
+  document.querySelectorAll('.lang-checkbox').forEach(cb => {
+    cb.checked = currentLanguages.includes(cb.value);
+  });
+  updateLangResetBtn();
+  langOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeLangModal() {
+  langOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+langOverlay.addEventListener('click', (e) => {
+  if (e.target === langOverlay) closeLangModal();
+});
+function onLangChange() {
+  updateLangResetBtn();
+}
+function updateLangResetBtn() {
+  const any = Array.from(document.querySelectorAll('.lang-checkbox')).some(cb => cb.checked);
+  langResetBtn.style.display = any ? '' : 'none';
+}
+function resetLangs() {
+  document.querySelectorAll('.lang-checkbox').forEach(cb => cb.checked = false);
+  updateLangResetBtn();
+}
+function applyLangs() {
+  currentLanguages = Array.from(document.querySelectorAll('.lang-checkbox'))
+    .filter(cb => cb.checked).map(cb => cb.value);
+  // Обновляем чип
+  const chip = document.getElementById('langChip');
+  if (chip) {
+    chip.textContent = currentLanguages.length > 0
+      ? 'Языки (' + currentLanguages.length + ')'
+      : 'Языки';
+    chip.classList.toggle('active', currentLanguages.length > 0);
+  }
+  closeLangModal();
+  applyFilters();
 }
 
 // Восстановление позиции скролла

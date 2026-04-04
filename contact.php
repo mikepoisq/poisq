@@ -23,6 +23,15 @@ if ($isLoggedIn) {
     } catch (Exception $e) { $slotsLeft = 3; }
 }
 
+// WhatsApp поддержки
+$supportWhatsapp = '';
+try {
+    if (!isset($pdo)) { require_once __DIR__ . '/config/database.php'; $pdo = getDbConnection(); }
+    $stWa = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'support_whatsapp'");
+    $stWa->execute();
+    $supportWhatsapp = $stWa->fetchColumn() ?: '';
+} catch (Exception $e) { $supportWhatsapp = ''; }
+
 // Обработка формы
 $formSent    = false;
 $formError   = '';
@@ -311,6 +320,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .ann-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
 .ann-date { font-size: 10px; color: var(--text-light); font-weight: 600; padding: 6px 8px 2px; }
 .ann-item-name { font-size: 12px; font-weight: 700; color: var(--text); padding: 0 8px 8px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* АККОРДЕОН */
+.accord-item { border: 1px solid var(--border-light); border-radius: var(--radius-sm); margin-bottom: 8px; overflow: hidden; background: var(--bg); }
+.accord-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer; font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.1px; transition: background 0.15s; gap: 10px; }
+.accord-head:active { background: var(--bg-secondary); }
+.accord-arrow { width: 20px; height: 20px; stroke: var(--text-light); fill: none; stroke-width: 2.5; flex-shrink: 0; transition: transform 0.25s; }
+.accord-item.open > .accord-head .accord-arrow { transform: rotate(180deg); }
+.accord-body { max-height: 0; overflow: hidden; transition: max-height 0.28s ease; padding: 0 16px; font-size: 13.5px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; }
+.accord-item.open > .accord-body { padding-top: 14px; padding-bottom: 16px; border-top: 1px solid var(--border-light); }
+
+/* КНОПКА WHATSAPP */
+.wa-btn { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; background: #25D366; color: white; font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.1s; letter-spacing: -0.1px; }
+.wa-btn:active { opacity: 0.85; transform: scale(0.98); }
+.wa-btn svg { width: 22px; height: 22px; fill: white; flex-shrink: 0; }
+
+/* КНОПКА ВТОРИЧНАЯ */
+.btn-outlined { display: block; width: 100%; padding: 13px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; text-align: center; text-decoration: none; transition: border-color 0.15s, background 0.15s; letter-spacing: -0.1px; }
+.btn-outlined:active { background: var(--bg-secondary); border-color: var(--text-secondary); }
 </style>
 </head>
 <body>
@@ -496,6 +523,41 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
       </div>
     </div>
 
+    <!-- НУЖНА ПОМОЩЬ -->
+    <div style="margin-top:24px">
+      <div class="accord-item" id="accordHelp">
+        <div class="accord-head" onclick="toggleAccord('accordHelp')">
+          <span>Нужна помощь?</span>
+          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="accord-body">
+          <p style="margin-bottom:14px;">Сначала загляните в раздел Помощь — там ответы на большинство вопросов</p>
+          <a href="/help.php" class="btn-outlined" style="margin-bottom:14px;">Открыть раздел Помощь</a>
+
+          <!-- Второй уровень — написать напрямую -->
+          <div class="accord-item" id="accordDirect" style="margin-bottom:0;">
+            <div class="accord-head" onclick="toggleAccord('accordDirect')">
+              <span>Не нашли ответ? Написать напрямую</span>
+              <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="accord-body">
+              <p style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Горячая линия</p>
+              <p style="margin-bottom:14px;">Для срочных и важных вопросов. Отвечаем в рабочее время.</p>
+              <?php if ($supportWhatsapp): ?>
+              <a class="wa-btn" href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $supportWhatsapp); ?>?text=Здравствуйте%2C%20у%20меня%20вопрос%20по%20Poisq" target="_blank">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Написать в WhatsApp
+              </a>
+              <?php else: ?>
+              <p style="font-size:13px;color:var(--text-light);text-align:center;padding:8px 0;">Горячая линия временно недоступна</p>
+              <?php endif; ?>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div class="page-footer">
@@ -548,6 +610,37 @@ const menuToggle = document.getElementById('menuToggle'), sideMenu = document.ge
 menuToggle.addEventListener('click', toggleMenu);
 function toggleMenu() { const open = sideMenu.classList.toggle('active'); menuOverlay.classList.toggle('active', open); menuToggle.classList.toggle('active', open); document.body.style.overflow = open ? 'hidden' : ''; }
 function closeMenu() { sideMenu.classList.remove('active'); menuOverlay.classList.remove('active'); menuToggle.classList.remove('active'); document.body.style.overflow = ''; }
+function toggleAccord(id) {
+  const el = document.getElementById(id);
+  const body = el.querySelector(':scope > .accord-body');
+  const opening = !el.classList.contains('open');
+
+  // При открытии внешнего — закрыть внутренний
+  if (id === 'accordHelp' && opening) {
+    const inner = document.getElementById('accordDirect');
+    if (inner && inner.classList.contains('open')) {
+      inner.classList.remove('open');
+      const innerBody = inner.querySelector(':scope > .accord-body');
+      innerBody.style.maxHeight = '0';
+    }
+  }
+
+  el.classList.toggle('open');
+
+  if (opening) {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    body.addEventListener('transitionend', function onEnd() {
+      body.removeEventListener('transitionend', onEnd);
+      if (el.classList.contains('open')) body.style.maxHeight = 'none';
+    });
+  } else {
+    // Зафиксировать текущую высоту, потом схлопнуть
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      body.style.maxHeight = '0';
+    }));
+  }
+}
 
 // Submit лоадинг
 const form = document.querySelector('.contact-form');

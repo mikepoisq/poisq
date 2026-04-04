@@ -51,7 +51,7 @@ try {
             s.description, s.photo, s.phone, s.whatsapp,
             s.email, s.website, s.address,
             s.hours, s.languages, s.services AS service_list,
-            s.social, s.verified, s.rating, s.reviews_count,
+            s.social, s.verified, s.verified_until, s.rating, s.reviews_count,
             s.views, s.status, s.is_visible, s.group_link,
             s.country_code, s.created_at, s.category,
             c.name AS city_name,
@@ -142,7 +142,8 @@ try {
         'address'       => $row['address']  ?? '',
         'city_name'     => $row['city_name_lat'] ?: ($row['city_name'] ?? ''),
         'country_code'  => $row['country_code'] ?? '',
-        'verified'      => (bool)$row['verified'],
+        'verified'      => (bool)$row['verified'] && ($row['verified_until'] === null || $row['verified_until'] >= date('Y-m-d')),
+        'verified_until' => $row['verified_until'] ?? null,
         'rating'        => (float)($row['rating'] ?? 0),
         'reviews_count' => (int)($row['reviews_count'] ?? 0),
         'hours'         => $hours,
@@ -316,8 +317,10 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
         .service-rating svg { width: 16px; height: 16px; fill: var(--warning); stroke: var(--warning); }
         .service-rating-value { font-size: 14px; font-weight: 700; color: var(--warning); }
         .service-rating-count { font-size: 13px; color: var(--text-secondary); }
-        .verified-badge { display: inline-flex; align-items: center; gap: 4px; background: #D1FAE5; color: #065F46; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-        .verified-badge svg { width: 14px; height: 14px; fill: #065F46; }
+        .verified-badge { display: inline-flex; flex-direction: column; align-items: flex-start; background: #D1FAE5; padding: 4px 10px; border-radius: 999px; }
+        .verified-badge-row { display: flex; align-items: center; gap: 4px; color: #065F46; font-size: 12px; font-weight: 600; }
+        .verified-badge-row svg { width: 14px; height: 14px; fill: #065F46; flex-shrink: 0; }
+        .verified-badge-date { font-size: 11px; font-weight: 400; color: var(--text-secondary); padding-left: 18px; line-height: 1.2; }
         
         /* 🔧 КНОПКИ ДЕЙСТВИЙ (ВЕРХНИЕ) */
         .action-buttons { 
@@ -791,10 +794,25 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
             <div class="service-title-row">
                 <h1 class="service-title"><?php echo htmlspecialchars($service['name']); ?></h1>
                 <?php if ($service['verified']): ?>
-                <span class="verified-badge">
-                    <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    Проверено
-                </span>
+                <?php
+                $verifUntil = $service['verified_until'];
+                $verifiedDate = '';
+                if ($verifUntil !== null && $verifUntil >= date('Y-m-d')) {
+                    $verifiedDate = date('m.Y', strtotime($verifUntil . ' -3 months'));
+                }
+                ?>
+                <div style="display: inline-flex; align-items: center; gap: 7px; background: #EAF3DE; border-radius: 10px; padding: 6px 12px;">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1L2 3.5V8c0 3 2.5 5.5 6 6.5 3.5-1 6-3.5 6-6.5V3.5L8 1z" fill="#639922"/>
+                    <path d="M5.5 8l2 2 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                    <span style="font-size: 13px; font-weight: 500; color: #3B6D11;">Проверено</span>
+                    <?php if ($verifiedDate): ?>
+                    <span style="font-size: 10px; color: #639922;">с <?php echo $verifiedDate; ?></span>
+                    <?php endif; ?>
+                  </div>
+                </div>
                 <?php endif; ?>
             </div>
             

@@ -35,7 +35,7 @@ while ($offset < $total) {
         SELECT s.id, s.name, s.description, s.category, s.subcategory,
                s.city_id, s.country_code, s.phone, s.email, s.website,
                s.rating, s.reviews_count, s.views, s.verified,
-               s.status, s.is_visible, s.created_at, s.photo,
+               s.status, s.is_visible, s.created_at, s.photo, s.languages,
                c.name AS city_name, c.name_lat AS city_slug
         FROM services s
         LEFT JOIN cities c ON s.city_id = c.id
@@ -72,6 +72,7 @@ while ($offset < $total) {
             'verified'      => (int)$row['verified'],
             'created_at'    => strtotime($row['created_at']),
             'photo'         => $photo,
+            'languages'     => json_decode($row['languages'] ?? '[]', true) ?: [],
         ];
     }
 

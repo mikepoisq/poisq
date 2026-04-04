@@ -67,6 +67,45 @@ try {
     $notifyViewsFreq   = 'off';
     $supportWhatsapp   = '';
 }
+
+// Данные для блока значка Проверено
+$approvedServices = [];
+$verifRequests    = [];
+$verifFormError   = $_GET['verif_error'] ?? '';
+$verifSuccess     = !empty($_GET['verif_success']);
+try {
+    $pdo = getDbConnection();
+    $stmtAS = $pdo->prepare("
+        SELECT id, name, verified, verified_until
+        FROM services
+        WHERE user_id = ? AND status = 'approved'
+        ORDER BY created_at DESC
+    ");
+    $stmtAS->execute([$_SESSION['user_id']]);
+    $approvedServices = $stmtAS->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!empty($approvedServices)) {
+        $svcIds = array_column($approvedServices, 'id');
+        $ph     = implode(',', array_fill(0, count($svcIds), '?'));
+        $stmtVR = $pdo->prepare("
+            SELECT vr1.*
+            FROM verification_requests vr1
+            INNER JOIN (
+                SELECT service_id, MAX(created_at) AS max_ca
+                FROM verification_requests
+                GROUP BY service_id
+            ) vr2 ON vr1.service_id = vr2.service_id AND vr1.created_at = vr2.max_ca
+            WHERE vr1.service_id IN ($ph)
+        ");
+        $stmtVR->execute($svcIds);
+        foreach ($stmtVR->fetchAll(PDO::FETCH_ASSOC) as $vr) {
+            $verifRequests[$vr['service_id']] = $vr;
+        }
+    }
+} catch (Exception $e) {
+    $approvedServices = [];
+    $verifRequests    = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -1221,6 +1260,41 @@ body {
       </a>
     </div>
 
+    <!-- ПОВЫСИТЬ ВИДИМОСТЬ -->
+    <?php if (!empty($approvedServices)): ?>
+    <?php $today = date('Y-m-d'); ?>
+    <div class="section">
+      <div class="section-title">Повысить видимость</div>
+      <div style="font-size:12.5px;color:var(--text-secondary);padding:8px 16px 4px;font-weight:500;">Показать что ваш профиль надёжный</div>
+      <?php foreach ($approvedServices as $asvc):
+          $svcId      = $asvc['id'];
+          $vr         = $verifRequests[$svcId] ?? null;
+          $isVerified = $asvc['verified'] && ($asvc['verified_until'] === null || $asvc['verified_until'] >= $today);
+          if ($isVerified) {
+              $dotColor = '#10B981';
+          } elseif ($vr && $vr['status'] === 'pending') {
+              $dotColor = '#F59E0B';
+          } elseif ($vr && $vr['status'] === 'rejected') {
+              $dotColor = '#EF4444';
+          } else {
+              $dotColor = '#94A3B8';
+          }
+      ?>
+      <a href="/verification.php?service_id=<?php echo $svcId; ?>" class="s-item">
+        <div class="s-icon slate" style="background:transparent;">
+          <div style="width:12px;height:12px;border-radius:50%;background:<?php echo $dotColor; ?>;flex-shrink:0;"></div>
+        </div>
+        <div class="s-content">
+          <div class="s-label"><?php echo htmlspecialchars($asvc['name']); ?></div>
+        </div>
+        <div class="s-right">
+          <svg class="s-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </a>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <!-- НАСТРОЙКИ -->
     <div class="section">
       <div class="section-title">Настройки</div>
@@ -2111,6 +2185,19 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+
+function openVerifForm(serviceId) {
+  const wrap = document.getElementById('verifFormWrap');
+  if (!wrap) return;
+  const sel = document.getElementById('verifServiceSelect');
+  if (sel) sel.value = serviceId;
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function closeVerifForm() {
+  const wrap = document.getElementById('verifFormWrap');
+  if (wrap) wrap.style.display = 'none';
+}
 
 function openSheet(id) {
   document.getElementById(id).classList.add('active');

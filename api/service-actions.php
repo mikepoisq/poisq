@@ -104,6 +104,10 @@ try {
 
     // ── УДАЛИТЬ СЕРВИС ────────────────────────────────────────
     if ($action === 'delete_service') {
+        // Удаляем связанные записи перед удалением сервиса
+        $pdo->prepare("DELETE FROM verification_requests WHERE service_id = ?")->execute([$serviceId]);
+        $pdo->prepare("DELETE FROM favorites WHERE service_id = ?")->execute([$serviceId]);
+
         $stmt = $pdo->prepare("DELETE FROM services WHERE id = ? AND user_id = ?");
         $stmt->execute([$serviceId, $userId]);
 
