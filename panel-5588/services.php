@@ -31,6 +31,7 @@ $offset = ($page - 1) * $perPage;
 
 $stmt = $pdo->prepare("
     SELECT s.id, s.user_id, s.name, s.category, s.status, s.is_visible, s.country_code, s.created_at, s.views,
+           s.verified, s.verified_until,
            u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s
     JOIN users u ON s.user_id = u.id
@@ -128,6 +129,9 @@ ob_start();
                         <?php echo htmlspecialchars($svc["name"]); ?>
                         <?php if ((int)$svc["user_id"] === 11): ?>
                         <span style="font-size:10px;background:var(--primary-light);color:var(--primary);padding:1px 5px;border-radius:4px;font-weight:700;margin-left:3px;">👑</span>
+                        <?php endif; ?>
+                        <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
+                        <span style="font-size:10px;background:var(--success-bg);color:#065F46;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:3px;">✓ Проверено</span>
                         <?php endif; ?>
                     </div>
                     <?php if (!$svc['is_visible'] && $svc['status'] === 'approved'): ?>

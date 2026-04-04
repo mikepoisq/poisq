@@ -10,10 +10,12 @@ $navItems = [
     'services'   => ['icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'label' => 'Сервисы'],
     'users'      => ['icon' => 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75', 'label' => 'Пользователи'],
     'cities'     => ['icon' => 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z', 'label' => 'Города'],
-    'analytics'  => ['icon' => 'M18 20V10M12 20V4M6 20v-6', 'label' => 'Аналитика'],
+    'analytics'     => ['icon' => 'M18 20V10M12 20V4M6 20v-6', 'label' => 'Аналитика'],
+    'verifications' => ['icon' => 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', 'label' => 'Проверки'],
+    'reviews'       => ['icon' => 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z', 'label' => 'Комментарии'],
 ];
 
-function renderLayout(string $pageTitle, string $content, int $pendingCount = 0): void {
+function renderLayout(string $pageTitle, string $content, int $pendingCount = 0, int $pendingVerifCount = 0, int $pendingReviewCount = 0): void {
     global $currentPage, $navItems;
 ?>
 <!DOCTYPE html>
@@ -421,6 +423,12 @@ body {
             <?php echo $item['label']; ?>
             <?php if ($page === 'moderate' && $pendingCount > 0): ?>
             <span class="nav-badge"><?php echo $pendingCount; ?></span>
+            <?php endif; ?>
+            <?php if ($page === 'verifications' && $pendingVerifCount > 0): ?>
+            <span class="nav-badge"><?php echo $pendingVerifCount; ?></span>
+            <?php endif; ?>
+            <?php if ($page === 'reviews' && $pendingReviewCount > 0): ?>
+            <span class="nav-badge"><?php echo $pendingReviewCount; ?></span>
             <?php endif; ?>
         </a>
         <?php endforeach; ?>

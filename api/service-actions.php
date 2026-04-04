@@ -105,7 +105,9 @@ try {
     // ── УДАЛИТЬ СЕРВИС ────────────────────────────────────────
     if ($action === 'delete_service') {
         // Удаляем связанные записи перед удалением сервиса
-        $pdo->prepare("DELETE FROM verification_requests WHERE service_id = ?")->execute([$serviceId]);
+        try { $pdo->prepare("DELETE FROM verification_requests WHERE service_id = ?")->execute([$serviceId]); } catch (Exception $e) {}
+        try { $pdo->prepare("DELETE FROM review_owner_replies WHERE review_id IN (SELECT id FROM reviews WHERE service_id = ?)")->execute([$serviceId]); } catch (Exception $e) {}
+        try { $pdo->prepare("DELETE FROM reviews WHERE service_id = ?")->execute([$serviceId]); } catch (Exception $e) {}
         $pdo->prepare("DELETE FROM favorites WHERE service_id = ?")->execute([$serviceId]);
 
         $stmt = $pdo->prepare("DELETE FROM services WHERE id = ? AND user_id = ?");

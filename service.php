@@ -53,7 +53,7 @@ try {
             s.hours, s.languages, s.services AS service_list,
             s.social, s.verified, s.verified_until, s.rating, s.reviews_count,
             s.views, s.status, s.is_visible, s.group_link,
-            s.country_code, s.created_at, s.category,
+            s.user_id, s.country_code, s.created_at, s.category,
             c.name AS city_name,
             c.name_lat AS city_name_lat
         FROM services s
@@ -156,10 +156,13 @@ try {
         'reviews'       => (function() use ($pdo, $serviceId) {
             try {
                 $stmt = $pdo->prepare("
-                    SELECT r.id, r.rating, r.text, r.created_at,
-                           u.name AS author_name, u.avatar AS author_avatar
+                    SELECT r.id, r.rating, r.text, r.created_at, r.photo,
+                           u.name AS author_name, u.avatar AS author_avatar,
+                           rop.text AS reply_text,
+                           rop.created_at AS reply_created_at
                     FROM reviews r
                     LEFT JOIN users u ON r.user_id = u.id
+                    LEFT JOIN review_owner_replies rop ON rop.review_id = r.id AND rop.status = 'approved'
                     WHERE r.service_id = ? AND r.status = 'approved'
                     ORDER BY r.created_at DESC
                     LIMIT 20
@@ -170,6 +173,7 @@ try {
         })(),
         'currency'      => $currency,
         'group_link'    => $row['group_link'] ?? '',
+        'user_id'       => (int)($row['user_id'] ?? 0),
     ];
 
     // Проверяем — в избранном ли у текущего пользователя
@@ -178,6 +182,19 @@ try {
         $stmtFav = $pdo->prepare("SELECT id FROM favorites WHERE user_id = ? AND service_id = ?");
         $stmtFav->execute([$_SESSION['user_id'], $serviceId]);
         $isFavorite = (bool)$stmtFav->fetch();
+    }
+
+    $isOwner = $isLoggedIn && (int)$_SESSION['user_id'] === $service['user_id'];
+    $userExistingReview = null;
+    if ($isLoggedIn && !$isOwner) {
+        try {
+            $stmtRev = $pdo->prepare("
+                SELECT id, rating, text, photo, status, created_at, edited_until
+                FROM reviews WHERE user_id = ? AND service_id = ? LIMIT 1
+            ");
+            $stmtRev->execute([$_SESSION['user_id'], $serviceId]);
+            $userExistingReview = $stmtRev->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (Exception $e) {}
     }
 
 } catch (PDOException $e) {
@@ -494,7 +511,86 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
         .btn-show-more svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
         .reviews-expanded { display: none; }
         .reviews-expanded.active { display: block; }
-        
+
+        /* 🔧 ОТЗЫВЫ (РАСШИРЕННЫЙ СТИЛЬ) */
+        .review-item-top {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .review-author-row {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .review-avatar {
+            width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+        }
+        .review-avatar-ph {
+            background: var(--primary); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: 700;
+        }
+        .review-stars { display: flex; gap: 2px; flex-shrink: 0; }
+        .rv-star { font-size: 16px; color: #D1D5DB; line-height: 1; }
+        .rv-star.rv-on { color: var(--warning); }
+        .review-photo-thumb {
+            width: 60px; height: 60px; object-fit: cover; border-radius: 8px;
+            cursor: pointer; margin-top: 8px; display: block;
+        }
+        .owner-reply {
+            margin-top: 10px; padding: 10px 12px;
+            background: var(--bg-secondary); border-radius: 10px;
+            border-left: 3px solid var(--primary);
+        }
+        .owner-reply-label {
+            font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px;
+        }
+        .owner-reply-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+        .review-own-block {
+            margin: 0 16px 16px; padding: 14px; border-radius: 12px;
+            background: #F0F7FF; border: 1px solid #BFDBFE;
+        }
+        .review-own-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; font-size: 14px; font-weight: 700; color: var(--text);
+        }
+        .review-status {
+            font-size: 11px; font-weight: 700; padding: 3px 8px;
+            border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .review-status.pending { background: #FEF3C7; color: #92400E; }
+        .review-status.rejected { background: #FEE2E2; color: #991B1B; }
+        /* Загрузка фото в модалке отзыва */
+        .review-photo-upload-row {
+            display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap;
+        }
+        .btn-photo-label {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border-radius: 999px;
+            background: var(--bg-secondary); border: 1.5px solid var(--border);
+            font-size: 13px; font-weight: 600; color: var(--text-light);
+            cursor: pointer; transition: all 0.15s;
+        }
+        .btn-photo-label:active { background: var(--border); }
+        .btn-remove-photo {
+            background: none; border: none; cursor: pointer;
+            font-size: 20px; color: var(--danger); line-height: 1; padding: 0 4px;
+        }
+        /* Лайтбокс для фото отзывов */
+        .photo-lightbox {
+            position: fixed; inset: 0; z-index: 999;
+            background: rgba(0,0,0,0.92);
+            display: flex; align-items: center; justify-content: center;
+            visibility: hidden; opacity: 0;
+            transition: opacity 0.25s, visibility 0.25s;
+        }
+        .photo-lightbox.active { visibility: visible; opacity: 1; }
+        .photo-lightbox img { max-width: 96vw; max-height: 90vh; object-fit: contain; border-radius: 8px; }
+        .photo-lightbox-close {
+            position: absolute; top: 16px; right: 16px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); border: none; cursor: pointer;
+            color: white; font-size: 22px; display: flex; align-items: center; justify-content: center;
+        }
+
         /* 🔧 СОЦИАЛЬНЫЕ СЕТИ */
         .social-links {
             display: grid;
@@ -1017,63 +1113,160 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
             <?php endif; ?>
 
             <!-- 🔧 ОТЗЫВЫ -->
-            <?php if ($service['reviews']): ?>
-            <div class="settings-section">
-                <div class="settings-section-title">Отзывы клиентов</div>
-                <div class="settings-item">
-                    <div class="settings-item-icon blue">
-                        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    </div>
-                    <div class="settings-item-content">
-                        <div class="reviews-header">
-                            <div class="settings-item-label">Отзывы</div>
-                            <button class="btn-add-review" onclick="addReview()">✍️ Добавить</button>
-                        </div>
-                        <p class="reviews-count"><?php echo count($service['reviews']); ?> отзывов</p>
-                        
-                        <div class="reviews-visible">
-                            <?php foreach (array_slice($service['reviews'], 0, 3) as $review): ?>
-                            <div class="review-item">
-                                <div class="review-header">
-                                    <span class="review-author"><?php echo htmlspecialchars($review['author']); ?></span>
-                                    <span class="review-date"><?php echo date('d.m.Y', strtotime($review['date'])); ?></span>
+            <?php
+            $_revList   = $service['reviews'];
+            $_revCount  = max((int)$service['reviews_count'], count($_revList));
+            $_revRating = (float)$service['rating'];
+            $_revTitle  = 'Отзывы';
+            if ($_revCount > 0) {
+                $_revTitle = 'Отзывы (' . $_revCount . ')';
+                if ($_revRating > 0) $_revTitle .= ' · ★ ' . number_format($_revRating, 1);
+            }
+            ?>
+            <div class="settings-section" id="reviewsSection">
+                <div class="settings-section-title"><?= htmlspecialchars($_revTitle) ?></div>
+
+                <?php if ($_revList): ?>
+                <div style="padding: 0 16px;">
+                    <?php foreach (array_slice($_revList, 0, 3) as $_rev): ?>
+                    <div class="review-item">
+                        <?php
+                        $_rName    = $_rev['author_name'] ?? 'Пользователь';
+                        $_rInitial = mb_strtoupper(mb_substr($_rName, 0, 1, 'UTF-8'), 'UTF-8');
+                        ?>
+                        <div class="review-item-top">
+                            <div class="review-author-row">
+                                <?php if (!empty($_rev['author_avatar'])): ?>
+                                <img src="<?= htmlspecialchars($_rev['author_avatar']) ?>" class="review-avatar" alt="">
+                                <?php else: ?>
+                                <div class="review-avatar review-avatar-ph"><?= htmlspecialchars($_rInitial) ?></div>
+                                <?php endif; ?>
+                                <div>
+                                    <div class="review-author"><?= htmlspecialchars($_rName) ?></div>
+                                    <div class="review-date"><?= date('d.m.Y', strtotime($_rev['created_at'])) ?></div>
                                 </div>
-                                <div class="review-rating">
-                                    <?php for ($i = 0; $i < 5; $i++): ?>
-                                    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                    <?php endfor; ?>
-                                </div>
-                                <div class="review-text"><?php echo nl2br(htmlspecialchars($review['text'])); ?></div>
                             </div>
-                            <?php endforeach; ?>
-                        </div>
-                        
-                        <?php if (count($service['reviews']) > 3): ?>
-                        <button class="btn-show-more" onclick="toggleReviews()">
-                            Показать все отзывы
-                            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-                        </button>
-                        <div class="reviews-expanded" id="reviewsExpanded">
-                            <?php foreach (array_slice($service['reviews'], 3) as $review): ?>
-                            <div class="review-item">
-                                <div class="review-header">
-                                    <span class="review-author"><?php echo htmlspecialchars($review['author']); ?></span>
-                                    <span class="review-date"><?php echo date('d.m.Y', strtotime($review['date'])); ?></span>
-                                </div>
-                                <div class="review-rating">
-                                    <?php for ($i = 0; $i < 5; $i++): ?>
-                                    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                    <?php endfor; ?>
-                                </div>
-                                <div class="review-text"><?php echo nl2br(htmlspecialchars($review['text'])); ?></div>
+                            <div class="review-stars">
+                                <?php for ($_si = 1; $_si <= 5; $_si++): ?>
+                                <span class="rv-star<?= $_si <= (int)$_rev['rating'] ? ' rv-on' : '' ?>">★</span>
+                                <?php endfor; ?>
                             </div>
-                            <?php endforeach; ?>
+                        </div>
+                        <div class="review-text"><?= nl2br(htmlspecialchars($_rev['text'])) ?></div>
+                        <?php if (!empty($_rev['photo'])): ?>
+                        <img src="<?= htmlspecialchars($_rev['photo']) ?>" class="review-photo-thumb"
+                             onclick="openPhotoModal(this.src)" alt="Фото к отзыву">
+                        <?php endif; ?>
+                        <?php if (!empty($_rev['reply_text'])): ?>
+                        <div class="owner-reply">
+                            <div class="owner-reply-label">Ответ владельца</div>
+                            <div class="owner-reply-text"><?= nl2br(htmlspecialchars($_rev['reply_text'])) ?></div>
                         </div>
                         <?php endif; ?>
                     </div>
+                    <?php endforeach; ?>
                 </div>
+
+                <?php if (count($_revList) > 3): ?>
+                <button class="btn-show-more" onclick="toggleReviews()">
+                    Показать все отзывы
+                    <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="reviews-expanded" id="reviewsExpanded" style="padding: 0 16px;">
+                    <?php foreach (array_slice($_revList, 3) as $_rev): ?>
+                    <div class="review-item">
+                        <?php
+                        $_rName    = $_rev['author_name'] ?? 'Пользователь';
+                        $_rInitial = mb_strtoupper(mb_substr($_rName, 0, 1, 'UTF-8'), 'UTF-8');
+                        ?>
+                        <div class="review-item-top">
+                            <div class="review-author-row">
+                                <?php if (!empty($_rev['author_avatar'])): ?>
+                                <img src="<?= htmlspecialchars($_rev['author_avatar']) ?>" class="review-avatar" alt="">
+                                <?php else: ?>
+                                <div class="review-avatar review-avatar-ph"><?= htmlspecialchars($_rInitial) ?></div>
+                                <?php endif; ?>
+                                <div>
+                                    <div class="review-author"><?= htmlspecialchars($_rName) ?></div>
+                                    <div class="review-date"><?= date('d.m.Y', strtotime($_rev['created_at'])) ?></div>
+                                </div>
+                            </div>
+                            <div class="review-stars">
+                                <?php for ($_si = 1; $_si <= 5; $_si++): ?>
+                                <span class="rv-star<?= $_si <= (int)$_rev['rating'] ? ' rv-on' : '' ?>">★</span>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                        <div class="review-text"><?= nl2br(htmlspecialchars($_rev['text'])) ?></div>
+                        <?php if (!empty($_rev['photo'])): ?>
+                        <img src="<?= htmlspecialchars($_rev['photo']) ?>" class="review-photo-thumb"
+                             onclick="openPhotoModal(this.src)" alt="Фото к отзыву">
+                        <?php endif; ?>
+                        <?php if (!empty($_rev['reply_text'])): ?>
+                        <div class="owner-reply">
+                            <div class="owner-reply-label">Ответ владельца</div>
+                            <div class="owner-reply-text"><?= nl2br(htmlspecialchars($_rev['reply_text'])) ?></div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
+                <?php else: ?>
+                <div style="padding: 14px 16px; color: var(--text-secondary); font-size: 14px;">
+                    Пока нет отзывов. Будьте первым!
+                </div>
+                <?php endif; ?>
+
+                <!-- Свой отзыв пользователя (pending / rejected) -->
+                <?php if (!empty($userExistingReview) && $userExistingReview['status'] !== 'approved'): ?>
+                <?php $_canEdit = !empty($userExistingReview['edited_until'])
+                               && strtotime($userExistingReview['edited_until']) > time(); ?>
+                <div class="review-own-block">
+                    <div class="review-own-header">
+                        <span>Ваш отзыв</span>
+                        <?php if ($userExistingReview['status'] === 'pending'): ?>
+                        <span class="review-status pending">На модерации</span>
+                        <?php else: ?>
+                        <span class="review-status rejected">Отклонён</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="review-stars" style="margin-bottom:6px;">
+                        <?php for ($_si = 1; $_si <= 5; $_si++): ?>
+                        <span class="rv-star<?= $_si <= (int)$userExistingReview['rating'] ? ' rv-on' : '' ?>">★</span>
+                        <?php endfor; ?>
+                    </div>
+                    <div class="review-text"><?= nl2br(htmlspecialchars($userExistingReview['text'])) ?></div>
+                    <?php if ($_canEdit): ?>
+                    <button class="btn-action" style="margin-top:10px;"
+                        onclick="openEditReview(
+                            <?= (int)$userExistingReview['id'] ?>,
+                            <?= (int)$userExistingReview['rating'] ?>,
+                            <?= json_encode($userExistingReview['text'], JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+                            <?= json_encode($userExistingReview['photo'] ?? '', JSON_UNESCAPED_UNICODE) ?>
+                        )">Редактировать</button>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Добавить отзыв / войти -->
+                <?php if (!$isOwner): ?>
+                    <?php if (!$isLoggedIn): ?>
+                    <div style="padding: 12px 16px 16px;">
+                        <button class="btn-action primary" style="width:100%;justify-content:center;"
+                                onclick="addReview()">
+                            Войдите, чтобы оставить отзыв
+                        </button>
+                    </div>
+                    <?php elseif (empty($userExistingReview)): ?>
+                    <div style="padding: 12px 16px 16px;">
+                        <button class="btn-action primary" style="width:100%;justify-content:center;"
+                                onclick="addReview()">✍️ Написать отзыв</button>
+                    </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
 
             <!-- 🔧 АДРЕС И КАРТА -->
             <?php if ($service['address']): ?>
@@ -1214,8 +1407,8 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
         function shareService() {
             if (navigator.share) {
                 navigator.share({
-                    title: '<?php echo addslashes($service['name']); ?>',
-                    text: '<?php echo addslashes($service['description'] ?? ''); ?>',
+                    title: <?php echo json_encode($service['name']); ?>,
+                    text: <?php echo json_encode($service['description'] ?? ''); ?>,
                     url: window.location.href
                 });
             } else {
@@ -1389,12 +1582,91 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
             document.getElementById('reviewModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
+        let reviewEditId = null;
+
         function closeReviewModal() {
             document.getElementById('reviewModal').classList.remove('active');
             document.body.style.overflow = '';
+            reviewEditId = null;
+            const title = document.querySelector('.review-modal-title');
+            if (title) title.textContent = 'Оставить отзыв';
+            const btn = document.getElementById('btnSubmitReview');
+            if (btn) btn.textContent = 'Отправить отзыв';
             // Сбросить форму если была открыта
             const loginForm = document.getElementById('authLoginForm');
             if (loginForm) showChoice();
+        }
+
+        function openEditReview(id, rating, text, photo) {
+            reviewEditId = id;
+            // Выставляем звёзды
+            selectedRating = rating;
+            document.querySelectorAll('.star-btn').forEach((s, i) => {
+                s.classList.toggle('lit', i < rating);
+            });
+            // Текст
+            const ta = document.getElementById('reviewText');
+            if (ta) ta.value = text;
+            // Меняем заголовок и кнопку
+            const title = document.querySelector('.review-modal-title');
+            if (title) title.textContent = 'Редактировать отзыв';
+            const btn = document.getElementById('btnSubmitReview');
+            if (btn) btn.textContent = 'Сохранить изменения';
+            // Показываем существующее фото если есть
+            if (photo) {
+                const preview = document.getElementById('reviewPhotoPreview');
+                const img = document.getElementById('reviewPhotoPreviewImg');
+                if (preview && img) {
+                    img.src = photo;
+                    preview.style.display = 'flex';
+                    preview.style.alignItems = 'center';
+                    preview.style.gap = '8px';
+                }
+            }
+            addReview();
+        }
+
+        function previewReviewPhoto(input) {
+            if (!input.files || !input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('reviewPhotoPreview');
+                const img = document.getElementById('reviewPhotoPreviewImg');
+                if (preview && img) {
+                    img.src = e.target.result;
+                    preview.style.display = 'flex';
+                    preview.style.alignItems = 'center';
+                    preview.style.gap = '8px';
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        function removeReviewPhoto() {
+            const input = document.getElementById('reviewPhotoInput');
+            const preview = document.getElementById('reviewPhotoPreview');
+            if (input) input.value = '';
+            if (preview) preview.style.display = 'none';
+        }
+
+        function openPhotoModal(src) {
+            let lb = document.getElementById('photoLightbox');
+            if (!lb) {
+                lb = document.createElement('div');
+                lb.id = 'photoLightbox';
+                lb.className = 'photo-lightbox';
+                lb.innerHTML = '<button class="photo-lightbox-close" onclick="closePhotoModal()">×</button><img id="photoLightboxImg">';
+                lb.addEventListener('click', function(e) { if (e.target === lb) closePhotoModal(); });
+                document.body.appendChild(lb);
+            }
+            document.getElementById('photoLightboxImg').src = src;
+            lb.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePhotoModal() {
+            const lb = document.getElementById('photoLightbox');
+            if (lb) { lb.classList.remove('active'); document.body.style.overflow = ''; }
         }
 
         // Переключение экранов внутри модалки (только для незалогиненных)
@@ -1454,12 +1726,24 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
                                 </button>`).join('')}
                             </div>
                             <textarea class="review-textarea" id="reviewText"
-                                placeholder="Расскажите о своём опыте…" maxlength="1000"></textarea>
-                            <div class="review-hint">Минимум 10 символов</div>
+                                placeholder="Расскажите о своём опыте…" maxlength="2000"></textarea>
+                            <div class="review-hint">Минимум 20 символов</div>
+                            <div class="review-photo-upload-row">
+                                <label for="reviewPhotoInput" class="btn-photo-label">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                                        <polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                    Добавить фото
+                                </label>
+                                <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png"
+                                       style="display:none" onchange="previewReviewPhoto(this)">
+                                <div id="reviewPhotoPreview" style="display:none;"></div>
+                            </div>
                         </div>`;
                     document.getElementById('reviewAuthFooter').outerHTML = `
                         <div class="review-modal-footer">
-                            <button class="btn-submit-review" onclick="submitReview()">Отправить отзыв</button>
+                            <button class="btn-submit-review" id="btnSubmitReview" onclick="submitReview()">Отправить отзыв</button>
                         </div>`;
                     // Переинициализируем звёздочки
                     initStars();
@@ -1501,19 +1785,48 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
             });
         }
 
-        function submitReview() {
+        async function submitReview() {
             if (selectedRating === 0) {
                 alert('Пожалуйста, выберите оценку');
                 return;
             }
             const text = document.getElementById('reviewText').value.trim();
-            if (text.length < 10) {
-                alert('Напишите отзыв (минимум 10 символов)');
+            if (text.length < 20) {
+                alert('Напишите отзыв (минимум 20 символов)');
                 return;
             }
-            // Пока просто уведомление — backend будет добавлен позже
-            closeReviewModal();
-            alert('Спасибо! Ваш отзыв отправлен на модерацию.');
+
+            const btn = document.getElementById('btnSubmitReview') || document.querySelector('.btn-submit-review');
+            const origText = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Отправляем…'; }
+
+            const fd = new FormData();
+            fd.append('action', reviewEditId ? 'edit_review' : 'submit_review');
+            fd.append('service_id', '<?= $serviceId ?>');
+            fd.append('rating', selectedRating);
+            fd.append('text', text);
+            if (reviewEditId) fd.append('review_id', reviewEditId);
+
+            const photoInput = document.getElementById('reviewPhotoInput');
+            if (photoInput && photoInput.files && photoInput.files[0]) {
+                fd.append('photo', photoInput.files[0]);
+            }
+
+            try {
+                const res  = await fetch('/api/reviews.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    closeReviewModal();
+                    showToast('Отзыв отправлен на модерацию. Обычно это занимает до 24 часов.');
+                    setTimeout(() => location.reload(), 2200);
+                } else {
+                    alert(data.error || 'Произошла ошибка. Попробуйте ещё раз.');
+                    if (btn) { btn.disabled = false; btn.textContent = origText; }
+                }
+            } catch (e) {
+                alert('Ошибка соединения. Попробуйте ещё раз.');
+                if (btn) { btn.disabled = false; btn.textContent = origText; }
+            }
         }
 
         function toggleReviews() {
@@ -1540,8 +1853,8 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
 
         <?php if ($isLoggedIn): ?>
         <!-- Залогинен — форма сразу -->
-        <div class="review-modal-body">
-            <div class="stars-row">
+        <div class="review-modal-body" id="reviewFormBody">
+            <div class="stars-row" id="starsRow">
                 <?php for ($i = 1; $i <= 5; $i++): ?>
                 <button class="star-btn" data-star="<?php echo $i; ?>" aria-label="<?php echo $i; ?> звезд">
                     <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -1550,11 +1863,27 @@ $ogImage         = htmlspecialchars($service['photos'][0] ?? '');
             </div>
             <textarea class="review-textarea" id="reviewText"
                 placeholder="Расскажите о своём опыте — это поможет другим людям сделать выбор…"
-                maxlength="1000"></textarea>
-            <div class="review-hint">Минимум 10 символов</div>
+                maxlength="2000"></textarea>
+            <div class="review-hint">Минимум 20 символов</div>
+            <div class="review-photo-upload-row">
+                <label for="reviewPhotoInput" class="btn-photo-label">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    Добавить фото
+                </label>
+                <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png"
+                       style="display:none" onchange="previewReviewPhoto(this)">
+                <div id="reviewPhotoPreview" style="display:none; align-items:center; gap:8px;">
+                    <img id="reviewPhotoPreviewImg"
+                         style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
+                    <button type="button" onclick="removeReviewPhoto()" class="btn-remove-photo">×</button>
+                </div>
+            </div>
         </div>
         <div class="review-modal-footer">
-            <button class="btn-submit-review" onclick="submitReview()">Отправить отзыв</button>
+            <button class="btn-submit-review" id="btnSubmitReview" onclick="submitReview()">Отправить отзыв</button>
         </div>
 
         <?php else: ?>

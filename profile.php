@@ -1258,6 +1258,20 @@ body {
           <svg class="s-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
         </div>
       </a>
+      <?php if ($approvedCount > 0): ?>
+      <a href="my-reviews.php" class="s-item">
+        <div class="s-icon" style="background:#EFF6FF; color:#2E73D8;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="s-content">
+          <div class="s-label">Отзывы о моих сервисах</div>
+          <div class="s-desc">Ответы на отзывы клиентов</div>
+        </div>
+        <div class="s-right">
+          <svg class="s-arrow" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </a>
+      <?php endif; ?>
     </div>
 
     <!-- ПОВЫСИТЬ ВИДИМОСТЬ -->

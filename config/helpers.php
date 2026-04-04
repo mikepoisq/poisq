@@ -24,6 +24,21 @@ function articleSlug($title) {
     return substr($slug, 0, 80);
 }
 
+// Пересчёт рейтинга сервиса по одобренным отзывам
+function recalculateServiceRating($serviceId, $pdo) {
+    $stmt = $pdo->prepare("
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
+        FROM reviews
+        WHERE service_id = ? AND status = 'approved'
+    ");
+    $stmt->execute([$serviceId]);
+    $row   = $stmt->fetch(PDO::FETCH_ASSOC);
+    $avg   = $row ? round((float)$row['avg_rating'], 1) : 0;
+    $count = $row ? (int)$row['review_count'] : 0;
+    $pdo->prepare("UPDATE services SET rating = ?, reviews_count = ? WHERE id = ?")
+        ->execute([$avg, $count, $serviceId]);
+}
+
 // URL статьи: /article/fr/slug
 function articleUrl($countryCode, $slug) {
     $cc = ($countryCode === 'all') ? 'all' : preg_replace('/[^a-z]/', '', strtolower($countryCode));

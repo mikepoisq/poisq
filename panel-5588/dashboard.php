@@ -7,8 +7,16 @@ requireAdmin();
 
 $pdo = getDbConnection();
 
-$totalServices  = $pdo->query("SELECT COUNT(*) FROM services")->fetchColumn();
-$pendingCount   = $pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$totalServices      = $pdo->query("SELECT COUNT(*) FROM services")->fetchColumn();
+$pendingCount       = $pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingVerifCount  = 0;
+try {
+    $pendingVerifCount = (int)$pdo->query("SELECT COUNT(*) FROM verification_requests WHERE status='pending'")->fetchColumn();
+} catch (Exception $e) { $pendingVerifCount = 0; }
+$pendingReviewCount = 0;
+try {
+    $pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
+} catch (Exception $e) { $pendingReviewCount = 0; }
 $approvedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='approved'")->fetchColumn();
 $rejectedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='rejected'")->fetchColumn();
 $draftCount     = $pdo->query("SELECT COUNT(*) FROM services WHERE status='draft'")->fetchColumn();
@@ -56,6 +64,34 @@ $categories = [
 
 ob_start();
 ?>
+
+<!-- Новые отзывы -->
+<?php if ($pendingReviewCount > 0): ?>
+<a href="/panel-5588/reviews.php?status=pending" style="display:block;text-decoration:none;margin-bottom:16px;">
+    <div class="stat-card blue" style="display:flex;align-items:center;gap:14px;padding:14px 18px;">
+        <div style="font-size:28px;">💬</div>
+        <div>
+            <div class="stat-card-label">Новых отзывов</div>
+            <div class="stat-card-value" style="font-size:22px;"><?php echo $pendingReviewCount; ?></div>
+        </div>
+        <div style="margin-left:auto;font-size:20px;">→</div>
+    </div>
+</a>
+<?php endif; ?>
+
+<!-- Значок Проверено -->
+<?php if ($pendingVerifCount > 0): ?>
+<a href="/panel-5588/verifications.php?status=pending" style="display:block;text-decoration:none;margin-bottom:16px;">
+    <div class="stat-card yellow" style="display:flex;align-items:center;gap:14px;padding:14px 18px;">
+        <div style="font-size:28px;">⭐</div>
+        <div>
+            <div class="stat-card-label">Ждут значка Проверено</div>
+            <div class="stat-card-value" style="font-size:22px;"><?php echo $pendingVerifCount; ?></div>
+        </div>
+        <div style="margin-left:auto;color:var(--warning);font-size:20px;">→</div>
+    </div>
+</a>
+<?php endif; ?>
 
 <!-- Статистика сервисов -->
 <div class="stat-grid stat-grid-4">
@@ -234,5 +270,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-renderLayout('Дашборд', $content, (int)$pendingCount);
+renderLayout('Дашборд', $content, (int)$pendingCount, (int)$pendingVerifCount, (int)$pendingReviewCount);
 ?>
