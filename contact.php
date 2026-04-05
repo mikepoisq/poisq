@@ -100,8 +100,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <title>Контакт — Poisq</title>
 <meta name="description" content="Свяжитесь с командой Poisq. Poisq Solutions Ltd, 5 rue Henri-Christine, 1205 Женева. support@poisq.com">
 <link rel="canonical" href="https://poisq.com/contact.php">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -339,6 +346,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .btn-outlined { display: block; width: 100%; padding: 13px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; text-align: center; text-decoration: none; transition: border-color 0.15s, background 0.15s; letter-spacing: -0.1px; }
 .btn-outlined:active { background: var(--bg-secondary); border-color: var(--text-secondary); }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
 <div class="app-container">

@@ -67,45 +67,50 @@ $detectedCountry = getCountryByIP();
 $error = '';
 $formData = [];
 
-// 🔧 КАТЕГОРИИ И ПОДКАТЕГОРИИ
-$categories = [
-    'health' => ['name' => '🏥 Здоровье и красота', 'subcategories' => ['Врачи', 'Стоматология', 'Психология', 'Альтернативная медицина', 'Салоны красоты', 'Фитнес и спорт', 'Аптеки']],
-    'legal' => ['name' => '⚖️ Юридические услуги', 'subcategories' => ['Иммиграция', 'Семейное право', 'Недвижимость', 'Бизнес право', 'Авто право', 'Нотариус', 'Консультации']],
-    'family' => ['name' => '👨👩👧👦 Семья и дети', 'subcategories' => ['Няни', 'Репетиторы', 'Детские кружки', 'Бэбиситтеры', 'Детские праздники', 'Беременность и роды', 'Детские товары']],
-    'shops' => ['name' => '🛒 Магазины и продукты', 'subcategories' => ['Русские магазины', 'Доставка продуктов', 'Рестораны', 'Пекарни', 'Мясные лавки', 'Онлайн магазины', 'Барахолки']],
-    'home' => ['name' => '🏠 Дом и быт', 'subcategories' => ['Уборка', 'Ремонт', 'Переезды', 'Химчистка', 'Животные', 'Сад и огород', 'Охрана']],
-    'education' => ['name' => '📚 Образование', 'subcategories' => ['Языковые курсы', 'Русский язык', 'Школьные предметы', 'Музыка', 'Искусство', 'Профессиональные курсы', 'Онлайн обучение']],
-    'business' => ['name' => '💼 Бизнес и финансы', 'subcategories' => ['Бухгалтерия', 'Налоги', 'Банковские услуги', 'Страхование', 'Недвижимость', 'Бизнес консультации', 'Переводы денег']],
-    'transport' => ['name' => '🚗 Транспорт и авто', 'subcategories' => ['Авто сервис', 'Автошкола', 'Такси/Трансфер', 'Аренда авто', 'Покупка авто', 'Мото сервис', 'Велосипеды']],
-    'events' => ['name' => '📷 События и развлечения', 'subcategories' => ['Фотографы', 'Видеографы', 'Праздники', 'Туризм', 'Развлечения', 'Культура', 'Спорт события']],
-    'it' => ['name' => '💻 IT и онлайн услуги', 'subcategories' => ['Веб разработка', 'Дизайн', 'Ремонт техники', 'Настройка', 'SMM/Маркетинг', 'Консультации', 'Фриланс']],
-    'realestate' => ['name' => '🏢 Недвижимость', 'subcategories' => ['Аренда', 'Покупка', 'Продажа', 'Управление', 'Ремонт', 'Юристы', 'Ипотека']],
-    'messengers' => ['name' => '💬 Группы ВатсАп и Телеграм', 'subcategories' => ['WhatsApp группа', 'Telegram группа', 'Telegram канал', 'Чат взаимопомощи', 'Тематическое сообщество', 'Объявления и услуги', 'Другое']]
-];
+// 🔧 КАТЕГОРИИ И ПОДКАТЕГОРИИ — загружаем из БД
+$categories = [];
+try {
+    $pdo = getDbConnection();
+    $dbCats = $pdo->query("SELECT slug, name, icon FROM service_categories WHERE is_active=1 ORDER BY sort_order, name")->fetchAll(PDO::FETCH_ASSOC);
+    $dbSubs = $pdo->query("SELECT category_slug, name FROM service_subcategories WHERE is_active=1 ORDER BY sort_order, name")->fetchAll(PDO::FETCH_ASSOC);
+    $subMap = [];
+    foreach ($dbSubs as $s) $subMap[$s['category_slug']][] = $s['name'];
+    foreach ($dbCats as $c) {
+        $categories[$c['slug']] = [
+            'name'          => $c['name'],
+            'subcategories' => $subMap[$c['slug']] ?? [],
+        ];
+    }
+} catch (Exception $e) {
+    error_log('Categories DB error: ' . $e->getMessage());
+    // Fallback: базовый набор если БД недоступна
+    $categories = [
+        'health'     => ['name' => '🏥 Здоровье и красота',       'subcategories' => []],
+        'legal'      => ['name' => '⚖️ Юридические услуги',         'subcategories' => []],
+        'messengers' => ['name' => '💬 Группы ВатсАп и Телеграм',  'subcategories' => []],
+    ];
+}
 
-// 🔧 СПИСОК СТРАН
-$countries = [
-    ['code' => 'fr', 'name' => 'Франция', 'flag' => '🇫🇷'], ['code' => 'de', 'name' => 'Германия', 'flag' => '🇩🇪'],
-    ['code' => 'es', 'name' => 'Испания', 'flag' => '🇪🇸'], ['code' => 'it', 'name' => 'Италия', 'flag' => '🇮🇹'],
-    ['code' => 'gb', 'name' => 'Великобритания', 'flag' => '🇬🇧'], ['code' => 'us', 'name' => 'США', 'flag' => '🇺🇸'],
-    ['code' => 'ca', 'name' => 'Канада', 'flag' => '🇨🇦'], ['code' => 'au', 'name' => 'Австралия', 'flag' => '🇦🇺'],
-    ['code' => 'ru', 'name' => 'Россия', 'flag' => '🇷🇺'], ['code' => 'ua', 'name' => 'Украина', 'flag' => '🇺🇦'],
-    ['code' => 'by', 'name' => 'Беларусь', 'flag' => '🇧🇾'], ['code' => 'kz', 'name' => 'Казахстан', 'flag' => '🇰🇿'],
-    ['code' => 'nl', 'name' => 'Нидерланды', 'flag' => '🇳🇱'], ['code' => 'be', 'name' => 'Бельгия', 'flag' => '🇧🇪'],
-    ['code' => 'ch', 'name' => 'Швейцария', 'flag' => '🇨🇭'], ['code' => 'at', 'name' => 'Австрия', 'flag' => '🇦🇹'],
-    ['code' => 'pt', 'name' => 'Португалия', 'flag' => '🇵🇹'], ['code' => 'gr', 'name' => 'Греция', 'flag' => '🇬🇷'],
-    ['code' => 'pl', 'name' => 'Польша', 'flag' => '🇵🇱'], ['code' => 'cz', 'name' => 'Чехия', 'flag' => '🇨🇿'],
-    ['code' => 'se', 'name' => 'Швеция', 'flag' => '🇸🇪'], ['code' => 'no', 'name' => 'Норвегия', 'flag' => '🇳🇴'],
-    ['code' => 'dk', 'name' => 'Дания', 'flag' => '🇩🇰'], ['code' => 'fi', 'name' => 'Финляндия', 'flag' => '🇫🇮'],
-    ['code' => 'ie', 'name' => 'Ирландия', 'flag' => '🇮🇪'], ['code' => 'nz', 'name' => 'Новая Зеландия', 'flag' => '🇳🇿'],
-    ['code' => 'ae', 'name' => 'ОАЭ', 'flag' => '🇦🇪'], ['code' => 'il', 'name' => 'Израиль', 'flag' => '🇮🇱'],
-    ['code' => 'tr', 'name' => 'Турция', 'flag' => '🇹🇷'], ['code' => 'th', 'name' => 'Таиланд', 'flag' => '🇹🇭'],
-    ['code' => 'jp', 'name' => 'Япония', 'flag' => '🇯🇵'], ['code' => 'kr', 'name' => 'Южная Корея', 'flag' => '🇰🇷'],
-    ['code' => 'sg', 'name' => 'Сингапур', 'flag' => '🇸🇬'], ['code' => 'hk', 'name' => 'Гонконг', 'flag' => '🇭🇰'],
-    ['code' => 'mx', 'name' => 'Мексика', 'flag' => '🇲🇽'], ['code' => 'br', 'name' => 'Бразилия', 'flag' => '🇧🇷'],
-    ['code' => 'ar', 'name' => 'Аргентина', 'flag' => '🇦🇷'], ['code' => 'cl', 'name' => 'Чили', 'flag' => '🇨🇱'],
-    ['code' => 'co', 'name' => 'Колумбия', 'flag' => '🇨🇴'], ['code' => 'za', 'name' => 'ЮАР', 'flag' => '🇿🇦']
-];
+// 🔧 СПИСОК СТРАН — загружаем из БД
+$countries = [];
+try {
+    $pdo = getDbConnection();
+    $dbRows = $pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1 ORDER BY name_ru")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($dbRows as $r) {
+        $countries[] = ['code' => $r['code'], 'name' => $r['name_ru'], 'flag' => ''];
+    }
+} catch (Exception $e) {
+    error_log('Countries DB error: ' . $e->getMessage());
+}
+// Fallback если БД недоступна
+if (empty($countries)) {
+    $countries = [
+        ['code'=>'fr','name'=>'Франция','flag'=>''],['code'=>'de','name'=>'Германия','flag'=>''],
+        ['code'=>'es','name'=>'Испания','flag'=>''],['code'=>'gb','name'=>'Великобритания','flag'=>''],
+        ['code'=>'us','name'=>'США','flag'=>''],['code'=>'ru','name'=>'Россия','flag'=>''],
+        ['code'=>'ua','name'=>'Украина','flag'=>''],['code'=>'tr','name'=>'Турция','flag'=>''],
+    ];
+}
 
 // 🔧 ОБРАБОТКА ФОРМЫ (POST-запрос)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -287,8 +292,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Добавить сервис — Poisq</title>
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -509,6 +521,9 @@ align-items: center;
 justify-content: center;
 font-size: 18px;
 }
+.country-flag img, .city-flag img {
+width: 100%; height: 100%; object-fit: cover; display: block;
+}
 .country-name, .city-name {
 flex: 1;
 font-size: 15px;
@@ -621,6 +636,9 @@ display: flex;
 align-items: center;
 justify-content: center;
 font-size: 20px;
+}
+.country-item-flag img {
+width: 100%; height: 100%; object-fit: cover; display: block;
 }
 .country-item-name {
 font-size: 15px;
@@ -1044,6 +1062,9 @@ color: white;
 }
 ::-webkit-scrollbar { display: none; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
 <div class="app-container">
@@ -1193,7 +1214,7 @@ required minlength="100" maxlength="2000"><?php echo htmlspecialchars($formData[
 <div class="form-group">
 <label class="form-label">Страна <span class="required">*</span></label>
 <div class="country-selector" id="countrySelector" onclick="openCountryModal()">
-<div class="country-flag" id="selectedCountryFlag">🇫🇷</div>
+<div class="country-flag" id="selectedCountryFlag"><img src="https://flagcdn.com/w80/fr.png" alt="Франция" style="width:100%;height:100%;object-fit:cover;display:block"></div>
 <span class="country-name" id="selectedCountryName">Франция</span>
 <svg class="country-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
 <input type="hidden" id="country" name="country" value="fr">
@@ -1494,8 +1515,8 @@ const searchInput = document.getElementById('countrySearch');
 const selectedCountry = document.getElementById('country').value;
 list.innerHTML = countries.map(country => `
 <div class="country-item ${country.code === selectedCountry ? 'selected' : ''}"
-onclick="selectCountry('${country.code}', '${country.name}', '${country.flag}')">
-<div class="country-item-flag">${country.flag}</div>
+onclick="selectCountry('${country.code}', '${country.name}')">
+<div class="country-item-flag"><img src="https://flagcdn.com/w80/${country.code}.png" alt="${country.name}" loading="lazy"></div>
 <span class="country-item-name">${country.name}</span>
 <svg class="country-item-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
 </div>
@@ -1517,9 +1538,9 @@ function closeCountryModal() {
 document.getElementById('countryModal').classList.remove('active');
 document.body.style.overflow = '';
 }
-function selectCountry(code, name, flag) {
+function selectCountry(code, name) {
 document.getElementById('country').value = code;
-document.getElementById('selectedCountryFlag').textContent = flag;
+document.getElementById('selectedCountryFlag').innerHTML = '<img src="https://flagcdn.com/w80/' + code + '.png" alt="' + name + '" style="width:100%;height:100%;object-fit:cover;display:block">';
 document.getElementById('selectedCountryName').textContent = name;
 document.getElementById('countrySelector').classList.remove('error');
 document.getElementById('countryError').textContent = '';
@@ -2248,7 +2269,7 @@ const initCountry = savedFormData.country || detectedCountry;
 const countryObj = countries.find(c => c.code === initCountry) || countries[0];
 // Устанавливаем страну в UI
 document.getElementById('country').value = countryObj.code;
-document.getElementById('selectedCountryFlag').textContent = countryObj.flag;
+document.getElementById('selectedCountryFlag').innerHTML = '<img src="https://flagcdn.com/w80/' + countryObj.code + '.png" alt="' + countryObj.name + '" style="width:100%;height:100%;object-fit:cover;display:block">';
 document.getElementById('selectedCountryName').textContent = countryObj.name;
 // Загружаем города для этой страны
 await loadCities(countryObj.code);

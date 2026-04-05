@@ -11,6 +11,7 @@ $userAvatar  = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/Parsedown.php';
 
 // Читаем параметры — новый формат (slug) или старый (id) для обратной совместимости
 $slug    = trim($_GET['slug']    ?? '');
@@ -74,8 +75,15 @@ if ($article) {
 <meta name="description" content="<?php echo htmlspecialchars(mb_substr(strip_tags($article['excerpt']), 0, 160)); ?>">
 <link rel="canonical" href="<?php echo $canonicalUrl; ?>">
 <?php endif; ?>
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -105,14 +113,15 @@ body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; ba
 
 /* HEADER */
 .page-header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border-light); }
-.header-top { display: flex; align-items: center; padding: 10px 14px; height: 56px; gap: 10px; }
+.header-top { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; height: 56px; }
+.header-left { display: flex; align-items: center; width: 84px; }
+.header-center { display: flex; justify-content: center; }
+.header-center img { height: 36px; width: auto; object-fit: contain; }
+.header-right { width: 84px; display: flex; align-items: center; justify-content: flex-end; }
 .btn-back { width: 38px; height: 38px; border-radius: var(--radius-xs); border: none; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all 0.15s; text-decoration: none; }
 .btn-back svg { width: 20px; height: 20px; stroke: var(--text); stroke-width: 2.5; fill: none; }
 .btn-back:active { background: var(--primary); }
 .btn-back:active svg { stroke: white; }
-.header-logo { flex: 1; display: flex; justify-content: center; }
-.header-logo img { height: 36px; width: auto; object-fit: contain; }
-.header-actions { width: 84px; display: flex; align-items: center; justify-content: flex-end; }
 .btn-burger { width: 38px; height: 38px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; padding: 8px; cursor: pointer; background: none; border: none; border-radius: var(--radius-xs); flex-shrink: 0; }
 .btn-burger span { display: block; width: 20px; height: 2px; background: var(--text-light); border-radius: 2px; transition: all 0.2s; }
 .btn-burger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); background: var(--text); }
@@ -134,14 +143,16 @@ body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; ba
 .article-title { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1.25; letter-spacing: -0.5px; padding: 12px 16px 0; }
 
 /* КОНТЕНТ */
-.article-content { flex: 1; padding: 18px 16px 32px; font-size: 15.5px; line-height: 1.7; color: #1E293B; }
-.article-content p { margin-bottom: 14px; }
-.article-content h2 { font-size: 17px; font-weight: 800; color: var(--text); margin: 24px 0 10px; letter-spacing: -0.3px; padding-top: 6px; border-top: 2px solid var(--border-light); }
-.article-content h2:first-child { border-top: none; margin-top: 0; }
-.article-content ul { padding-left: 0; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; list-style: none; }
-.article-content ul li { padding-left: 18px; position: relative; font-size: 15px; line-height: 1.6; }
-.article-content ul li::before { content: '—'; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
-.article-content strong { font-weight: 800; color: var(--text); }
+.article-content { flex: 1; padding: 18px 16px 32px; font-size: 17px; line-height: 1.75; color: var(--text); }
+.article-content p { margin-bottom: 20px; }
+.article-content h1, .article-content h2 { font-size: 20px; font-weight: 700; margin: 28px 0 12px; }
+.article-content h3 { font-size: 18px; font-weight: 600; margin: 24px 0 10px; }
+.article-content strong, .article-content b { font-weight: 700; color: var(--text); }
+.article-content ul, .article-content ol { padding-left: 22px; margin-bottom: 20px; }
+.article-content li { margin-bottom: 8px; line-height: 1.7; }
+.article-content img { width: 100%; border-radius: 12px; margin: 20px 0; }
+.article-content a { color: var(--primary); text-decoration: underline; }
+.article-content blockquote { border-left: 3px solid var(--primary); padding-left: 16px; color: var(--text-secondary); margin: 20px 0; font-style: italic; }
 .article-content em { font-style: italic; color: var(--text-secondary); }
 
 /* CTA */
@@ -186,19 +197,24 @@ body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; ba
 
 ::-webkit-scrollbar { display: none; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
 <div class="app-container">
 
 <header class="page-header">
   <div class="header-top">
-    <a href="/useful.php" class="btn-back" aria-label="Назад">
-      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </a>
-    <div class="header-logo">
+    <div class="header-left">
+      <a href="/useful.php" class="btn-back" aria-label="Назад">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </a>
+    </div>
+    <div class="header-center">
       <a href="/index.php"><img src="/logo.png" alt="Poisq"></a>
     </div>
-    <div class="header-actions">
+    <div class="header-right">
       <button class="btn-burger" id="menuToggle" aria-label="Меню">
         <span></span><span></span><span></span>
       </button>
@@ -227,7 +243,11 @@ body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; ba
   <h1 class="article-title"><?php echo htmlspecialchars($article['title']); ?></h1>
 
   <div class="article-content">
-    <?php echo $article['content']; ?>
+    <?php
+      $pd = new Parsedown();
+      $pd->setSafeMode(false);
+      echo $pd->text($article['content']);
+    ?>
   </div>
 
   <a href="/results.php" class="cta-banner">

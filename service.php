@@ -227,7 +227,15 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
     <meta property="og:url" content="<?php echo $canonicalUrl; ?>">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+    <link rel="manifest" href="/manifest.json?v=2">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Poisq">
     <script type="application/ld+json">
     <?php
     $jsonLd = [
@@ -850,6 +858,8 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         .fav-modal-footer button:active { opacity: 0.85; transform: scale(0.99); }
         .fav-modal-footer button:disabled { opacity: 0.6; }
     </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
 </head>
 <body>
     <div class="app-container">
@@ -963,7 +973,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                 </a>
                 <?php endif; ?>
                 <?php if ($service['whatsapp']): ?>
-                <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>" target="_blank" class="btn-action">
+                <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $service['name'] . '».'); ?>" target="_blank" class="btn-action">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                     </svg>
@@ -1328,7 +1338,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         </a>
         <?php endif; ?>
         <?php if ($service['whatsapp']): ?>
-        <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>" target="_blank" class="btn-action">
+        <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $service['name'] . '».'); ?>" target="_blank" class="btn-action">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
             </svg>

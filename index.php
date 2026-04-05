@@ -11,11 +11,37 @@ $userName   = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
 $userAvatar = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 
+// Страны из БД для выбора страны
+require_once __DIR__ . '/config/database.php';
+$_jsCountries = [];
+try {
+    $_pdo = getDbConnection();
+    foreach ($_pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1 ORDER BY name_ru")->fetchAll(PDO::FETCH_ASSOC) as $_r) {
+        $_jsCountries[] = ['code' => $_r['code'], 'name' => $_r['name_ru']];
+    }
+} catch (Exception $_e) { error_log('Countries DB: ' . $_e->getMessage()); }
+if (empty($_jsCountries)) {
+    $_jsCountries = [
+        ['code'=>'ae','name'=>'ОАЭ'],['code'=>'ar','name'=>'Аргентина'],['code'=>'au','name'=>'Австралия'],
+        ['code'=>'at','name'=>'Австрия'],['code'=>'be','name'=>'Бельгия'],['code'=>'br','name'=>'Бразилия'],
+        ['code'=>'by','name'=>'Беларусь'],['code'=>'ca','name'=>'Канада'],['code'=>'ch','name'=>'Швейцария'],
+        ['code'=>'cl','name'=>'Чили'],['code'=>'co','name'=>'Колумбия'],['code'=>'cz','name'=>'Чехия'],
+        ['code'=>'de','name'=>'Германия'],['code'=>'dk','name'=>'Дания'],['code'=>'es','name'=>'Испания'],
+        ['code'=>'fi','name'=>'Финляндия'],['code'=>'fr','name'=>'Франция'],['code'=>'gb','name'=>'Великобритания'],
+        ['code'=>'gr','name'=>'Греция'],['code'=>'hk','name'=>'Гонконг'],['code'=>'ie','name'=>'Ирландия'],
+        ['code'=>'il','name'=>'Израиль'],['code'=>'it','name'=>'Италия'],['code'=>'jp','name'=>'Япония'],
+        ['code'=>'kr','name'=>'Южная Корея'],['code'=>'kz','name'=>'Казахстан'],['code'=>'mx','name'=>'Мексика'],
+        ['code'=>'nl','name'=>'Нидерланды'],['code'=>'no','name'=>'Норвегия'],['code'=>'nz','name'=>'Новая Зеландия'],
+        ['code'=>'pl','name'=>'Польша'],['code'=>'pt','name'=>'Португалия'],['code'=>'ru','name'=>'Россия'],
+        ['code'=>'se','name'=>'Швеция'],['code'=>'sg','name'=>'Сингапур'],['code'=>'th','name'=>'Таиланд'],
+        ['code'=>'tr','name'=>'Турция'],['code'=>'ua','name'=>'Украина'],['code'=>'us','name'=>'США'],['code'=>'za','name'=>'ЮАР'],
+    ];
+}
+
 // Проверка слотов
 $slotsLeft = 3;
 if ($isLoggedIn) {
     try {
-        require_once __DIR__ . '/config/database.php';
         $pdo = getDbConnection();
         $st = $pdo->prepare("SELECT COUNT(*) FROM services WHERE user_id = ? AND status = 'approved'");
         $st->execute([$_SESSION['user_id']]);
@@ -97,12 +123,19 @@ $detectedCountry = getCountryByIP();
 <meta name="description" content="Найдите русскоязычных специалистов рядом с вами — врачей, юристов, репетиторов и других профессионалов в вашем городе">
 <meta property="og:title" content="Poisq — русскоязычные сервисы за рубежом">
 <meta property="og:description" content="Найдите русскоязычных специалистов рядом с вами — врачей, юристов, репетиторов и других профессионалов в вашем городе">
-<meta property="og:image" content="https://poisq.com/logo.png">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 <meta property="og:url" content="https://poisq.com/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon"            type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon"                 href="/favicon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -890,6 +923,8 @@ body {
 
 ::-webkit-scrollbar { display: none; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
 </head>
 <body>
 <div class="app-container">
@@ -897,6 +932,11 @@ body {
   <!-- ── ШАПКА ── -->
   <header class="header">
     <div class="header-side">
+      <button class="btn-grid" id="themeToggle" onclick="toggleTheme()" aria-label="Тёмная тема" title="Тёмная тема">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
       <button class="btn-grid" onclick="openAnnModal()" aria-label="Свежие сервисы">
         <svg viewBox="0 0 24 24">
           <circle cx="5"  cy="5"  r="2"/><circle cx="12" cy="5"  r="2"/><circle cx="19" cy="5"  r="2"/>
@@ -1436,9 +1476,11 @@ function setSearch(val) {
 }
 
 // ════════════════════════════════════════
-// ВЫБОР СТРАНЫ
+// ВЫБОР СТРАНЫ — из БД через PHP
 // ════════════════════════════════════════
-const countries = [
+const countries = <?php echo json_encode($_jsCountries, JSON_UNESCAPED_UNICODE); ?>;
+/* legacy countries block replaced */
+const _legacy = [
   {code:'af',name:'Афганистан'},{code:'al',name:'Албания'},{code:'dz',name:'Алжир'},{code:'ar',name:'Аргентина'},
   {code:'am',name:'Армения'},{code:'au',name:'Австралия'},{code:'at',name:'Австрия'},{code:'az',name:'Азербайджан'},
   {code:'bs',name:'Багамы'},{code:'bh',name:'Бахрейн'},{code:'bd',name:'Бангладеш'},{code:'by',name:'Беларусь'},
@@ -1467,7 +1509,7 @@ const countries = [
   {code:'tm',name:'Туркменистан'},{code:'ua',name:'Украина'},{code:'ae',name:'ОАЭ'},{code:'gb',name:'Великобритания'},
   {code:'us',name:'США'},{code:'uy',name:'Уругвай'},{code:'uz',name:'Узбекистан'},{code:'ve',name:'Венесуэла'},
   {code:'vn',name:'Вьетнам'},{code:'xk',name:'Косово'}
-];
+]; // end _legacy
 
 const currentFlag        = document.getElementById('currentFlag');
 const currentCountryName = document.getElementById('currentCountryName');

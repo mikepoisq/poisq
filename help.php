@@ -22,6 +22,14 @@ if ($isLoggedIn) {
         $slotsLeft = max(0, 3 - (int)$st->fetchColumn());
     } catch (Exception $e) { $slotsLeft = 3; }
 }
+
+// Загрузка FAQ из БД
+$faqItems = [];
+try {
+    if (!isset($pdo)) { require_once __DIR__ . '/config/database.php'; $pdo = getDbConnection(); }
+    $stFaq = $pdo->query("SELECT id, question, answer FROM faq WHERE is_active=1 ORDER BY sort_order ASC, id ASC");
+    $faqItems = $stFaq->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) { $faqItems = []; }
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -31,8 +39,15 @@ if ($isLoggedIn) {
 <title>Помощь — Poisq</title>
 <meta name="description" content="Ответы на частые вопросы о Poisq — каталоге русскоязычных сервисов за рубежом.">
 <link rel="canonical" href="https://poisq.com/help.php">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -290,6 +305,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .ann-date { font-size: 10px; color: var(--text-light); font-weight: 600; padding: 6px 8px 2px; }
 .ann-item-name { font-size: 12px; font-weight: 700; color: var(--text); padding: 0 8px 8px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
 <div class="app-container">
@@ -337,116 +355,45 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
       <div class="hero-sub">Ответы на самые частые вопросы о Poisq</div>
     </div>
 
-    <!-- FAQ: Поиск -->
+    <?php if (!empty($faqItems)): ?>
+    <!-- FAQ из БД -->
+    <div class="section">
+      <div class="section-title">Частые вопросы</div>
+      <?php foreach ($faqItems as $fi): ?>
+      <div class="accord-item" id="faq<?php echo $fi['id']; ?>">
+        <div class="accord-head" onclick="toggleAccord('faq<?php echo $fi['id']; ?>')">
+          <span><?php echo htmlspecialchars($fi['question']); ?></span>
+          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="accord-body"><?php echo nl2br(htmlspecialchars($fi['answer'])); ?></div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <?php else: ?>
+    <!-- FAQ: Поиск (статичный fallback) -->
     <div class="section">
       <div class="section-title">Поиск сервисов</div>
-
       <div class="accord-item" id="faq0">
-        <div class="accord-head" onclick="toggleAccord('faq0')">
-          <span>Как найти специалиста в моём городе?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">На главной странице выберите страну, затем введите в поиске нужную услугу — например, «врач» или «юрист». Poisq автоматически определяет ваш город по IP и предложит ближайших специалистов. Вы также можете ввести город прямо в строке поиска, например «стоматолог Берлин».</div>
+        <div class="accord-head" onclick="toggleAccord('faq0')"><span>Как найти специалиста в моём городе?</span><svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="accord-body">На главной странице выберите страну, затем введите в поиске нужную услугу — например, «врач» или «юрист». Poisq автоматически определяет ваш город по IP и предложит ближайших специалистов.</div>
       </div>
-
       <div class="accord-item" id="faq1">
-        <div class="accord-head" onclick="toggleAccord('faq1')">
-          <span>Как отфильтровать результаты по категории?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">На странице результатов поиска нажмите кнопку «Фильтры» или выберите нужную категорию в строке чипов под строкой поиска. Можно также фильтровать по городу, минимальному рейтингу и статусу проверки.</div>
-      </div>
-
-      <div class="accord-item" id="faq2">
-        <div class="accord-head" onclick="toggleAccord('faq2')">
-          <span>Что означает значок ✅ у сервиса?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Зелёный значок означает, что сервис прошёл проверку командой Poisq. Мы убедились в подлинности контактных данных и реальности специалиста. Проверенным сервисам можно доверять с большей уверенностью.</div>
-      </div>
-
-      <div class="accord-item" id="faq3">
-        <div class="accord-head" onclick="toggleAccord('faq3')">
-          <span>Что такое «Свежие сервисы» (кнопка 9 точек)?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Кнопка с 9 точками в шапке открывает ленту новых сервисов, добавленных за последние 5 дней в вашем городе. Удобно следить за появлением новых специалистов рядом с вами.</div>
+        <div class="accord-head" onclick="toggleAccord('faq1')"><span>Что означает значок ✅ у сервиса?</span><svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="accord-body">Зелёный значок означает, что сервис прошёл проверку командой Poisq.</div>
       </div>
     </div>
-
-    <!-- FAQ: Размещение -->
     <div class="section">
       <div class="section-title">Размещение сервиса</div>
-
       <div class="accord-item" id="faq4">
-        <div class="accord-head" onclick="toggleAccord('faq4')">
-          <span>Как добавить свой сервис?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Нажмите кнопку «+» в шапке или перейдите в раздел «Добавить сервис». Заполните форму: название, категория, описание, контакты, фотографии и часы работы. После отправки сервис проходит ручную модерацию — обычно до 24 часов в будние дни.</div>
+        <div class="accord-head" onclick="toggleAccord('faq4')"><span>Как добавить свой сервис?</span><svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="accord-body">Нажмите кнопку «+» в шапке. Заполните форму и отправьте на модерацию — обычно до 24 часов.</div>
       </div>
-
       <div class="accord-item" id="faq5">
-        <div class="accord-head" onclick="toggleAccord('faq5')">
-          <span>Сколько стоит размещение?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Базовое размещение абсолютно бесплатное. Каждый пользователь может добавить до 3 сервисов без ограничений по времени. В будущем появятся платные опции для повышения видимости в результатах поиска.</div>
-      </div>
-
-      <div class="accord-item" id="faq6">
-        <div class="accord-head" onclick="toggleAccord('faq6')">
-          <span>Почему мой сервис не опубликован?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">После отправки сервис проходит ручную проверку командой Poisq. Обычно это занимает до 24 часов в будние дни. Если сервис отклонён — вы получите email с причиной и сможете внести исправления и отправить снова. Проверьте статус в разделе «Мои сервисы».</div>
-      </div>
-
-      <div class="accord-item" id="faq7">
-        <div class="accord-head" onclick="toggleAccord('faq7')">
-          <span>Как изменить информацию в сервисе?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Перейдите в раздел «Мои сервисы», выберите нужный и нажмите «Редактировать». После сохранения изменений сервис автоматически отправляется на повторную модерацию.</div>
-      </div>
-
-      <div class="accord-item" id="faq8">
-        <div class="accord-head" onclick="toggleAccord('faq8')">
-          <span>Могу ли я скрыть сервис на время?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Да. В разделе «Мои сервисы» у каждого одобренного сервиса есть переключатель видимости. Скрытый сервис перестаёт отображаться в каталоге, но остаётся в вашем аккаунте — вы можете снова сделать его видимым в любой момент.</div>
+        <div class="accord-head" onclick="toggleAccord('faq5')"><span>Сколько стоит размещение?</span><svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="accord-body">Базовое размещение бесплатное — до 3 сервисов на аккаунт.</div>
       </div>
     </div>
-
-    <!-- FAQ: Аккаунт -->
-    <div class="section">
-      <div class="section-title">Аккаунт и безопасность</div>
-
-      <div class="accord-item" id="faq9">
-        <div class="accord-head" onclick="toggleAccord('faq9')">
-          <span>Мои данные в безопасности?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Мы не передаём ваши персональные данные третьим лицам. Email используется только для входа, верификации и уведомлений, которые вы сами включаете в настройках. Все пароли хранятся в зашифрованном виде.</div>
-      </div>
-
-      <div class="accord-item" id="faq10">
-        <div class="accord-head" onclick="toggleAccord('faq10')">
-          <span>Как удалить свой аккаунт?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">Напишите нам через <a href="/contact.php">страницу контакта</a> с темой «Удаление аккаунта». Мы удалим все ваши данные в течение 5 рабочих дней. Удаление необратимо — все ваши сервисы также будут удалены.</div>
-      </div>
-
-      <div class="accord-item" id="faq11">
-        <div class="accord-head" onclick="toggleAccord('faq11')">
-          <span>Я забыл пароль — что делать?</span>
-          <svg class="accord-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="accord-body">На странице входа нажмите «Забыл пароль». Введите ваш email — мы отправим ссылку для сброса пароля. Ссылка действительна 1 час. Если письмо не пришло, проверьте папку «Спам».</div>
-      </div>
-    </div>
+    <?php endif; ?>
 
     <!-- Contact Banner -->
     <a href="/contact.php" class="contact-banner">

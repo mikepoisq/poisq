@@ -22,6 +22,16 @@ if ($isLoggedIn) {
         $slotsLeft = max(0, 3 - (int)$st->fetchColumn());
     } catch (Exception $e) { $slotsLeft = 3; }
 }
+
+// Загрузка контента из БД (если есть — перезаписывает статичный)
+$termsDbContent = null;
+try {
+    if (!isset($pdo)) { require_once __DIR__ . '/config/database.php'; $pdo = getDbConnection(); }
+    $stPage = $pdo->prepare("SELECT content_html FROM pages WHERE slug='terms'");
+    $stPage->execute();
+    $row = $stPage->fetch(PDO::FETCH_ASSOC);
+    if ($row && !empty(trim($row['content_html']))) $termsDbContent = $row['content_html'];
+} catch (Exception $e) { $termsDbContent = null; }
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -31,8 +41,15 @@ if ($isLoggedIn) {
 <title>Условия использования — Poisq</title>
 <meta name="description" content="Условия использования сервиса Poisq — каталога русскоязычных специалистов за рубежом.">
 <link rel="canonical" href="https://poisq.com/terms.php">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -132,6 +149,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .ann-date { font-size: 10px; color: var(--text-light); font-weight: 600; padding: 6px 8px 2px; }
 .ann-item-name { font-size: 12px; font-weight: 700; color: var(--text); padding: 0 8px 8px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
 <div class="app-container">
@@ -168,6 +188,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
   </div>
 
   <div class="page-content">
+
+<?php if ($termsDbContent): ?>
+    <?php echo $termsDbContent; ?>
+<?php else: ?>
 
     <div class="page-hero">
       <div class="hero-icon">
@@ -319,6 +343,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
     </div>
 
   </div>
+
+<?php endif; // end static terms content ?>
 
   <div class="page-footer">
     <a href="/useful.php" class="footer-link">Полезное</a>

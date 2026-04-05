@@ -41,7 +41,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
 
 $services = $pdo->query("
-    SELECT s.*, u.name as user_name, u.email as user_email, c.name as city_name
+    SELECT s.*, u.name as user_name, u.email as user_email,
+           c.name as city_name, c.status as city_status
     FROM services s
     JOIN users u ON s.user_id = u.id
     LEFT JOIN cities c ON s.city_id = c.id
@@ -89,7 +90,10 @@ ob_start();
             <div style="font-size:12px;color:var(--text-light);margin-top:2px;">
                 #<?php echo $svc['id']; ?> ·
                 <?php echo $cat; ?> ·
-                <?php echo htmlspecialchars($svc["city_name"] ?? ""); ?>, <?php echo strtoupper($svc["country_code"]); ?> ·
+                <?php echo htmlspecialchars($svc["city_name"] ?? ""); ?>, <?php echo strtoupper($svc["country_code"]); ?>
+                <?php if (($svc['city_status'] ?? '') === 'pending'): ?>
+                <span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #FCD34D" id="city-badge-<?php echo $svc['id']; ?>">⚠️ pending</span>
+                <?php endif; ?> ·
                 <?php echo date("d.m.Y H:i", strtotime($svc["created_at"])); ?>
             </div>
         </div>
@@ -179,6 +183,19 @@ ob_start();
                 <div style="font-size:13px;font-weight:600;color:var(--text)"><?php echo htmlspecialchars($svc["user_name"]); ?></div>
                 <div style="font-size:12px;color:var(--text-secondary)"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
             </div>
+
+            <!-- Pending city warning -->
+            <?php if (($svc['city_status'] ?? '') === 'pending'): ?>
+            <div id="city-warn-<?php echo $svc['id']; ?>" style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                <div style="font-size:13px;color:#92400E;font-weight:600">
+                    ⚠️ Город не в базе: «<?php echo htmlspecialchars($svc['city_name'] ?? ''); ?>»
+                </div>
+                <button class="btn btn-sm" style="background:#F59E0B;color:white;border:none"
+                    onclick="approveCity(<?php echo $svc['city_id']; ?>, <?php echo $svc['id']; ?>)">
+                    + Добавить город в БД
+                </button>
+            </div>
+            <?php endif; ?>
 
             <!-- Языки -->
             <?php if (!empty($langs)): ?>
@@ -270,6 +287,22 @@ function submitReject() {
 document.getElementById("rejectOverlay").addEventListener("click", function(e) {
     if (e.target === this) closeReject();
 });
+
+async function approveCity(cityId, svcId) {
+    const fd = new FormData();
+    fd.append('action', 'approve');
+    fd.append('id', cityId);
+    const res = await fetch('/panel-5588/settings/cities.php', {method:'POST', body:fd});
+    const data = await res.json();
+    if (data.ok) {
+        const warn = document.getElementById('city-warn-'+svcId);
+        const badge = document.getElementById('city-badge-'+svcId);
+        if (warn) warn.remove();
+        if (badge) badge.remove();
+    } else {
+        alert('Ошибка: ' + data.error);
+    }
+}
 </script>
 
 <?php

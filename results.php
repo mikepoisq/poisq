@@ -409,10 +409,17 @@ if (!empty($extraParams)) $canonicalUrl .= '?' . implode('&', $extraParams);
 <meta property="og:description" content="<?php echo htmlspecialchars($seoDesc); ?>">
 <meta property="og:url" content="<?php echo htmlspecialchars($canonicalUrl); ?>">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://poisq.com/logo.png">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1073,6 +1080,8 @@ body {
 .lang-check-item .lang-flag { font-size: 20px; flex-shrink: 0; }
 
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
 </head>
 <body>
 <div class="app-container">
@@ -1318,7 +1327,7 @@ body {
         <?php endif; ?>
 
         <?php if (!$isMessengerCard && $whatsapp): ?>
-          <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>"
+          <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
             target="_blank" class="btn-icon" aria-label="WhatsApp" title="WhatsApp">
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
           </a>
@@ -1479,7 +1488,7 @@ body {
       </a>
       <?php endif; ?>
       <?php if ($whatsapp): ?>
-      <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>"
+      <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
         target="_blank" class="btn-icon" aria-label="WhatsApp">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
       </a>

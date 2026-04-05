@@ -10,6 +10,32 @@ $isLoggedIn  = isset($_SESSION['user_id']);
 $userName    = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
 $userAvatar  = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
+
+require_once __DIR__ . '/config/database.php';
+$_jsCountries = [];
+try {
+    $_pdo = getDbConnection();
+    foreach ($_pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1 ORDER BY name_ru")->fetchAll(PDO::FETCH_ASSOC) as $_r) {
+        $_jsCountries[] = ['code' => $_r['code'], 'name' => $_r['name_ru']];
+    }
+} catch (Exception $_e) { error_log('Countries DB: ' . $_e->getMessage()); }
+if (empty($_jsCountries)) {
+    $_jsCountries = [
+        ['code'=>'ae','name'=>'ОАЭ'],['code'=>'ar','name'=>'Аргентина'],['code'=>'au','name'=>'Австралия'],
+        ['code'=>'at','name'=>'Австрия'],['code'=>'be','name'=>'Бельгия'],['code'=>'br','name'=>'Бразилия'],
+        ['code'=>'by','name'=>'Беларусь'],['code'=>'ca','name'=>'Канада'],['code'=>'ch','name'=>'Швейцария'],
+        ['code'=>'cl','name'=>'Чили'],['code'=>'co','name'=>'Колумбия'],['code'=>'cz','name'=>'Чехия'],
+        ['code'=>'de','name'=>'Германия'],['code'=>'dk','name'=>'Дания'],['code'=>'es','name'=>'Испания'],
+        ['code'=>'fi','name'=>'Финляндия'],['code'=>'fr','name'=>'Франция'],['code'=>'gb','name'=>'Великобритания'],
+        ['code'=>'gr','name'=>'Греция'],['code'=>'hk','name'=>'Гонконг'],['code'=>'ie','name'=>'Ирландия'],
+        ['code'=>'il','name'=>'Израиль'],['code'=>'it','name'=>'Италия'],['code'=>'jp','name'=>'Япония'],
+        ['code'=>'kr','name'=>'Южная Корея'],['code'=>'kz','name'=>'Казахстан'],['code'=>'mx','name'=>'Мексика'],
+        ['code'=>'nl','name'=>'Нидерланды'],['code'=>'no','name'=>'Норвегия'],['code'=>'nz','name'=>'Новая Зеландия'],
+        ['code'=>'pl','name'=>'Польша'],['code'=>'pt','name'=>'Португалия'],['code'=>'ru','name'=>'Россия'],
+        ['code'=>'se','name'=>'Швеция'],['code'=>'sg','name'=>'Сингапур'],['code'=>'th','name'=>'Таиланд'],
+        ['code'=>'tr','name'=>'Турция'],['code'=>'ua','name'=>'Украина'],['code'=>'us','name'=>'США'],['code'=>'za','name'=>'ЮАР'],
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -19,8 +45,15 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 <title>Полезное — Poisq</title>
 <meta name="description" content="Статьи и гайды для русскоязычных за рубежом: документы, финансы, здоровье, семья.">
 <link rel="canonical" href="https://poisq.com/useful.php">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poisq">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -303,6 +336,9 @@ body {
 
 ::-webkit-scrollbar { display: none; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
+<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
 <div class="app-container">
@@ -350,13 +386,9 @@ body {
     </div>
   </div>
 
-  <!-- ФИЛЬТР -->
+  <!-- ФИЛЬТР (чипы рубрик — заполняются из API) -->
   <div class="filter-row" id="filterRow">
     <button class="filter-chip active" onclick="filterByCategory('all', this)">Все</button>
-    <button class="filter-chip" onclick="filterByCategory('Финансы', this)">💰 Финансы</button>
-    <button class="filter-chip" onclick="filterByCategory('Документы', this)">📋 Документы</button>
-    <button class="filter-chip" onclick="filterByCategory('Семья', this)">👨‍👩‍👧 Семья</button>
-    <button class="filter-chip" onclick="filterByCategory('Здоровье', this)">🏥 Здоровье</button>
   </div>
 
   <!-- СПИСОК -->
@@ -472,27 +504,9 @@ body {
 
 <script>
 // ════════════════════════════════════════
-// СТРАНЫ
+// СТРАНЫ — из БД через PHP
 // ════════════════════════════════════════
-const countries = [
-  {code:'am',name:'Армения'},{code:'au',name:'Австралия'},{code:'at',name:'Австрия'},
-  {code:'az',name:'Азербайджан'},{code:'by',name:'Беларусь'},{code:'be',name:'Бельгия'},
-  {code:'br',name:'Бразилия'},{code:'bg',name:'Болгария'},{code:'ca',name:'Канада'},
-  {code:'cl',name:'Чили'},{code:'cn',name:'Китай'},{code:'co',name:'Колумбия'},
-  {code:'cz',name:'Чехия'},{code:'dk',name:'Дания'},{code:'fi',name:'Финляндия'},
-  {code:'fr',name:'Франция'},{code:'ge',name:'Грузия'},{code:'de',name:'Германия'},
-  {code:'gr',name:'Греция'},{code:'hk',name:'Гонконг'},{code:'hu',name:'Венгрия'},
-  {code:'ie',name:'Ирландия'},{code:'il',name:'Израиль'},{code:'it',name:'Италия'},
-  {code:'jp',name:'Япония'},{code:'kz',name:'Казахстан'},{code:'lv',name:'Латвия'},
-  {code:'lt',name:'Литва'},{code:'mx',name:'Мексика'},{code:'nl',name:'Нидерланды'},
-  {code:'nz',name:'Новая Зеландия'},{code:'no',name:'Норвегия'},{code:'pl',name:'Польша'},
-  {code:'pt',name:'Португалия'},{code:'ro',name:'Румыния'},{code:'ru',name:'Россия'},
-  {code:'rs',name:'Сербия'},{code:'sg',name:'Сингапур'},{code:'sk',name:'Словакия'},
-  {code:'za',name:'ЮАР'},{code:'kr',name:'Южная Корея'},{code:'es',name:'Испания'},
-  {code:'se',name:'Швеция'},{code:'ch',name:'Швейцария'},{code:'th',name:'Таиланд'},
-  {code:'tr',name:'Турция'},{code:'ua',name:'Украина'},{code:'ae',name:'ОАЭ'},
-  {code:'gb',name:'Великобритания'},{code:'us',name:'США'},{code:'uz',name:'Узбекистан'},
-];
+const countries = <?php echo json_encode($_jsCountries, JSON_UNESCAPED_UNICODE); ?>;
 
 // Читаем сохранённую страну из localStorage
 let currentCode = localStorage.getItem('poisq_country') || 'fr';
@@ -507,12 +521,46 @@ document.getElementById('currentCountryName').textContent = currentName;
 // ════════════════════════════════════════
 // ЗАГРУЗКА СТАТЕЙ ИЗ API
 // ════════════════════════════════════════
-const categoryStyle = {
+// categoryStyle заполняется динамически из API
+let categoryStyle = {
   'Финансы':   'background:#EEF2FF;color:#3B6CF4',
   'Документы': 'background:#FEF3C7;color:#D97706',
   'Семья':     'background:#FCE7F3;color:#DB2777',
   'Здоровье':  'background:#ECFDF5;color:#059669',
 };
+
+// ════════════════════════════════════════
+// ЗАГРУЗКА РУБРИК ИЗ API
+// ════════════════════════════════════════
+async function loadCategories() {
+  try {
+    const resp = await fetch('/api/get-articles.php?action=categories');
+    const data = await resp.json();
+    const cats = data.categories || [];
+    if (!cats.length) return;
+
+    // Перестраиваем categoryStyle из БД
+    const newStyle = {};
+    cats.forEach(c => {
+      newStyle[c.name] = `background:${c.bg_color};color:${c.color}`;
+    });
+    categoryStyle = newStyle;
+
+    // Перестраиваем чипы фильтра
+    const row = document.getElementById('filterRow');
+    // Оставляем первый чип "Все", удаляем остальные
+    while (row.children.length > 1) row.removeChild(row.lastChild);
+    cats.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-chip';
+      btn.textContent = c.name;
+      btn.onclick = function() { filterByCategory(c.name, this); };
+      row.appendChild(btn);
+    });
+  } catch(e) {
+    // Оставляем дефолтные чипы если API недоступен
+  }
+}
 
 async function loadArticles(countryCode) {
   const list = document.getElementById('articlesList');
@@ -759,8 +807,9 @@ function annErr(t, p) {
 }
 
 // ════════════════════════════════════════
-// СТАРТ — загружаем статьи при открытии
+// СТАРТ — загружаем рубрики и статьи
 // ════════════════════════════════════════
+loadCategories();   // загружает чипы из БД
 loadArticles(currentCode);
 </script>
 </body>

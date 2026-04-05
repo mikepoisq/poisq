@@ -1,0 +1,209 @@
+/* ─── DARK THEME ─────────────────────────────────────────── */
+/* 1. Explicit: data-theme="dark" on <html>                   */
+/* 2. OS preference when user hasn't overridden to "light"    */
+
+[data-theme="dark"] {
+  --primary:       #5B8DF5;
+  --primary-light: #1a2744;
+  --primary-dark:  #4F7FF5;
+  --text:          #F1F5F9;
+  --text-secondary:#94A3B8;
+  --text-light:    #64748B;
+  --bg:            #0F172A;
+  --bg-secondary:  #1E293B;
+  --border:        #334155;
+  --border-light:  #1E293B;
+  --success:       #34D399;
+  --success-bg:    #064E3B;
+  --warning:       #FBBF24;
+  --warning-bg:    #451A03;
+  --danger:        #F87171;
+  --danger-bg:     #450A0A;
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:     0 4px 20px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-card:   0 2px 12px rgba(0,0,0,0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --primary:       #5B8DF5;
+    --primary-light: #1a2744;
+    --primary-dark:  #4F7FF5;
+    --text:          #F1F5F9;
+    --text-secondary:#94A3B8;
+    --text-light:    #64748B;
+    --bg:            #0F172A;
+    --bg-secondary:  #1E293B;
+    --border:        #334155;
+    --border-light:  #1E293B;
+    --success:       #34D399;
+    --success-bg:    #064E3B;
+    --warning:       #FBBF24;
+    --warning-bg:    #451A03;
+    --danger:        #F87171;
+    --danger-bg:     #450A0A;
+    --shadow-sm:     0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md:     0 4px 20px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-card:   0 2px 12px rgba(0,0,0,0.4);
+  }
+}
+
+/* ── Input / textarea / select ── */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: var(--bg-secondary);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input,
+  :root:not([data-theme="light"]) textarea,
+  :root:not([data-theme="light"]) select {
+    background-color: var(--bg-secondary);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  :root:not([data-theme="light"]) input::placeholder,
+  :root:not([data-theme="light"]) textarea::placeholder {
+    color: var(--text-light);
+  }
+}
+
+/* ── Images: slight dimming to reduce glare ── */
+[data-theme="dark"] img:not([data-no-dim]) {
+  filter: brightness(0.88);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) img:not([data-no-dim]) {
+    filter: brightness(0.88);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ЛОГОТИП — все страницы
+   brightness(0) делает всё чёрным, invert(1) — белым.
+   Переопределяет общее правило brightness(0.88) для img.
+   ────────────────────────────────────────────────────────────
+   index.php              → img.logo
+   results/contact/help/
+   terms/about.php        → .header-logo img
+   login/register.php     → img.auth-logo
+   useful.php             → .header-center img
+   ════════════════════════════════════════════════════════════ */
+[data-theme="dark"] img.logo,
+[data-theme="dark"] .header-logo img,
+[data-theme="dark"] img.auth-logo,
+[data-theme="dark"] .header-center img {
+  filter: brightness(0) invert(1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) img.logo,
+  :root:not([data-theme="light"]) .header-logo img,
+  :root:not([data-theme="light"]) img.auth-logo,
+  :root:not([data-theme="light"]) .header-center img {
+    filter: brightness(0) invert(1);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   article.php — текст статьи (dark mode)
+   ════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .article-content { color: #E2E8F0; }
+[data-theme="dark"] .article-content strong,
+[data-theme="dark"] .article-content b { color: #F1F5F9; }
+[data-theme="dark"] .article-content blockquote { color: #94A3B8; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .article-content { color: #E2E8F0; }
+  :root:not([data-theme="light"]) .article-content strong,
+  :root:not([data-theme="light"]) .article-content b { color: #F1F5F9; }
+  :root:not([data-theme="light"]) .article-content blockquote { color: #94A3B8; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ПРОБЛЕМА 2 — Строка поиска (index.php: .search-box / .search-input)
+   Глобальное правило для input ставит bg-secondary, но .search-input
+   должен быть прозрачным — фон задаётся обёрткой .search-box.
+   ════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .search-input {
+  background: transparent;
+  color: var(--text);
+}
+
+[data-theme="dark"] .search-input::placeholder {
+  color: rgba(148, 163, 184, 0.7); /* text-secondary с прозрачностью */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .search-input {
+    background: transparent;
+    color: var(--text);
+  }
+  :root:not([data-theme="light"]) .search-input::placeholder {
+    color: rgba(148, 163, 184, 0.7);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ПРОБЛЕМА 3 — Карточки results.php
+   .card-title      — цвет захардкожен #1A0DAB (Google-синий)
+   .card-breadcrumb — цвет захардкожен #188038 (Google-зелёный)
+   ════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .card-title {
+  color: #93C5FD; /* светло-голубой — читаемый на тёмном */
+}
+
+[data-theme="dark"] .card-breadcrumb {
+  color: #34D399; /* яркий мятный — контрастный на тёмном */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .card-title {
+    color: #93C5FD;
+  }
+  :root:not([data-theme="light"]) .card-breadcrumb {
+    color: #34D399;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ПРОБЛЕМА 4 — profile.php
+   .logout-btn       — слишком тёмный красный фон (--danger-bg #450A0A)
+   .notif-icon.orange — цвет захардкожен #92400E (тёмный коричневый)
+   ════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .logout-btn {
+  background: #7F1D1D;
+  color: #FCA5A5;
+  border: 1px solid #EF4444;
+}
+
+[data-theme="dark"] .logout-btn svg {
+  stroke: #FCA5A5;
+}
+
+[data-theme="dark"] .notif-icon.orange {
+  color: #FCD34D; /* яркий янтарный вместо тёмного #92400E */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logout-btn {
+    background: #7F1D1D;
+    color: #FCA5A5;
+    border: 1px solid #EF4444;
+  }
+  :root:not([data-theme="light"]) .logout-btn svg {
+    stroke: #FCA5A5;
+  }
+  :root:not([data-theme="light"]) .notif-icon.orange {
+    color: #FCD34D;
+  }
+}
