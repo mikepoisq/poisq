@@ -1,4 +1,9 @@
 
+
+# Block WordPress scanners
+RewriteRule ^wp-login\.php - [R=404,L]
+RewriteRule ^wp-admin - [R=404,L]
+RewriteRule ^xmlrpc\.php - [R=404,L]
 RewriteEngine On
 RewriteBase /
 
