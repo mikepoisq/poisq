@@ -270,6 +270,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 🔧 4. РАЗНЫЕ СООБЩЕНИЯ ДЛЯ ЧЕРНОВИКА И ПУБЛИКАЦИИ
             if ($action === 'publish') {
                 $successMessage = 'Отправлено на модерацию. 48ч максимум';
+                // Отправляем уведомление админу
+                try {
+                    $newServiceId = $pdo->lastInsertId();
+                    require_once __DIR__ . '/config/email.php';
+                    $cityNameForEmail = '';
+                    if (!empty($formData['city_id'])) {
+                        $cs = $pdo->prepare("SELECT name FROM cities WHERE id = ? LIMIT 1");
+                        $cs->execute([$formData['city_id']]);
+                        $cityNameForEmail = $cs->fetchColumn() ?: '—';
+                    }
+                    sendAdminModerationEmail(
+                        $newServiceId,
+                        $formData['name'],
+                        $formData['category'] ?? '—',
+                        $cityNameForEmail ?: '—',
+                        $userName,
+                        $userEmail
+                    );
+                } catch (Exception $e) {
+                    error_log('Add service moderation email error: ' . $e->getMessage());
+                }
             } else {
                 $successMessage = 'Черновик сохранён! Вы можете вернуться и отредактировать позже.';
             }
