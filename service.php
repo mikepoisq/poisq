@@ -1237,8 +1237,9 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
 
                 <!-- Свой отзыв пользователя (pending / rejected) -->
                 <?php if (!empty($userExistingReview) && $userExistingReview['status'] !== 'approved'): ?>
-                <?php $_canEdit = !empty($userExistingReview['edited_until'])
-                               && strtotime($userExistingReview['edited_until']) > time(); ?>
+                <?php $_canEdit = $userExistingReview['status'] === 'pending' 
+                               || (!empty($userExistingReview['edited_until'])
+                               && strtotime($userExistingReview['edited_until']) > time()); ?>
                 <div class="review-own-block">
                     <div class="review-own-header">
                         <span>Ваш отзыв</span>
@@ -1256,12 +1257,11 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                     <div class="review-text"><?= nl2br(htmlspecialchars($userExistingReview['text'])) ?></div>
                     <?php if ($_canEdit): ?>
                     <button class="btn-action" style="margin-top:10px;"
-                        onclick="openEditReview(
-                            <?= (int)$userExistingReview['id'] ?>,
-                            <?= (int)$userExistingReview['rating'] ?>,
-                            <?= json_encode($userExistingReview['text'], JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-                            <?= json_encode($userExistingReview['photo'] ?? '', JSON_UNESCAPED_UNICODE) ?>
-                        )">Редактировать</button>
+                        data-review-id="<?= (int)$userExistingReview['id'] ?>"
+                        data-review-rating="<?= (int)$userExistingReview['rating'] ?>"
+                        data-review-text="<?= htmlspecialchars($userExistingReview['text'], ENT_QUOTES, 'UTF-8') ?>"
+                        data-review-photo="<?= htmlspecialchars($userExistingReview['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                        onclick="openEditReviewFromData(this)">Редактировать</button>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
@@ -1490,15 +1490,125 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         function showFavChoice() {
             document.getElementById('favChoice').style.display = 'block';
             document.getElementById('favLoginForm').style.display = 'none';
+            document.getElementById('favRegisterForm').style.display = 'none';
+            document.getElementById('favVerifyForm').style.display = 'none';
             document.getElementById('favModalFooter').style.display = 'none';
         }
 
         function showFavLoginForm() {
             document.getElementById('favChoice').style.display = 'none';
             document.getElementById('favLoginForm').style.display = 'block';
+            document.getElementById('favRegisterForm').style.display = 'none';
+            document.getElementById('favVerifyForm').style.display = 'none';
             document.getElementById('favModalFooter').style.display = 'block';
             document.getElementById('favLoginError').style.display = 'none';
+            const btn = document.getElementById('favLoginBtn');
+            btn.textContent = 'Войти и добавить в избранное';
+            btn.onclick = submitFavLogin;
             setTimeout(() => document.getElementById('favEmail').focus(), 100);
+        }
+
+        function showFavRegisterForm() {
+            document.getElementById('favChoice').style.display = 'none';
+            document.getElementById('favLoginForm').style.display = 'none';
+            document.getElementById('favRegisterForm').style.display = 'block';
+            document.getElementById('favVerifyForm').style.display = 'none';
+            document.getElementById('favModalFooter').style.display = 'block';
+            document.getElementById('favRegisterError').style.display = 'none';
+            const btn = document.getElementById('favLoginBtn');
+            btn.textContent = 'Получить код';
+            btn.onclick = submitFavRegisterStep1;
+            setTimeout(() => document.getElementById('favRegName').focus(), 100);
+        }
+
+        function showFavVerifyForm() {
+            document.getElementById('favRegisterForm').style.display = 'none';
+            document.getElementById('favVerifyForm').style.display = 'block';
+            document.getElementById('favVerifyEmailDisplay').textContent = document.getElementById('favRegEmail').value.trim();
+            document.getElementById('favVerifyError').style.display = 'none';
+            const btn = document.getElementById('favLoginBtn');
+            btn.textContent = 'Подтвердить';
+            btn.onclick = submitFavRegisterStep2;
+            setTimeout(() => document.getElementById('favVerifyCode').focus(), 100);
+        }
+
+        async function submitFavRegisterStep1() {
+            const name     = document.getElementById('favRegName').value.trim();
+            const email    = document.getElementById('favRegEmail').value.trim();
+            const password = document.getElementById('favRegPassword').value;
+            const errBox   = document.getElementById('favRegisterError');
+            const btn      = document.getElementById('favLoginBtn');
+
+            errBox.style.display = 'none';
+            if (!name || !email || !password) {
+                errBox.textContent = 'Заполните все поля';
+                errBox.style.display = 'block'; return;
+            }
+            if (password.length < 6) {
+                errBox.textContent = 'Пароль должен быть не менее 6 символов';
+                errBox.style.display = 'block'; return;
+            }
+
+            btn.textContent = 'Отправляем…'; btn.disabled = true;
+            try {
+                const fd = new FormData();
+                fd.append('name', name); fd.append('email', email); fd.append('password', password);
+                const res  = await fetch('/api/register-step1.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    showFavVerifyForm();
+                } else {
+                    errBox.textContent = data.error || 'Ошибка регистрации';
+                    errBox.style.display = 'block';
+                }
+            } catch(e) {
+                errBox.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+                errBox.style.display = 'block';
+            }
+            btn.textContent = 'Получить код'; btn.disabled = false;
+        }
+
+        async function submitFavRegisterStep2() {
+            const code   = document.getElementById('favVerifyCode').value.trim();
+            const email  = document.getElementById('favRegEmail').value.trim();
+            const errBox = document.getElementById('favVerifyError');
+            const btn    = document.getElementById('favLoginBtn');
+
+            errBox.style.display = 'none';
+            if (!code) {
+                errBox.textContent = 'Введите код из письма';
+                errBox.style.display = 'block'; return;
+            }
+
+            btn.textContent = 'Проверяем…'; btn.disabled = true;
+            try {
+                const fd = new FormData();
+                fd.append('email', email); fd.append('code', code);
+                const res  = await fetch('/api/register-step2.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    const favBtn = document.getElementById('favoriteBtn');
+                    favBtn.dataset.loggedIn = '1';
+                    closeFavModal();
+                    const serviceId = favBtn.dataset.serviceId;
+                    const fd2 = new FormData();
+                    fd2.append('service_id', serviceId);
+                    const res2  = await fetch('/api/favorites.php', { method: 'POST', body: fd2 });
+                    const data2 = await res2.json();
+                    if (data2.success) {
+                        favBtn.classList.add('active');
+                        showToast('❤️ Добавлено в избранное');
+                    }
+                } else {
+                    errBox.textContent = data.error || 'Неверный код';
+                    errBox.style.display = 'block';
+                    btn.textContent = 'Подтвердить'; btn.disabled = false;
+                }
+            } catch(e) {
+                errBox.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+                errBox.style.display = 'block';
+                btn.textContent = 'Подтвердить'; btn.disabled = false;
+            }
         }
 
         async function submitFavLogin() {
@@ -1566,11 +1676,15 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             }
         }
 
-        // Enter в полях формы избранного
+        // Enter в полях fav-модалки
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const favForm = document.getElementById('favLoginForm');
-                if (favForm && favForm.style.display !== 'none') submitFavLogin();
+                if (favForm && favForm.style.display !== 'none') { submitFavLogin(); return; }
+                const favRegForm = document.getElementById('favRegisterForm');
+                if (favRegForm && favRegForm.style.display !== 'none') { submitFavRegisterStep1(); return; }
+                const favVerifyForm = document.getElementById('favVerifyForm');
+                if (favVerifyForm && favVerifyForm.style.display !== 'none') { submitFavRegisterStep2(); return; }
             }
         });
 
@@ -1613,6 +1727,14 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             if (loginForm) showChoice();
         }
 
+        function openEditReviewFromData(btn) {
+            openEditReview(
+                parseInt(btn.dataset.reviewId),
+                parseInt(btn.dataset.reviewRating),
+                btn.dataset.reviewText,
+                btn.dataset.reviewPhoto
+            );
+        }
         function openEditReview(id, rating, text, photo) {
             reviewEditId = id;
             // Выставляем звёзды
@@ -1689,13 +1811,141 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         function showLoginForm() {
             document.getElementById('authChoice').style.display = 'none';
             document.getElementById('authLoginForm').style.display = 'block';
+            document.getElementById('authRegisterForm').style.display = 'none';
+            document.getElementById('authVerifyForm').style.display = 'none';
             document.getElementById('reviewAuthFooter').style.display = 'block';
-            // Фокус на email после небольшой задержки (iOS)
+            const btn = document.getElementById('btnLoginSubmit');
+            btn.textContent = 'Войти и оставить отзыв';
+            btn.onclick = submitLogin;
             setTimeout(() => document.getElementById('loginEmail').focus(), 100);
+        }
+
+        function showRegisterForm() {
+            document.getElementById('authChoice').style.display = 'none';
+            document.getElementById('authLoginForm').style.display = 'none';
+            document.getElementById('authRegisterForm').style.display = 'block';
+            document.getElementById('authVerifyForm').style.display = 'none';
+            document.getElementById('reviewAuthFooter').style.display = 'block';
+            document.getElementById('registerError').style.display = 'none';
+            const btn = document.getElementById('btnLoginSubmit');
+            btn.textContent = 'Отправить код';
+            btn.onclick = submitRegisterStep1;
+            setTimeout(() => document.getElementById('regName').focus(), 100);
+        }
+
+        function showVerifyForm() {
+            document.getElementById('authRegisterForm').style.display = 'none';
+            document.getElementById('authVerifyForm').style.display = 'block';
+            document.getElementById('verifyEmailDisplay').textContent = document.getElementById('regEmail').value.trim();
+            document.getElementById('verifyError').style.display = 'none';
+            const btn = document.getElementById('btnLoginSubmit');
+            btn.textContent = 'Подтвердить';
+            btn.onclick = submitRegisterStep2;
+            setTimeout(() => document.getElementById('verifyCode').focus(), 100);
+        }
+
+        async function submitRegisterStep1() {
+            const name     = document.getElementById('regName').value.trim();
+            const email    = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const errBox   = document.getElementById('registerError');
+            const btn      = document.getElementById('btnLoginSubmit');
+
+            errBox.style.display = 'none';
+            if (!name || !email || !password) {
+                errBox.textContent = 'Заполните все поля';
+                errBox.style.display = 'block'; return;
+            }
+            if (password.length < 6) {
+                errBox.textContent = 'Пароль должен быть не менее 6 символов';
+                errBox.style.display = 'block'; return;
+            }
+
+            btn.textContent = 'Отправляем…'; btn.disabled = true;
+            try {
+                const fd = new FormData();
+                fd.append('name', name); fd.append('email', email); fd.append('password', password);
+                const res  = await fetch('/api/register-step1.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    btn.disabled = false;
+                    showVerifyForm();
+                    return;
+                } else {
+                    errBox.textContent = data.error || 'Ошибка регистрации';
+                    errBox.style.display = 'block';
+                }
+            } catch(e) {
+                errBox.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+                errBox.style.display = 'block';
+            }
+            btn.textContent = 'Отправить код'; btn.disabled = false;
+        }
+
+        async function submitRegisterStep2() {
+            const code   = document.getElementById('verifyCode').value.trim();
+            const email  = document.getElementById('regEmail').value.trim();
+            const errBox = document.getElementById('verifyError');
+            const btn    = document.getElementById('btnLoginSubmit');
+
+            errBox.style.display = 'none';
+            if (!code) {
+                errBox.textContent = 'Введите код из письма';
+                errBox.style.display = 'block'; return;
+            }
+
+            btn.textContent = 'Проверяем…'; btn.disabled = true;
+            try {
+                const fd = new FormData();
+                fd.append('email', email); fd.append('code', code);
+                const res  = await fetch('/api/register-step2.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('reviewAuthBody').outerHTML = `
+                        <div class="review-modal-body" id="reviewFormBody">
+                            <div class="stars-row" id="starsRow">
+                                ${[1,2,3,4,5].map(i => `
+                                <button class="star-btn" data-star="${i}" aria-label="${i} звезд">
+                                    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                </button>`).join('')}
+                            </div>
+                            <textarea class="review-textarea" id="reviewText"
+                                placeholder="Расскажите о своём опыте…" maxlength="2000"></textarea>
+                            <div class="review-hint">Минимум 20 символов</div>
+                            <div class="review-photo-upload-row">
+                                <label for="reviewPhotoInput" class="btn-photo-label">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                                        <polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                    Добавить фото
+                                </label>
+                                <input type="file" id="reviewPhotoInput" accept="image/jpeg,image/png"
+                                       style="display:none" onchange="previewReviewPhoto(this)">
+                                <div id="reviewPhotoPreview" style="display:none;"></div>
+                            </div>
+                        </div>`;
+                    document.getElementById('reviewAuthFooter').outerHTML = `
+                        <div class="review-modal-footer">
+                            <button class="btn-submit-review" id="btnSubmitReview" onclick="submitReview()">Отправить отзыв</button>
+                        </div>`;
+                    initStars();
+                } else {
+                    errBox.textContent = data.error || 'Неверный код';
+                    errBox.style.display = 'block';
+                    btn.textContent = 'Подтвердить'; btn.disabled = false;
+                }
+            } catch(e) {
+                errBox.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+                errBox.style.display = 'block';
+                btn.textContent = 'Подтвердить'; btn.disabled = false;
+            }
         }
         function showChoice() {
             document.getElementById('authChoice').style.display = 'block';
             document.getElementById('authLoginForm').style.display = 'none';
+            document.getElementById('authRegisterForm').style.display = 'none';
+            document.getElementById('authVerifyForm').style.display = 'none';
             document.getElementById('reviewAuthFooter').style.display = 'none';
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('loginEmail').value = '';
@@ -1777,11 +2027,15 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             }
         }
 
-        // Enter в полях формы
+        // Enter в полях review-модалки
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const loginForm = document.getElementById('authLoginForm');
-                if (loginForm && loginForm.style.display !== 'none') submitLogin();
+                if (loginForm && loginForm.style.display !== 'none') { submitLogin(); return; }
+                const regForm = document.getElementById('authRegisterForm');
+                if (regForm && regForm.style.display !== 'none') { submitRegisterStep1(); return; }
+                const verifyForm = document.getElementById('authVerifyForm');
+                if (verifyForm && verifyForm.style.display !== 'none') { submitRegisterStep2(); return; }
             }
         });
 
@@ -1914,7 +2168,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
               <div class="review-auth-sub">Войдите в аккаунт — это займёт 10 секунд</div>
               <div class="review-auth-btns">
                 <button class="btn-auth-login" onclick="showLoginForm()">Войти</button>
-                <a href="register.php?redirect=service.php%3Fid%3D<?php echo $serviceId; ?>" class="btn-auth-register">Зарегистрироваться</a>
+                <button class="btn-auth-register" onclick="showRegisterForm()">Зарегистрироваться</button>
               </div>
             </div>
           </div>
@@ -1935,6 +2189,42 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
               <label>Пароль</label>
               <input type="password" id="loginPassword" placeholder="Введите пароль" autocomplete="current-password">
               <a href="forgot-password.php" class="login-forgot">Забыли пароль?</a>
+            </div>
+          </div>
+
+          <!-- Форма регистрации (шаг 1, скрыта по умолчанию) -->
+          <div id="authRegisterForm" style="display:none">
+            <button class="btn-back-choice" onclick="showChoice()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Назад
+            </button>
+            <div class="login-form-title">Регистрация</div>
+            <div id="registerError" class="login-error" style="display:none"></div>
+            <div class="login-field">
+              <label>Имя</label>
+              <input type="text" id="regName" placeholder="Ваше имя" autocomplete="name">
+            </div>
+            <div class="login-field">
+              <label>Email</label>
+              <input type="email" id="regEmail" placeholder="example@mail.com" autocomplete="email">
+            </div>
+            <div class="login-field">
+              <label>Пароль</label>
+              <input type="password" id="regPassword" placeholder="Минимум 6 символов" autocomplete="new-password">
+            </div>
+          </div>
+
+          <!-- Подтверждение кода (шаг 2, скрыт по умолчанию) -->
+          <div id="authVerifyForm" style="display:none">
+            <div class="login-form-title">Введите код</div>
+            <div style="font-size:14px;color:var(--text-secondary,#6B7280);margin-bottom:18px;line-height:1.5;">
+              Мы отправили 6-значный код на<br><strong id="verifyEmailDisplay"></strong>
+            </div>
+            <div id="verifyError" class="login-error" style="display:none"></div>
+            <div class="login-field">
+              <input type="text" id="verifyCode" placeholder="000000" maxlength="6"
+                     style="font-size:28px;text-align:center;letter-spacing:10px;font-weight:700;"
+                     inputmode="numeric" pattern="[0-9]*">
             </div>
           </div>
 
@@ -1972,7 +2262,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                     <div class="review-auth-sub">Добавляйте понравившиеся сервисы в избранное и возвращайтесь к ним в любой момент</div>
                     <div class="review-auth-btns">
                         <button class="btn-auth-login" onclick="showFavLoginForm()">Войти</button>
-                        <a href="register.php?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="btn-auth-register">Зарегистрироваться</a>
+                        <button class="btn-auth-register" onclick="showFavRegisterForm()">Зарегистрироваться</button>
                     </div>
                 </div>
             </div>
@@ -1993,6 +2283,42 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                     <label>Пароль</label>
                     <input type="password" id="favPassword" placeholder="Введите пароль" autocomplete="current-password">
                     <a href="forgot-password.php" class="login-forgot">Забыли пароль?</a>
+                </div>
+            </div>
+
+            <!-- Форма регистрации для избранного (шаг 1) -->
+            <div id="favRegisterForm" style="display:none">
+                <button class="btn-back-choice" onclick="showFavChoice()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Назад
+                </button>
+                <div class="login-form-title">Регистрация</div>
+                <div id="favRegisterError" class="login-error" style="display:none"></div>
+                <div class="login-field">
+                    <label>Имя</label>
+                    <input type="text" id="favRegName" placeholder="Ваше имя" autocomplete="name">
+                </div>
+                <div class="login-field">
+                    <label>Email</label>
+                    <input type="email" id="favRegEmail" placeholder="example@mail.com" autocomplete="email">
+                </div>
+                <div class="login-field">
+                    <label>Пароль</label>
+                    <input type="password" id="favRegPassword" placeholder="Минимум 6 символов" autocomplete="new-password">
+                </div>
+            </div>
+
+            <!-- Подтверждение кода для избранного (шаг 2) -->
+            <div id="favVerifyForm" style="display:none">
+                <div class="login-form-title">Введите код</div>
+                <div style="font-size:14px;color:var(--text-secondary,#6B7280);margin-bottom:18px;line-height:1.5;">
+                    Мы отправили 6-значный код на<br><strong id="favVerifyEmailDisplay"></strong>
+                </div>
+                <div id="favVerifyError" class="login-error" style="display:none"></div>
+                <div class="login-field">
+                    <input type="text" id="favVerifyCode" placeholder="000000" maxlength="6"
+                           style="font-size:28px;text-align:center;letter-spacing:10px;font-weight:700;"
+                           inputmode="numeric" pattern="[0-9]*">
                 </div>
             </div>
 
