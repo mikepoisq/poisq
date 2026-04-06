@@ -17,6 +17,9 @@ $navItems = [
 
 function renderLayout(string $pageTitle, string $content, int $pendingCount = 0, int $pendingVerifCount = 0, int $pendingReviewCount = 0): void {
     global $currentPage, $navItems;
+    $isAdmin    = function_exists('isAdminLoggedIn') && isAdminLoggedIn();
+    $isModerator = !$isAdmin && function_exists('isModeratorLoggedIn') && isModeratorLoggedIn();
+    $modPerms   = $isModerator ? getModeratorPermissions() : [];
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -415,6 +418,8 @@ body {
     </div>
 
     <nav class="sidebar-nav">
+        <?php if ($isAdmin): ?>
+        <!-- ═══════ ПОЛНАЯ НАВИГАЦИЯ СУПЕР-АДМИНА ═══════ -->
         <div class="nav-label">Основное</div>
         <?php foreach ($navItems as $page => $item): ?>
         <a href="/panel-5588/<?php echo $page === 'dashboard' ? 'dashboard.php' : $page . '.php'; ?>"
@@ -436,52 +441,121 @@ body {
         <div class="nav-label" style="margin-top:10px">Настройки</div>
         <a href="/panel-5588/settings/categories.php"
            class="nav-item <?php echo $currentPage === 'categories' ? 'active' : ''; ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 6h16M4 12h16M4 18h7"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
             Категории сервисов
         </a>
         <a href="/panel-5588/settings/cities.php"
            class="nav-item <?php echo $currentPage === 'cities' && strpos($_SERVER['PHP_SELF'],'settings')!==false ? 'active' : ''; ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>
             Города и страны
         </a>
 
         <div class="nav-label" style="margin-top:10px">Страницы</div>
         <a href="/panel-5588/pages/articles.php"
            class="nav-item <?php echo in_array($currentPage, ['articles','article-edit']) ? 'active' : ''; ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
             Статьи (Полезное)
         </a>
-
         <a href="/panel-5588/pages/faq.php"
            class="nav-item <?php echo $currentPage === 'faq' ? 'active' : ''; ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-linecap="round" stroke-width="3"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-linecap="round" stroke-width="3"/></svg>
             FAQ (Помощь)
         </a>
         <a href="/panel-5588/pages/terms.php"
            class="nav-item <?php echo $currentPage === 'terms' ? 'active' : ''; ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Условия
         </a>
         <a href="/panel-5588/pages/about.php"
            class="nav-item <?php echo $currentPage === 'about' ? 'active' : ''; ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round" stroke-width="3"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round" stroke-width="3"/></svg>
             О нас
         </a>
+
+        <div class="nav-label" style="margin-top:10px">Модераторы</div>
+        <a href="/panel-5588/moderators.php"
+           class="nav-item <?php echo $currentPage === 'moderators' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            Модераторы
+        </a>
+        <a href="/panel-5588/moderator-stats.php"
+           class="nav-item <?php echo $currentPage === 'moderator-stats' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Статистика
+        </a>
+
+        <?php else: ?>
+        <!-- ═══════ НАВИГАЦИЯ МОДЕРАТОРА ═══════ -->
+        <div class="nav-label">Работа</div>
+        <?php if (in_array('moderation', $modPerms)): ?>
+        <a href="/panel-5588/moderate.php"
+           class="nav-item <?php echo $currentPage === 'moderate' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Модерация
+            <?php if ($pendingCount > 0): ?><span class="nav-badge"><?php echo $pendingCount; ?></span><?php endif; ?>
+        </a>
+        <?php endif; ?>
+        <?php if (in_array('services', $modPerms)): ?>
+        <a href="/panel-5588/services.php"
+           class="nav-item <?php echo $currentPage === 'services' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Сервисы
+        </a>
+        <?php endif; ?>
+        <?php if (in_array('services_create', $modPerms)): ?>
+        <a href="/panel-5588/create.php"
+           class="nav-item <?php echo $currentPage === 'create' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Создать сервис
+        </a>
+        <?php endif; ?>
+        <?php if (in_array('cities', $modPerms)): ?>
+        <a href="/panel-5588/settings/cities.php"
+           class="nav-item <?php echo $currentPage === 'cities' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>
+            Города и страны
+        </a>
+        <?php endif; ?>
+        <?php if (in_array('articles', $modPerms)): ?>
+        <a href="/panel-5588/pages/articles.php"
+           class="nav-item <?php echo in_array($currentPage,['articles','article-edit']) ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+            Статьи (Полезное)
+        </a>
+        <?php endif; ?>
+        <?php if (in_array('faq', $modPerms)): ?>
+        <a href="/panel-5588/pages/faq.php"
+           class="nav-item <?php echo $currentPage === 'faq' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-linecap="round" stroke-width="3"/></svg>
+            FAQ (Помощь)
+        </a>
+        <?php endif; ?>
+        <?php if (in_array('my_stats', $modPerms)): ?>
+        <div class="nav-label" style="margin-top:10px">Статистика</div>
+        <a href="/mod/dashboard.php" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Моя статистика
+        </a>
+        <?php endif; ?>
+        <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">
+        <?php if ($isModerator): ?>
+        <div class="sidebar-admin">
+            <div class="sidebar-admin-avatar" style="background:#D1FAE5;color:#065F46;">
+                <?php echo htmlspecialchars(mb_strtoupper(mb_substr(getModeratorName(), 0, 1))); ?>
+            </div>
+            <div>
+                <div class="sidebar-admin-name"><?php echo htmlspecialchars(getModeratorName()); ?></div>
+                <div class="sidebar-admin-role">Модератор</div>
+            </div>
+        </div>
+        <a href="/mod/logout.php" class="btn-logout">
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Выйти
+        </a>
+        <?php else: ?>
         <div class="sidebar-admin">
             <div class="sidebar-admin-avatar">A</div>
             <div>
@@ -493,6 +567,7 @@ body {
             <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Выйти
         </a>
+        <?php endif; ?>
     </div>
 </aside>
 

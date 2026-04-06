@@ -4,7 +4,7 @@ require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/../config/helpers.php";
 require_once __DIR__ . "/layout.php";
-requireAdmin();
+requireAuthAny('services');
 
 $pdo = getDbConnection();
 
@@ -31,7 +31,7 @@ $offset = ($page - 1) * $perPage;
 
 $stmt = $pdo->prepare("
     SELECT s.id, s.user_id, s.name, s.category, s.status, s.is_visible, s.country_code, s.created_at, s.views,
-           s.verified, s.verified_until,
+           s.verified, s.verified_until, s.created_by_admin, s.created_by_moderator, s.call_status, s.call_note,
            u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s
     JOIN users u ON s.user_id = u.id
@@ -60,6 +60,11 @@ $categories = [
 
 ob_start();
 ?>
+
+<style>
+.crown-blue { color: #3B6CF4; font-size: 14px; margin-left: 4px; cursor: default; }
+.crown-green { color: #10B981; font-size: 14px; margin-left: 4px; cursor: default; }
+</style>
 
 <div class="panel">
     <div class="panel-header">
@@ -96,7 +101,7 @@ ob_start();
     </div>
 
     <!-- Таблица -->
-    <div class="panel-body" style="overflow-x:auto;">
+    <div class="panel-body">
         <?php if (empty($services)): ?>
         <div class="empty-state">
             <div class="empty-state-icon">📋</div>
@@ -104,18 +109,19 @@ ob_start();
             <div class="empty-state-text">Попробуйте изменить фильтры или поисковый запрос</div>
         </div>
         <?php else: ?>
-        <table class="table">
+        <table class="table" style="table-layout:fixed;width:100%;">
             <thead>
                 <tr>
                     <th style="width:40px">ID</th>
                     <th>Название</th>
-                    <th>Категория</th>
-                    <th>Город</th>
-                    <th>Владелец</th>
-                    <th>Статус</th>
-                    <th>Просмотры</th>
-                    <th>Дата</th>
-                    <th style="width:120px">Действия</th>
+                    <th style="width:110px">Категория</th>
+                    <th style="width:100px">Город</th>
+                    <th style="width:140px">Владелец</th>
+                    <th style="width:90px">Статус</th>
+                    <th style="width:60px;text-align:center">Созвон</th>
+                    <th style="width:70px">Просмотры</th>
+                    <th style="width:85px">Дата</th>
+                    <th style="width:80px">Действия</th>
                 </tr>
             </thead>
             <tbody>
@@ -124,39 +130,56 @@ ob_start();
             ?>
             <tr>
                 <td style="color:var(--text-light);font-size:12px;">#<?php echo $svc['id']; ?></td>
-                <td>
-                    <div style="font-weight:600;font-size:13px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                <td style="overflow:hidden;">
+                    <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                         <?php echo htmlspecialchars($svc["name"]); ?>
-                        <?php if ((int)$svc["user_id"] === 11): ?>
-                        <span style="font-size:10px;background:var(--primary-light);color:var(--primary);padding:1px 5px;border-radius:4px;font-weight:700;margin-left:3px;">👑</span>
+                        <?php if ($svc['created_by_moderator'] !== null): ?>
+                        <span class="crown-green" title="Создан модератором">👑</span>
+                        <?php elseif ($svc['created_by_admin'] !== null): ?>
+                        <span class="crown-blue" title="Создан администратором">👑</span>
                         <?php endif; ?>
                         <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
-                        <span style="font-size:10px;background:var(--success-bg);color:#065F46;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:3px;">✓ Проверено</span>
+                        <span style="font-size:10px;background:var(--success-bg);color:#065F46;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:2px;">✓</span>
                         <?php endif; ?>
                     </div>
                     <?php if (!$svc['is_visible'] && $svc['status'] === 'approved'): ?>
                     <div style="font-size:11px;color:var(--text-light);">скрыт</div>
                     <?php endif; ?>
                 </td>
-                <td style="font-size:13px;color:var(--text-secondary);"><?php echo $categories[$svc["category"]] ?? $svc["category"]; ?></td>
-                <td style="font-size:13px;">
+                <td style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo $categories[$svc["category"]] ?? $svc["category"]; ?></td>
+                <td style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                     <?php echo htmlspecialchars($svc["city_name"] ?? "—"); ?>
-                    <span style="color:var(--text-light);font-size:11px;"><?php echo strtoupper($svc["country_code"]); ?></span>
+                    <span style="color:var(--text-light);font-size:11px;"> <?php echo strtoupper($svc["country_code"]); ?></span>
                 </td>
-                <td>
-                    <div style="font-size:13px;font-weight:500;"><?php echo htmlspecialchars($svc["user_name"]); ?></div>
-                    <div style="font-size:11px;color:var(--text-light);"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
+                <td style="overflow:hidden;">
+                    <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($svc["user_name"]); ?></div>
+                    <div style="font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
                 </td>
-                <td><span class="badge <?php echo $sc['class']; ?>"><?php echo $sc['label']; ?></span></td>
-                <td style="font-size:13px;color:var(--text-secondary);"><?php echo (int)$svc['views']; ?></td>
-                <td style="font-size:12px;color:var(--text-light);"><?php echo date("d.m.Y", strtotime($svc["created_at"])); ?></td>
+                <td><span class="badge <?php echo $sc['class']; ?>" style="font-size:11px;padding:2px 7px;"><?php echo $sc['label']; ?></span></td>
+                <td style="font-size:15px;text-align:center;">
+                    <?php
+                    $cs = $svc['call_status'] ?? 'not_called';
+                    if ($cs === 'not_called'):     ?>
+                    <span style="color:var(--text-light);" title="Не звонили">—</span>
+                    <?php elseif ($cs === 'no_answer'): ?>
+                    <span style="color:#D97706;" title="Не дозвонились">☎️</span>
+                    <?php elseif ($cs === 'reached'): ?>
+                    <span style="color:#10B981;" title="Дозвонились">✅</span>
+                    <?php elseif ($cs === 'no_number'): ?>
+                    <span style="color:var(--text-light);" title="Нет номера">🚫</span>
+                    <?php elseif ($cs === 'other'): ?>
+                    <span style="color:#3B6CF4;cursor:default;" title="<?php echo htmlspecialchars($svc['call_note'] ?? ''); ?>">📝</span>
+                    <?php endif; ?>
+                </td>
+                <td style="font-size:12px;color:var(--text-secondary);"><?php echo (int)$svc['views']; ?></td>
+                <td style="font-size:11px;color:var(--text-light);white-space:nowrap;"><?php echo date("d.m.y", strtotime($svc["created_at"])); ?></td>
                 <td>
-                    <div style="display:flex;gap:4px;">
-                        <a href="/panel-5588/edit.php?id=<?php echo $svc['id']; ?>" class="btn btn-secondary btn-sm" title="Редактировать">✏️</a>
-                        <a href="https://poisq.com<?php echo serviceUrl($svc["id"], $svc["name"]); ?>" target="_blank" class="btn btn-secondary btn-sm" title="Открыть">👁</a>
+                    <div style="display:flex;gap:3px;">
+                        <a href="/panel-5588/edit.php?id=<?php echo $svc['id']; ?>" class="btn btn-secondary btn-sm" title="Редактировать" style="padding:4px 7px;">✏️</a>
+                        <a href="https://poisq.com<?php echo serviceUrl($svc["id"], $svc["name"]); ?>" target="_blank" class="btn btn-secondary btn-sm" title="Открыть" style="padding:4px 7px;">👁</a>
                         <form method="POST" action="/panel-5588/delete.php" onsubmit="return confirm('Удалить сервис «<?php echo addslashes($svc['name']); ?>»?')" style="margin:0;">
                             <input type="hidden" name="service_id" value="<?php echo $svc['id']; ?>">
-                            <button type="submit" class="btn btn-danger btn-sm" title="Удалить">🗑</button>
+                            <button type="submit" class="btn btn-danger btn-sm" title="Удалить" style="padding:4px 7px;">🗑</button>
                         </form>
                     </div>
                 </td>

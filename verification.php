@@ -346,6 +346,8 @@ body {
 .how-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; letter-spacing: -0.1px; }
 .how-text  { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; font-weight: 500; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
 </head>
 <body>
 <div class="app-container">

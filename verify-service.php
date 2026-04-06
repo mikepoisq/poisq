@@ -185,6 +185,8 @@ body {
 .error-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
 .error-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
 </head>
 <body>
 

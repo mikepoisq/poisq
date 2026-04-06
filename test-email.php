@@ -71,6 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .error { background: #fef2f2; color: #991b1b; padding: 14px 16px; border-radius: 10px; margin-bottom: 16px; font-weight: 600; border: 1px solid #fecaca; font-family: monospace; font-size: 13px; }
   .warn { background: #fffbeb; color: #92400e; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-top: 20px; border: 1px solid #fde68a; }
 </style>
+<script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/theme.css">
 </head>
 <body>
 <div class="box">

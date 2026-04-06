@@ -3,7 +3,7 @@ define('ADMIN_PANEL', true);
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/layout.php";
-requireAdmin();
+requireAuthAny('moderation');
 
 $pdo = getDbConnection();
 
@@ -41,7 +41,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
 
 $services = $pdo->query("
-    SELECT s.*, u.name as user_name, u.email as user_email,
+    SELECT s.*, s.created_by_admin, s.created_by_moderator, s.call_status, s.call_note,
+           u.name as user_name, u.email as user_email,
            c.name as city_name, c.status as city_status
     FROM services s
     JOIN users u ON s.user_id = u.id
@@ -59,6 +60,11 @@ $categories = [
 
 ob_start();
 ?>
+
+<style>
+.crown-blue { color: #3B6CF4; font-size: 14px; margin-left: 4px; cursor: default; }
+.crown-green { color: #10B981; font-size: 14px; margin-left: 4px; cursor: default; }
+</style>
 
 <?php if (empty($services)): ?>
 <div class="panel">
@@ -86,7 +92,14 @@ ob_start();
 <div class="panel" style="margin-bottom:20px;">
     <div class="panel-header">
         <div>
-            <div class="panel-title"><?php echo htmlspecialchars($svc["name"]); ?></div>
+            <div class="panel-title">
+                <?php echo htmlspecialchars($svc["name"]); ?>
+                <?php if ($svc['created_by_moderator'] !== null): ?>
+                <span class="crown-green" title="Создан модератором">👑</span>
+                <?php elseif ($svc['created_by_admin'] !== null): ?>
+                <span class="crown-blue" title="Создан администратором">👑</span>
+                <?php endif; ?>
+            </div>
             <div style="font-size:12px;color:var(--text-light);margin-top:2px;">
                 #<?php echo $svc['id']; ?> ·
                 <?php echo $cat; ?> ·
@@ -175,6 +188,31 @@ ob_start();
                     <a href="<?php echo htmlspecialchars($svc['website']); ?>" target="_blank" style="color:var(--primary);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?php echo htmlspecialchars($svc["website"]); ?></a>
                 </div>
                 <?php endif; ?>
+            </div>
+
+            <!-- Созвон -->
+            <?php
+            $callStatus = $svc['call_status'] ?? 'not_called';
+            $callNote   = $svc['call_note']   ?? '';
+            $callBg     = $callStatus === 'reached'   ? 'background:#ECFDF5;border-color:#6EE7B7;'
+                        : ($callStatus === 'no_answer' ? 'background:#FFFBEB;border-color:#FDE68A;' : 'background:var(--bg);');
+            ?>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;<?php echo $callBg; ?>" id="callBlock-<?php echo $svc['id']; ?>">
+                <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">📞 Созвон с сервисом</div>
+                <select id="callStatus-<?php echo $svc['id']; ?>" class="form-control form-select" style="margin-bottom:8px;" onchange="onCallChange(<?php echo $svc['id']; ?>)">
+                    <option value="not_called" <?php echo $callStatus==='not_called'?'selected':''; ?>>— Не звонили —</option>
+                    <option value="no_answer"  <?php echo $callStatus==='no_answer'?'selected':''; ?>>Не дозвонились</option>
+                    <option value="reached"    <?php echo $callStatus==='reached'?'selected':''; ?>>✅ Дозвонились</option>
+                    <option value="no_number"  <?php echo $callStatus==='no_number'?'selected':''; ?>>Нет номера</option>
+                    <option value="other"      <?php echo $callStatus==='other'?'selected':''; ?>>Другое...</option>
+                </select>
+                <div id="callNote-<?php echo $svc['id']; ?>" style="<?php echo $callStatus==='other'?'':'display:none;'; ?>margin-bottom:8px;">
+                    <textarea id="callNoteText-<?php echo $svc['id']; ?>" class="form-control" rows="2" placeholder="Заметка (только в админке)..."><?php echo htmlspecialchars($callNote); ?></textarea>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="saveCallStatus(<?php echo $svc['id']; ?>)" id="callBtn-<?php echo $svc['id']; ?>">Сохранить</button>
+                    <span id="callMsg-<?php echo $svc['id']; ?>" style="font-size:12px;display:none;color:#10B981;font-weight:600;">✅ Сохранено</span>
+                </div>
             </div>
 
             <!-- Владелец -->
@@ -287,6 +325,43 @@ function submitReject() {
 document.getElementById("rejectOverlay").addEventListener("click", function(e) {
     if (e.target === this) closeReject();
 });
+
+function onCallChange(id) {
+    const val = document.getElementById('callStatus-' + id).value;
+    document.getElementById('callNote-' + id).style.display = val === 'other' ? '' : 'none';
+    const bg = val === 'reached'   ? 'background:#ECFDF5;border-color:#6EE7B7;'
+             : val === 'no_answer' ? 'background:#FFFBEB;border-color:#FDE68A;' : 'background:var(--bg);';
+    document.getElementById('callBlock-' + id).style.cssText =
+        'border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;' + bg;
+}
+
+async function saveCallStatus(id) {
+    const status = document.getElementById('callStatus-' + id).value;
+    const noteEl = document.getElementById('callNoteText-' + id);
+    const note   = noteEl ? noteEl.value : '';
+    const btn    = document.getElementById('callBtn-' + id);
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+        const fd = new FormData();
+        fd.append('service_id', id);
+        fd.append('call_status', status);
+        fd.append('call_note', note);
+        const res = await fetch('/panel-5588/api-call-status.php', {method:'POST', body:fd});
+        const data = await res.json();
+        if (data.success) {
+            const msg = document.getElementById('callMsg-' + id);
+            msg.style.display = 'inline';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        } else {
+            alert('Ошибка: ' + (data.error || '?'));
+        }
+    } catch(e) {
+        alert('Ошибка сети');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Сохранить';
+}
 
 async function approveCity(cityId, svcId) {
     const fd = new FormData();

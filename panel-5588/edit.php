@@ -11,7 +11,8 @@ $serviceId = (int)($_GET['id'] ?? 0);
 if (!$serviceId) { header("Location: /panel-5588/services.php"); exit; }
 
 $stmt = $pdo->prepare("
-    SELECT s.*, u.name as user_name, u.email as user_email, c.name as city_name
+    SELECT s.*, s.created_by_admin, s.call_status, s.call_note,
+           u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s JOIN users u ON s.user_id=u.id
     LEFT JOIN cities c ON s.city_id=c.id
     WHERE s.id=?
@@ -203,6 +204,39 @@ ob_start();
             </div>
         </div>
 
+        <!-- Созвон -->
+        <?php
+        $callStatus  = $service['call_status']  ?? 'not_called';
+        $callNote    = $service['call_note']     ?? '';
+        $callBg      = $callStatus === 'reached'   ? 'background:#ECFDF5;border-color:#6EE7B7;'
+                     : ($callStatus === 'no_answer' ? 'background:#FFFBEB;border-color:#FDE68A;' : '');
+        ?>
+        <div class="panel" style="margin-bottom:16px;border:1px solid var(--border);<?php echo $callBg; ?>" id="callBlock">
+            <div class="panel-header"><div class="panel-title">📞 Созвон с сервисом</div></div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+                <div>
+                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Статус созвона</label>
+                    <select id="callStatusSelect" class="form-control form-select" onchange="onCallStatusChange()">
+                        <option value="not_called" <?php echo $callStatus==='not_called'?'selected':''; ?>>— Не звонили —</option>
+                        <option value="no_answer"  <?php echo $callStatus==='no_answer'?'selected':''; ?>>Не дозвонились</option>
+                        <option value="reached"    <?php echo $callStatus==='reached'?'selected':''; ?>>✅ Дозвонились</option>
+                        <option value="no_number"  <?php echo $callStatus==='no_number'?'selected':''; ?>>Нет номера</option>
+                        <option value="other"      <?php echo $callStatus==='other'?'selected':''; ?>>Другое...</option>
+                    </select>
+                </div>
+                <div id="callNoteBlock" style="<?php echo $callStatus==='other'?'':'display:none;'; ?>">
+                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Заметка о созвоне</label>
+                    <textarea id="callNoteText" class="form-control" rows="3" placeholder="Комментарий (виден только в админке)..."><?php echo htmlspecialchars($callNote); ?></textarea>
+                </div>
+                <div>
+                    <button type="button" onclick="saveCallStatus(<?php echo $serviceId; ?>)" class="btn btn-secondary btn-sm" id="callSaveBtn">
+                        Сохранить статус созвона
+                    </button>
+                    <span id="callSaveMsg" style="font-size:12px;margin-left:10px;display:none;color:#10B981;font-weight:600;">✅ Сохранено</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Кнопки -->
         <div style="display:flex;gap:10px;">
             <a href="/panel-5588/services.php" class="btn btn-secondary">← Назад</a>
@@ -333,6 +367,41 @@ document.getElementById('visibleToggle').addEventListener('change', function() {
     document.getElementById('visibleLabel').textContent = this.checked ? 'Виден пользователям' : 'Скрыт';
 });
 checkEmailHint();
+
+function onCallStatusChange() {
+    const val = document.getElementById('callStatusSelect').value;
+    document.getElementById('callNoteBlock').style.display = val === 'other' ? '' : 'none';
+    const bg = val === 'reached' ? 'background:#ECFDF5;border-color:#6EE7B7;'
+             : val === 'no_answer' ? 'background:#FFFBEB;border-color:#FDE68A;' : '';
+    document.getElementById('callBlock').style.cssText = 'margin-bottom:16px;border:1px solid var(--border);' + bg;
+}
+
+async function saveCallStatus(serviceId) {
+    const status = document.getElementById('callStatusSelect').value;
+    const note   = document.getElementById('callNoteText')?.value ?? '';
+    const btn    = document.getElementById('callSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Сохранение...';
+    try {
+        const fd = new FormData();
+        fd.append('service_id', serviceId);
+        fd.append('call_status', status);
+        fd.append('call_note', note);
+        const res = await fetch('/panel-5588/api-call-status.php', {method:'POST', body:fd});
+        const data = await res.json();
+        if (data.success) {
+            const msg = document.getElementById('callSaveMsg');
+            msg.style.display = 'inline';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    } catch(e) {
+        alert('Ошибка сети');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Сохранить статус созвона';
+}
 </script>
 
 <?php
