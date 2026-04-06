@@ -151,6 +151,7 @@ $mf = !empty($mf_parts) ? implode(' AND ', $mf_parts) : '';
 $userCityId = (int)($_SESSION['user_city_id'] ?? 0);
 $offset     = ($page - 1) * $perPage;
 $meiliOk    = false;
+$pinId      = isset($_GET['pin']) ? (int)$_GET['pin'] : 0;
 $meiliIds   = [];
 $meiliIds2  = [];
 
@@ -188,11 +189,19 @@ try {
             $meiliOk     = true;
         }
         if ($meiliOk && !empty($cleanQuery) && count($meiliIds) < 5) {
+            // Сначала ищем в стране пользователя
+            $r3user = meiliSearch($cleanQuery, [
+                'filter' => ($mf ? "$mf AND " : '') . "country_code = '$userCountry' AND country_code != '$countryCode'",
+                'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
+            ]);
+            $meiliIds2user = array_column($r3user['hits'] ?? [], 'id');
+            // Потом остальные страны
             $r3 = meiliSearch($cleanQuery, [
-                'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode'",
+                'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode' AND country_code != '$userCountry'",
                 'limit'  => 5, 'sort' => ['verified:desc','rating:desc'],
             ]);
-            $meiliIds2 = array_column($r3['hits'] ?? [], 'id');
+            $meiliIds2other = array_column($r3['hits'] ?? [], 'id');
+            $meiliIds2 = array_unique(array_merge($meiliIds2user, $meiliIds2other));
         }
         // Если в своей стране 0 результатов — добавляем глобальные в основной список
         if ($meiliOk && count($meiliIds) === 0 && !empty($meiliIds2)) {
@@ -289,6 +298,32 @@ if ($meiliOk) {
     }
 }
 
+// Если передан pin — загружаем этот сервис и ставим первым
+$pinnedService = null;
+if ($pinId > 0) {
+    try {
+        $ps = $pdo->prepare("SELECT s.id, s.name, s.category, s.subcategory,
+               s.photo, s.phone, s.whatsapp, s.email, s.website,
+               s.rating, s.reviews_count, s.views,
+               s.description, s.address, s.languages,
+               s.services AS service_list, s.social,
+               s.verified, s.verified_until, s.hours, s.created_at, s.group_link,
+               c.name AS city_name, c.name_lat AS city_name_lat
+               FROM services s LEFT JOIN cities c ON s.city_id = c.id
+               WHERE s.id = ? AND s.status = 'approved' AND s.is_visible = 1 LIMIT 1");
+        $ps->execute([$pinId]);
+        $pinnedService = $ps->fetch(PDO::FETCH_ASSOC);
+        if ($pinnedService) {
+            // Убираем этот сервис из основного списка если он там есть
+            $services = array_filter($services ?? [], fn($sv) => $sv['id'] != $pinId);
+            $services = array_values($services);
+            // Ставим первым
+            array_unshift($services, $pinnedService);
+        }
+    } catch (PDOException $e) {
+        error_log('Pin service error: ' . $e->getMessage());
+    }
+}
 $totalPages = max(1, ceil($totalCount / $perPage));
 
 // Логируем поисковый запрос

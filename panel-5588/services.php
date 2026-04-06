@@ -62,8 +62,31 @@ ob_start();
 ?>
 
 <style>
-.crown-blue { color: #3B6CF4; font-size: 14px; margin-left: 4px; cursor: default; }
-.crown-green { color: #10B981; font-size: 14px; margin-left: 4px; cursor: default; }
+.crown-blue { color: #3B6CF4; font-size: 13px; cursor: default; }
+.crown-green { color: #10B981; font-size: 13px; cursor: default; }
+
+.svc-table-wrap { width: 100%; }
+.svc-table { table-layout: auto; width: 100%; }
+
+/* фиксированные узкие колонки */
+.svc-table .col-id      { width: 40px;  min-width: 40px;  max-width: 40px; }
+.svc-table .col-cat     { width: 100px; min-width: 70px;  max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svc-table .col-city    { width: 90px;  min-width: 60px;  max-width: 90px; overflow: hidden; }
+.svc-table .col-owner   { width: 130px; min-width: 90px;  max-width: 130px; overflow: hidden; }
+.svc-table .col-status  { width: 90px;  min-width: 80px;  white-space: nowrap; }
+.svc-table .col-call    { width: 60px;  min-width: 50px;  text-align: center; }
+.svc-table .col-views   { width: 60px;  min-width: 50px; }
+.svc-table .col-date    { width: 80px;  min-width: 70px;  white-space: nowrap; }
+.svc-table .col-actions { width: 88px;  min-width: 88px;  white-space: nowrap; }
+
+/* название — занимает всё оставшееся место */
+.svc-table .col-name    { min-width: 140px; overflow: hidden; }
+
+/* горизонтальный скролл только на узких экранах */
+@media (max-width: 1200px) {
+    .svc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .svc-table      { min-width: 860px; }
+}
 </style>
 
 <div class="panel">
@@ -109,19 +132,20 @@ ob_start();
             <div class="empty-state-text">Попробуйте изменить фильтры или поисковый запрос</div>
         </div>
         <?php else: ?>
-        <table class="table" style="table-layout:fixed;width:100%;">
+        <div class="svc-table-wrap">
+        <table class="table svc-table">
             <thead>
                 <tr>
-                    <th style="width:40px">ID</th>
-                    <th>Название</th>
-                    <th style="width:110px">Категория</th>
-                    <th style="width:100px">Город</th>
-                    <th style="width:140px">Владелец</th>
-                    <th style="width:90px">Статус</th>
-                    <th style="width:60px;text-align:center">Созвон</th>
-                    <th style="width:70px">Просмотры</th>
-                    <th style="width:85px">Дата</th>
-                    <th style="width:80px">Действия</th>
+                    <th class="col-id">ID</th>
+                    <th class="col-name">Название</th>
+                    <th class="col-cat">Категория</th>
+                    <th class="col-city">Город</th>
+                    <th class="col-owner">Владелец</th>
+                    <th class="col-status">Статус</th>
+                    <th class="col-call">Созвон</th>
+                    <th class="col-views">Просм.</th>
+                    <th class="col-date">Дата</th>
+                    <th class="col-actions">Действия</th>
                 </tr>
             </thead>
             <tbody>
@@ -129,34 +153,34 @@ ob_start();
                 $sc = $statusConfig[$svc["status"]] ?? ["label"=>$svc["status"],"class"=>"badge-gray"];
             ?>
             <tr>
-                <td style="color:var(--text-light);font-size:12px;">#<?php echo $svc['id']; ?></td>
-                <td style="overflow:hidden;">
-                    <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                        <?php echo htmlspecialchars($svc["name"]); ?>
+                <td class="col-id" style="color:var(--text-light);font-size:12px;">#<?php echo $svc['id']; ?></td>
+                <td class="col-name" style="max-width:200px;">
+                    <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
+                        <span style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;"><?php echo htmlspecialchars($svc["name"]); ?></span>
                         <?php if ($svc['created_by_moderator'] !== null): ?>
-                        <span class="crown-green" title="Создан модератором">👑</span>
+                        <span class="crown-green" title="Создан модератором" style="flex-shrink:0;">👑</span>
                         <?php elseif ($svc['created_by_admin'] !== null): ?>
-                        <span class="crown-blue" title="Создан администратором">👑</span>
+                        <span class="crown-blue" title="Создан администратором" style="flex-shrink:0;">👑</span>
                         <?php endif; ?>
                         <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
-                        <span style="font-size:10px;background:var(--success-bg);color:#065F46;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:2px;">✓</span>
+                        <span style="font-size:10px;background:var(--success-bg);color:#065F46;padding:1px 5px;border-radius:4px;font-weight:700;white-space:nowrap;flex-shrink:0;">✓</span>
                         <?php endif; ?>
                     </div>
                     <?php if (!$svc['is_visible'] && $svc['status'] === 'approved'): ?>
                     <div style="font-size:11px;color:var(--text-light);">скрыт</div>
                     <?php endif; ?>
                 </td>
-                <td style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo $categories[$svc["category"]] ?? $svc["category"]; ?></td>
-                <td style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    <?php echo htmlspecialchars($svc["city_name"] ?? "—"); ?>
-                    <span style="color:var(--text-light);font-size:11px;"> <?php echo strtoupper($svc["country_code"]); ?></span>
+                <td class="col-cat" style="font-size:12px;color:var(--text-secondary);"><?php echo $categories[$svc["category"]] ?? $svc["category"]; ?></td>
+                <td class="col-city" style="font-size:12px;">
+                    <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($svc["city_name"] ?? "—"); ?></div>
+                    <div style="color:var(--text-light);font-size:11px;"><?php echo strtoupper($svc["country_code"]); ?></div>
                 </td>
-                <td style="overflow:hidden;">
+                <td class="col-owner">
                     <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($svc["user_name"]); ?></div>
                     <div style="font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
                 </td>
-                <td><span class="badge <?php echo $sc['class']; ?>" style="font-size:11px;padding:2px 7px;"><?php echo $sc['label']; ?></span></td>
-                <td style="font-size:15px;text-align:center;">
+                <td class="col-status"><span class="badge <?php echo $sc['class']; ?>" style="font-size:11px;padding:2px 7px;white-space:nowrap;"><?php echo $sc['label']; ?></span></td>
+                <td class="col-call" style="font-size:15px;text-align:center;">
                     <?php
                     $cs = $svc['call_status'] ?? 'not_called';
                     if ($cs === 'not_called'):     ?>
@@ -171,10 +195,10 @@ ob_start();
                     <span style="color:#3B6CF4;cursor:default;" title="<?php echo htmlspecialchars($svc['call_note'] ?? ''); ?>">📝</span>
                     <?php endif; ?>
                 </td>
-                <td style="font-size:12px;color:var(--text-secondary);"><?php echo (int)$svc['views']; ?></td>
-                <td style="font-size:11px;color:var(--text-light);white-space:nowrap;"><?php echo date("d.m.y", strtotime($svc["created_at"])); ?></td>
-                <td>
-                    <div style="display:flex;gap:3px;">
+                <td class="col-views" style="font-size:12px;color:var(--text-secondary);"><?php echo (int)$svc['views']; ?></td>
+                <td class="col-date" style="font-size:11px;color:var(--text-light);white-space:nowrap;"><?php echo date("d.m.y", strtotime($svc["created_at"])); ?></td>
+                <td class="col-actions">
+                    <div style="display:flex;gap:3px;flex-wrap:nowrap;">
                         <a href="/panel-5588/edit.php?id=<?php echo $svc['id']; ?>" class="btn btn-secondary btn-sm" title="Редактировать" style="padding:4px 7px;">✏️</a>
                         <a href="https://poisq.com<?php echo serviceUrl($svc["id"], $svc["name"]); ?>" target="_blank" class="btn btn-secondary btn-sm" title="Открыть" style="padding:4px 7px;">👁</a>
                         <form method="POST" action="/panel-5588/delete.php" onsubmit="return confirm('Удалить сервис «<?php echo addslashes($svc['name']); ?>»?')" style="margin:0;">
@@ -187,6 +211,7 @@ ob_start();
             <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
         <?php endif; ?>
     </div>
 

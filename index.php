@@ -1375,7 +1375,7 @@ async function renderSoContent(q) {
       }
       // Сохраняем данные в глобальный массив чтобы избежать проблем с кавычками в onclick
       window._suggest = window._suggest || [];
-      window._suggest[i] = { q: s.q, url: url };
+      window._suggest[i] = { q: s.q, url: url, country: s.country, city_slug: s.city_slug, service_id: s.service_id };
       const iconHtml = s.photo
         ? `<div class="so-item-icon suggest" style="background:none;padding:0;overflow:hidden;border-radius:8px;"><img src="${s.photo}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'"></div>`
         : `<div class="so-item-icon suggest"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></div>`;
@@ -1417,10 +1417,11 @@ function soGoTo(i) {
       const clean = sanitizeQuery(s.q);
       const c = s.country || localStorage.getItem('poisq_country') || 'fr';
       const citySlug = s.city_slug || '';
+      const pin = s.service_id ? '?pin=' + s.service_id : '';
       if (citySlug) {
-        window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean);
+        window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean) + pin;
       } else {
-        window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+        window.location.href = '/' + c + '/' + encodeURIComponent(clean) + pin;
       }
     } else {
       window.location.href = s.url;

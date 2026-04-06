@@ -27,6 +27,7 @@ function renderLayout(string $pageTitle, string $content, int $pendingCount = 0,
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo htmlspecialchars($pageTitle); ?> — Poisq Admin</title>
+<link rel="icon" type="image/png" href="/panel-5588/favicon-admin.png">
 <style>
 :root {
     --primary: #2E73D8;

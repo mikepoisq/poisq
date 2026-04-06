@@ -116,10 +116,10 @@ ob_start();
             <input type="date" name="to" class="form-control" value="<?php echo htmlspecialchars($toDate); ?>" style="width:145px;">
         </div>
         <div style="padding-bottom:2px;">
-            <button type="submit" class="btn btn-primary btn-sm">🔍 Показать</button>
+
+            <button type="submit" name="period" value="custom" class="btn btn-primary btn-sm">🔍 Показать</button>
         </div>
         <?php endif; ?>
-        <input type="hidden" name="period" value="<?php echo htmlspecialchars($period); ?>">
     </div>
 </form>
 

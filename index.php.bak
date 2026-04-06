@@ -1,5 +1,10 @@
 <?php
 // index.php — Главная страница Poisq
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.cookie_secure', '0');
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.use_strict_mode', '1');
 session_start();
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
@@ -436,6 +441,10 @@ body {
 .so-item:last-of-type { border-bottom: none; }
 .so-item:active { background: var(--bg-secondary); }
 
+
+.so-item-body { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.so-item-text { font-size:14px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.so-item-sub  { font-size:12px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .so-item-icon {
   width: 36px; height: 36px;
   border-radius: var(--radius-xs);
@@ -949,6 +958,7 @@ body {
       </div>
     </div>
     <div class="footer-links">
+      <a href="/useful.php" class="footer-link">Полезное</a>
       <a href="/help.php" class="footer-link">Помощь</a>
       <a href="/terms.php" class="footer-link">Условия</a>
       <a href="/about.php" class="footer-link">О нас</a>
@@ -1034,9 +1044,9 @@ body {
         Добавить сервис
       </a>
     <?php endif; ?>
-    <a href="articles.php" class="side-item">
+    <a href="useful.php" class="side-item">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      Полезные статьи
+      Полезное
     </a>
     <div class="side-divider"></div>
     <a href="contact.php" class="side-item">
@@ -1152,7 +1162,28 @@ function clearHistory() {
   renderSoContent('');
 }
 
+function hideKeyboard() {
+  soInput.blur();
+  document.activeElement && document.activeElement.blur();
+  // Хак для Android — создаём временный input вне экрана
+  const tmp = document.createElement('input');
+  tmp.setAttribute('type', 'text');
+  tmp.setAttribute('readonly', 'readonly');
+  tmp.style.cssText = 'position:fixed;top:-100px;left:-100px;width:1px;height:1px;opacity:0;';
+  document.body.appendChild(tmp);
+  tmp.focus();
+  tmp.blur();
+  setTimeout(function() { document.body.removeChild(tmp); }, 300);
+  // Хак для Opera Android
+  if (/OPR|Opera/i.test(navigator.userAgent)) {
+    setTimeout(function() {
+      window.scrollTo(0, window.scrollY + 1);
+      window.scrollTo(0, window.scrollY - 1);
+    }, 50);
+  }
+}
 function closeSearchOverlay() {
+  hideKeyboard();
   searchOverlay.classList.remove('active');
   document.body.style.overflow = '';
   soInput.value = '';
@@ -1280,12 +1311,22 @@ async function renderSoContent(q) {
       // Сохраняем данные в глобальный массив чтобы избежать проблем с кавычками в onclick
       window._suggest = window._suggest || [];
       window._suggest[i] = { q: s.q, url: url };
+      const iconHtml = s.photo
+        ? `<div class="so-item-icon suggest" style="background:none;padding:0;overflow:hidden;border-radius:8px;"><img src="${s.photo}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'"></div>`
+        : `<div class="so-item-icon suggest"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></div>`;
+      const subtitleParts = [];
+      if (s.subtitle) subtitleParts.push(escHtml(s.subtitle));
+      if (s.rating)   subtitleParts.push("⭐ " + s.rating);
+      const subtitleHtml = subtitleParts.length
+        ? `<span class="so-item-sub">${subtitleParts.join(" · ")}</span>`
+        : "";
       liveHtml += `
         <div class="so-item" onclick="soGoTo(${i})">
-          <div class="so-item-icon suggest">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+          ${iconHtml}
+          <div class="so-item-body">
+            <span class="so-item-text">${hlMatch(escHtml(s.text), q)}</span>
+            ${subtitleHtml}
           </div>
-          <span class="so-item-text">${hlMatch(escHtml(s.text), q)}</span>
           <svg class="so-item-arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
         </div>`;
     });
@@ -1305,19 +1346,21 @@ function soGoTo(i) {
   if (!s) return;
   if (s.q) saveHistory(sanitizeQuery(s.q));
   closeSearchOverlay();
-  // Пересобираем URL с очищенным запросом
-  if (s.q) {
-    const clean = sanitizeQuery(s.q);
-    const c = s.country || localStorage.getItem('poisq_country') || 'fr';
-    const citySlug = s.city_slug || '';
-    if (citySlug) {
-      window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean);
+  // Небольшая задержка чтобы Android успел скрыть клавиатуру
+  setTimeout(function() {
+    if (s.q) {
+      const clean = sanitizeQuery(s.q);
+      const c = s.country || localStorage.getItem('poisq_country') || 'fr';
+      const citySlug = s.city_slug || '';
+      if (citySlug) {
+        window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean);
+      } else {
+        window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+      }
     } else {
-      window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+      window.location.href = s.url;
     }
-  } else {
-    window.location.href = s.url;
-  }
+  }, 100);
 }
 
 // Обычный поиск (по Enter или тег без city_id)
@@ -1433,6 +1476,10 @@ function selectCountry(code, name) {
   currentCode = code; currentName = name;
   localStorage.setItem('poisq_country', code);
   localStorage.setItem('poisq_country_name', name);
+  localStorage.setItem('poisq_country_manual', '1');
+  localStorage.removeItem('poisq_city_id');
+  localStorage.removeItem('poisq_city_slug');
+  localStorage.removeItem('poisq_city_name');
   currentFlag.src = 'https://flagcdn.com/w80/' + code + '.png';
   currentFlag.dataset.code = code;
   currentCountryName.textContent = name;
@@ -1515,16 +1562,7 @@ document.getElementById('cmSearch').addEventListener('input', function() {
   }
 })();
 
-// При ручном выборе страны помечаем как "выбрано вручную"
-const _origSelectCountry = selectCountry;
-function selectCountry(code, name) {
-  localStorage.setItem('poisq_country_manual', '1');
-  // Сбрасываем город — он был определён для предыдущей страны
-  localStorage.removeItem('poisq_city_id');
-  localStorage.removeItem('poisq_city_slug');
-  localStorage.removeItem('poisq_city_name');
-  _origSelectCountry(code, name);
-}
+
 
 // ════════════════════════════════════════
 // СВЕЖИЕ СЕРВИСЫ (РУПОР)

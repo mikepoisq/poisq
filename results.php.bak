@@ -121,10 +121,11 @@ if (!empty($searchQuery) && $cityFilter === 0) {
 }
 
 // Базовый фильтр Meilisearch
-$mf = "";
-if ($verifiedFilter)           $mf .= " AND verified = 1";
-if (!empty($categoryFilter))   $mf .= " AND category = '$categoryFilter'";
-if ($ratingFilter > 0)         $mf .= " AND rating >= $ratingFilter";
+$mf_parts = [];
+if ($verifiedFilter)           $mf_parts[] = "verified = 1";
+if (!empty($categoryFilter))   $mf_parts[] = "category = '$categoryFilter'";
+if ($ratingFilter > 0)         $mf_parts[] = "rating >= $ratingFilter";
+$mf = !empty($mf_parts) ? implode(' AND ', $mf_parts) : '';
 
 $userCityId = (int)($_SESSION['user_city_id'] ?? 0);
 $offset     = ($page - 1) * $perPage;
@@ -135,7 +136,7 @@ $meiliIds2  = [];
 try {
     if ($cityFilter > 0) {
         $r = meiliSearch($cleanQuery, [
-            'filter' => "$mf AND city_id = $cityFilter",
+            'filter' => ($mf ? "$mf AND " : '') . "city_id = $cityFilter",
             'limit'  => $perPage, 'offset' => $offset,
             'sort'   => ['verified:desc','rating:desc','views:desc'],
         ]);
@@ -148,14 +149,14 @@ try {
         $cityHits = [];
         if ($userCityId > 0) {
             $r1 = meiliSearch($cleanQuery, [
-                'filter' => "$mf AND city_id = $userCityId AND country_code = '$countryCode'",
+                'filter' => ($mf ? "$mf AND " : '') . "city_id = $userCityId AND country_code = '$countryCode'",
                 'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
             ]);
             $cityHits = array_column($r1['hits'] ?? [], 'id');
         }
         $cityEx = $userCityId > 0 ? " AND city_id != $userCityId" : "";
         $r2 = meiliSearch($cleanQuery, [
-            'filter' => "$mf AND country_code = '$countryCode'$cityEx",
+            'filter' => ($mf ? "$mf AND " : '') . "country_code = '$countryCode'$cityEx",
             'limit'  => $perPage, 'offset' => $offset,
             'sort'   => ['verified:desc','rating:desc','views:desc'],
         ]);
@@ -167,10 +168,16 @@ try {
         }
         if ($meiliOk && !empty($cleanQuery) && count($meiliIds) < 5) {
             $r3 = meiliSearch($cleanQuery, [
-                'filter' => "$mf AND country_code != '$countryCode'",
+                'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode'",
                 'limit'  => 5, 'sort' => ['verified:desc','rating:desc'],
             ]);
             $meiliIds2 = array_column($r3['hits'] ?? [], 'id');
+        }
+        // Если в своей стране 0 результатов — добавляем глобальные в основной список
+        if ($meiliOk && count($meiliIds) === 0 && !empty($meiliIds2)) {
+            $meiliIds   = $meiliIds2;
+            $meiliIds2  = [];
+            $totalCount = count($meiliIds);
         }
     }
 } catch (Exception $e) {
@@ -257,6 +264,26 @@ if ($meiliOk) {
 }
 
 $totalPages = max(1, ceil($totalCount / $perPage));
+
+// Логируем поисковый запрос
+if (!empty($cleanQuery) || !empty($categoryFilter)) {
+    try {
+        $logIp = $_SERVER["HTTP_X_FORWARDED_FOR"] ?? $_SERVER["REMOTE_ADDR"] ?? "";
+        $logIp = trim(explode(",", $logIp)[0]);
+        $logStatus = $totalCount > 0 ? "found" : "not_found";
+        $logQuery = !empty($cleanQuery) ? $cleanQuery : $categoryFilter;
+        $pdo->prepare("INSERT INTO search_logs (query, country_code, city_id, results_count, status, ip) VALUES (?,?,?,?,?,?)")
+            ->execute([$logQuery, $countryCode, $cityFilter ?: null, $totalCount, $logStatus, $logIp]);
+    } catch (Exception $e) { error_log("search_log error: " . $e->getMessage()); }
+}
+
+// Логируем просмотр страницы
+try {
+    $pvIp = $_SERVER["HTTP_X_FORWARDED_FOR"] ?? $_SERVER["REMOTE_ADDR"] ?? "";
+    $pvIp = trim(explode(",", $pvIp)[0]);
+    $pdo->prepare("INSERT INTO page_views (page, ip, country_code) VALUES (?,?,?)")
+        ->execute(["results", $pvIp, $countryCode]);
+} catch (Exception $e) { error_log("page_view error: " . $e->getMessage()); }
 $page       = min($page, $totalPages);
 
 // Декодируем JSON поля для шаблона
@@ -670,7 +697,7 @@ body {
 .card-reviews-cnt { color: var(--text-light); }
 /* Строка 4: сниппет */
 .card-snippet {
-  font-size: 14px; line-height: 1.55; color: var(--text-secondary);
+  font-size: 14px; line-height: 1.55; color: var(--text);
   margin-bottom: 10px;
   display: -webkit-box; -webkit-line-clamp: 2;
   -webkit-box-orient: vertical; overflow: hidden;
@@ -702,7 +729,7 @@ body {
   width: 34px; height: 34px; border-radius: 50%;
   border: 1px solid var(--border); background: var(--bg);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text-light);
+  cursor: pointer; color: var(--text);
   transition: background 0.15s; text-decoration: none; flex-shrink: 0;
 }
 .btn-icon svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
@@ -1640,7 +1667,27 @@ function openSearchOverlay() {
   renderSoContent(soInput.value);
 }
 
+function hideKeyboard() {
+  soInput.blur();
+  document.activeElement && document.activeElement.blur();
+  const tmp = document.createElement('input');
+  tmp.setAttribute('type', 'text');
+  tmp.setAttribute('readonly', 'readonly');
+  tmp.style.cssText = 'position:fixed;top:-100px;left:-100px;width:1px;height:1px;opacity:0;';
+  document.body.appendChild(tmp);
+  tmp.focus();
+  tmp.blur();
+  setTimeout(function() { document.body.removeChild(tmp); }, 300);
+  // Хак для Opera Android
+  if (/OPR|Opera/i.test(navigator.userAgent)) {
+    setTimeout(function() {
+      window.scrollTo(0, window.scrollY + 1);
+      window.scrollTo(0, window.scrollY - 1);
+    }, 50);
+  }
+}
 function closeSearchOverlay() {
+  hideKeyboard();
   searchOverlay.classList.remove('active');
   document.body.style.overflow = '';
   soInput.value = '';
@@ -1773,20 +1820,21 @@ function soGoTo(i) {
   if (!s) return;
   if (s.q) saveHistory(sanitizeQuery(s.q));
   closeSearchOverlay();
-  if (s.q) {
-    const clean = sanitizeQuery(s.q);
-    const c = s.country || countryCode || 'fr';
-    const citySlug = s.city_slug || '';
-    if (citySlug) {
-      window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean);
+  setTimeout(function() {
+    if (s.q) {
+      const clean = sanitizeQuery(s.q);
+      const c = s.country || countryCode || 'fr';
+      const citySlug = s.city_slug || '';
+      if (citySlug) {
+        window.location.href = '/' + c + '/' + citySlug + '/' + encodeURIComponent(clean);
+      } else {
+        window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+      }
     } else {
-      window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+      window.location.href = s.url;
     }
-  } else {
-    window.location.href = s.url;
-  }
+  }, 100);
 }
-
 function sanitizeQuery(q) {
   // Заменяем слеш на пробел — иначе ломается ЧПУ URL
   return q.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
@@ -1797,8 +1845,10 @@ function soSearch(q) {
   const clean = sanitizeQuery(q);
   saveHistory(clean);
   closeSearchOverlay();
-  const c = countryCode || localStorage.getItem('poisq_country') || 'fr';
-  window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+  setTimeout(function() {
+    const c = countryCode || localStorage.getItem('poisq_country') || 'fr';
+    window.location.href = '/' + c + '/' + encodeURIComponent(clean);
+  }, 100);
 }
 
 let soTimer = null;
