@@ -376,6 +376,37 @@ body {
   .auth-wrap  { padding: 24px 18px 20px; }
 }
 ::-webkit-scrollbar { display: none; }
+
+/* ── БЛОК ПРЕИМУЩЕСТВ ── */
+.benefits-block {
+  width: 100%;
+  margin-bottom: 20px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.benefit-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 14px;
+  border-left: 2.5px solid var(--primary);
+  border-radius: 0 10px 10px 0;
+  background: var(--bg-secondary);
+}
+.benefit-item:nth-child(1) { border-color: #378ADD; }
+.benefit-item:nth-child(2) { border-color: #1D9E75; }
+.benefit-item:nth-child(3) { border-color: #D4537E; }
+.benefit-icon {
+  font-size: 16px; flex-shrink: 0; line-height: 1; margin-top: 2px;
+}
+.benefit-title {
+  font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.1px;
+}
+.benefit-desc {
+  font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-top: 2px; line-height: 1.35;
+}
+.benefit-note {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  text-align: center; padding-top: 4px;
+}
+
 </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">
@@ -444,6 +475,32 @@ body {
 
     <h1 class="auth-title">Создать аккаунт</h1>
     <p class="auth-subtitle">Присоединяйтесь к Poisq и найдите русскоговорящих специалистов за границей</p>
+
+
+    <div class="benefits-block">
+      <div class="benefit-item">
+        <div class="benefit-icon">🆓</div>
+        <div class="benefit-text">
+          <div class="benefit-title">Публикуйте бесплатно</div>
+          <div class="benefit-desc">Добавляйте свои сервисы — это ничего не стоит</div>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🔖</div>
+        <div class="benefit-text">
+          <div class="benefit-title">Сохраняйте в избранное</div>
+          <div class="benefit-desc">Нужные сервисы всегда под рукой</div>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">⭐</div>
+        <div class="benefit-text">
+          <div class="benefit-title">Оставляйте отзывы</div>
+          <div class="benefit-desc">Влияйте на сообщество и помогайте другим</div>
+        </div>
+      </div>
+      <div class="benefit-note">⚡ Регистрация займёт 30 секунд</div>
+    </div>
 
     <?php if ($error): ?>
     <div class="alert alert-error">

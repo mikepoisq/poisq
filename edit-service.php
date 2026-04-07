@@ -62,19 +62,22 @@ $existingServices = !empty($service['services']) ? json_decode($service['service
 $existingSocial   = !empty($service['social'])   ? json_decode($service['social'],   true) : [];
 
 // ── КАТЕГОРИИ И ПОДКАТЕГОРИИ ─────────────────────────────────────────────────
-$categories = [
-    'health'     => ['name'=>'🏥 Здоровье и красота',       'subcategories'=>['Врачи','Стоматология','Психология','Альтернативная медицина','Салоны красоты','Фитнес и спорт','Аптеки']],
-    'legal'      => ['name'=>'⚖️ Юридические услуги',       'subcategories'=>['Иммиграция','Семейное право','Недвижимость','Бизнес право','Авто право','Нотариус','Консультации']],
-    'family'     => ['name'=>'👨‍👩‍👧‍👦 Семья и дети',         'subcategories'=>['Няни','Репетиторы','Детские кружки','Бэбиситтеры','Детские праздники','Беременность и роды','Детские товары']],
-    'shops'      => ['name'=>'🛒 Магазины и продукты',       'subcategories'=>['Русские магазины','Доставка продуктов','Рестораны','Пекарни','Мясные лавки','Онлайн магазины','Барахолки']],
-    'home'       => ['name'=>'🏠 Дом и быт',                 'subcategories'=>['Уборка','Ремонт','Переезды','Химчистка','Животные','Сад и огород','Охрана']],
-    'education'  => ['name'=>'📚 Образование',               'subcategories'=>['Языковые курсы','Русский язык','Школьные предметы','Музыка','Искусство','Профессиональные курсы','Онлайн обучение']],
-    'business'   => ['name'=>'💼 Бизнес и финансы',          'subcategories'=>['Бухгалтерия','Налоги','Банковские услуги','Страхование','Недвижимость','Бизнес консультации','Переводы денег']],
-    'transport'  => ['name'=>'🚗 Транспорт и авто',          'subcategories'=>['Авто сервис','Автошкола','Такси/Трансфер','Аренда авто','Покупка авто','Мото сервис','Велосипеды']],
-    'events'     => ['name'=>'📷 События и развлечения',     'subcategories'=>['Фотографы','Видеографы','Праздники','Туризм','Развлечения','Культура','Спорт события']],
-    'it'         => ['name'=>'💻 IT и онлайн услуги',        'subcategories'=>['Веб разработка','Дизайн','Ремонт техники','Настройка','SMM/Маркетинг','Консультации','Фриланс']],
-    'realestate' => ['name'=>'🏢 Недвижимость',              'subcategories'=>['Аренда','Покупка','Продажа','Управление','Ремонт','Юристы','Ипотека']],
-];
+$categories = [];
+try {
+    $pdo2 = getDbConnection();
+    $dbCats = $pdo2->query("SELECT slug, name FROM service_categories WHERE is_active=1 ORDER BY sort_order, name")->fetchAll(PDO::FETCH_ASSOC);
+    $dbSubs = $pdo2->query("SELECT category_slug, name FROM service_subcategories WHERE is_active=1 ORDER BY sort_order, name")->fetchAll(PDO::FETCH_ASSOC);
+    $subMap = [];
+    foreach ($dbSubs as $s) $subMap[$s['category_slug']][] = $s['name'];
+    foreach ($dbCats as $c) {
+        $categories[$c['slug']] = [
+            'name'          => $c['name'],
+            'subcategories' => $subMap[$c['slug']] ?? [],
+        ];
+    }
+} catch (Exception $e) {
+    error_log('Edit categories DB error: ' . $e->getMessage());
+}
 
 // ── СПИСОК СТРАН ─────────────────────────────────────────────────────────────
 $countries = [
@@ -170,6 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'email'       => trim($_POST['email']       ?? ''),
         'website'     => trim($_POST['website']     ?? ''),
         'address'     => trim($_POST['address']     ?? ''),
+        'group_link'  => trim($_POST['group_link']  ?? ''),
         'services'    => $_POST['services']         ?? [],
         'hours'       => $_POST['hours']            ?? [],
         'languages'   => $_POST['languages']        ?? [],
@@ -190,10 +194,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($formData['subcategory']))$errors[] = 'Выберите подкатегорию';
     if (empty($formData['name']) || strlen($formData['name']) < 3) $errors[] = 'Название должно быть не менее 3 символов';
     if (empty($formData['description']) || strlen($formData['description']) < 100) $errors[] = 'Описание должно быть не менее 100 символов';
-    if (empty($formData['phone']))      $errors[] = 'Введите телефон';
-    if (empty($formData['email']) || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'Введите корректный email';
-    if (empty($formData['address']))    $errors[] = 'Введите адрес';
-    if (empty($formData['services']) || !is_array($formData['services'])) $errors[] = 'Добавьте хотя бы одну услугу';
+    $isMessengers = ($formData['category'] === 'messengers');
+    if ($isMessengers && empty($formData['group_link'])) $errors[] = 'Введите ссылку на группу';
+    if (!$isMessengers && empty($formData['phone']))      $errors[] = 'Введите телефон';
+    if (!$isMessengers && (empty($formData['email']) || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL))) $errors[] = 'Введите корректный email';
+    if (!$isMessengers && empty($formData['address']))    $errors[] = 'Введите адрес';
+    if (!$isMessengers && (empty($formData['services']) || !is_array($formData['services']))) $errors[] = 'Добавьте хотя бы одну услугу';
 
     if (empty($errors)) {
         try {
@@ -252,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 UPDATE services SET
                     name=?, category=?, subcategory=?, city_id=?, country_code=?,
                     description=?, photo=?, phone=?, whatsapp=?, email=?, website=?,
-                    address=?, hours=?, languages=?, services=?, social=?,
+                    address=?, group_link=?, hours=?, languages=?, services=?, social=?,
                     status=?, updated_at=NOW()
                 WHERE id=? AND user_id=?
             ");
@@ -269,6 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formData['email'],
                 $formData['website'],
                 $formData['address'],
+                $formData['group_link'],
                 $hoursJson,
                 $languagesJson,
                 $servicesJson,
@@ -404,14 +411,125 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .country-item.selected .country-item-check{opacity:1}
 
 /* ── ЧАСЫ РАБОТЫ ── */
-.hours-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 0;border-bottom:1px solid var(--border-light)}
-.hours-row:last-child{border-bottom:none;margin-bottom:0}
-.hours-day{width:100px;font-size:14px;font-weight:500;color:var(--text)}
-.hours-time{flex:1;display:flex;gap:8px;align-items:center}
-.hours-time input{flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px}
-.hours-closed{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)}
-.btn-copy-hours{width:100%;margin-top:12px;padding:10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer}
-.btn-copy-hours:active{background:var(--border)}
+.hours-row {
+display: flex;
+flex-direction: column;
+gap: 4px;
+margin-bottom: 8px;
+padding: 10px 0;
+border-bottom: 1px solid var(--border-light);
+}
+.hours-row:last-child {
+border-bottom: none;
+margin-bottom: 0;
+}
+.hours-day {
+font-size: 14px;
+font-weight: 600;
+color: var(--text);
+margin-bottom: 4px;
+}
+.hours-main-row {
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.hours-time {
+flex: 1;
+display: flex;
+gap: 6px;
+align-items: center;
+}
+.hours-time input {
+flex: 1;
+padding: 8px 8px;
+border: 1px solid var(--border);
+border-radius: 8px;
+font-size: 13px;
+min-width: 0;
+}
+.hours-flags {
+display: flex;
+gap: 6px;
+align-items: center;
+flex-shrink: 0;
+}
+.hours-flag-btn {
+display: flex;
+align-items: center;
+gap: 4px;
+font-size: 12px;
+font-weight: 600;
+color: var(--primary);
+cursor: pointer;
+padding: 5px 8px;
+border: 1px solid var(--primary);
+border-radius: 6px;
+background: #EFF6FF;
+user-select: none;
+}
+.hours-flag-btn input { display: none; }
+.hours-flag-btn.active { background: var(--primary); color: white; }
+.hours-break-row {
+display: flex;
+align-items: center;
+gap: 6px;
+margin-top: 4px;
+padding: 6px 8px;
+background: #FFFBEB;
+border-radius: 8px;
+border: 1px solid #FDE68A;
+}
+.hours-break-label {
+font-size: 12px;
+color: var(--warning);
+font-weight: 600;
+white-space: nowrap;
+flex-shrink: 0;
+}
+.hours-break-remove {
+font-size: 12px;
+background: none;
+border: none;
+color: var(--text-secondary);
+cursor: pointer;
+padding: 2px 4px;
+flex-shrink: 0;
+}
+.btn-add-break {
+font-size: 12px;
+color: var(--text-secondary);
+background: none;
+border: none;
+cursor: pointer;
+padding: 2px 0;
+text-decoration: underline;
+align-self: flex-start;
+}
+.btn-add-break:active { color: var(--primary); }
+.hours-row.is-closed .hours-main-row .hours-time input,
+.hours-row.is-closed .btn-add-break { opacity: 0.4; pointer-events: none; }
+.hours-row.is-24h .hours-main-row .hours-time input { opacity: 0.4; pointer-events: none; }
+.hours-closed {
+display: flex;
+align-items: center;
+gap: 6px;
+font-size: 13px;
+color: var(--text-secondary);
+}
+.btn-copy-hours {
+width: 100%;
+margin-top: 12px;
+padding: 10px;
+background: var(--bg-secondary);
+border: 1px solid var(--border);
+border-radius: 8px;
+font-size: 13px;
+font-weight: 500;
+color: var(--text);
+cursor: pointer;
+}
+.btn-copy-hours:active { background: var(--border); }
 
 /* ── УСЛУГИ ── */
 .services-list{margin-bottom:12px}
@@ -458,6 +576,65 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .btn-primary:active{background:var(--primary-dark)}
 
 ::-webkit-scrollbar{display:none}
+
+/* ── DIAL CODE PICKER ── */
+.dial-picker { position: relative; width: 130px; flex: none; }
+.dial-trigger {
+  width: 100%; min-height: 50px;
+  display: flex; align-items: center; gap: 5px;
+  padding: 10px 10px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--bg);
+  cursor: pointer; font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none;
+}
+.dial-trigger:focus { outline: none; }
+.dial-trigger.open {
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46,115,216,0.1);
+}
+.dial-trigger-flag { font-size: 17px; flex-shrink: 0; }
+.dial-trigger-code {
+  font-size: 14px; font-weight: 500; color: var(--text);
+  flex: 1; text-align: left; white-space: nowrap;
+}
+.dial-trigger-arrow {
+  width: 14px; height: 14px; stroke: var(--text-secondary);
+  fill: none; stroke-width: 2.5; flex-shrink: 0; transition: transform 0.2s;
+}
+.dial-trigger.open .dial-trigger-arrow { transform: rotate(180deg); }
+.dial-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  min-width: 250px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.13);
+  z-index: 300; display: none; flex-direction: column; overflow: hidden;
+}
+.dial-dropdown.open { display: flex; }
+.dial-search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid var(--border-light); flex-shrink: 0;
+}
+.dial-search-wrap svg { width: 14px; height: 14px; stroke: var(--text-secondary); fill: none; stroke-width: 2; flex-shrink: 0; }
+.dial-search-input {
+  flex: 1; border: none; outline: none; font-size: 14px;
+  color: var(--text); background: transparent; font-family: inherit;
+}
+.dial-search-input::placeholder { color: var(--text-secondary); }
+.dial-list { max-height: 220px; overflow-y: auto; padding: 4px 0; -webkit-overflow-scrolling: touch; }
+.dial-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; cursor: pointer; transition: background 0.12s;
+}
+.dial-item:hover { background: var(--bg-secondary); }
+.dial-item.selected { background: rgba(46,115,216,0.07); }
+.dial-item-flag { font-size: 15px; flex-shrink: 0; width: 22px; text-align: center; }
+.dial-item-name { flex: 1; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dial-item-code { font-size: 12px; color: var(--text-secondary); font-weight: 500; flex-shrink: 0; }
+.dial-divider { height: 1px; background: var(--border-light); margin: 4px 0; }
+.dial-group-label {
+  font-size: 10.5px; font-weight: 700; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: 0.6px; padding: 5px 12px 2px;
+}
+.dial-empty { padding: 20px 12px; text-align: center; font-size: 13px; color: var(--text-secondary); }
 </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">
@@ -561,7 +738,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
       <div class="section-header"><h2 class="section-title">ℹ️ Основная информация</h2></div>
       <div class="section-content">
         <div class="form-group">
-          <label class="form-label">Название сервиса <span class="required">*</span></label>
+          <label class="form-label" id="nameLabelText">Название сервиса <span class="required">*</span></label>
           <input type="text" class="form-input" id="name" name="name"
             value="<?php echo htmlspecialchars($service['name']); ?>"
             placeholder="Например: Доктор Петрова Анна" minlength="3" maxlength="100">
@@ -620,27 +797,35 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           </div>
         </div>
 
+        <!-- ССЫЛКА НА ГРУППУ (мессенджеры) -->
+        <div class="form-group" id="groupLinkBlock" style="display:none;">
+          <label class="form-label">Ссылка на группу <span class="required">*</span></label>
+          <input type="url" class="form-input" id="groupLink" name="group_link"
+            value="<?php echo htmlspecialchars($service['group_link'] ?? ''); ?>"
+            placeholder="https://chat.whatsapp.com/... или https://t.me/...">
+          <div class="form-error" id="groupLinkError"></div>
+        </div>
+
         <!-- ТЕЛЕФОН -->
+        <div id="phoneEmailBlock">
         <div class="form-group">
           <label class="form-label">Телефон <span class="required">*</span></label>
           <div style="display:flex;gap:8px;">
-            <select class="form-select" id="phoneCountry" name="phone_country" style="width:100px;flex:none;">
-              <?php
-              $dialOptions = [
-                '+33'=>'🇫🇷','+7'=>'🇷🇺','+375'=>'🇧🇾','+380'=>'🇺🇦','+7'=>'🇷🇺',
-                '+1'=>'🇺🇸','+44'=>'🇬🇧','+49'=>'🇩🇪','+34'=>'🇪🇸','+39'=>'🇮🇹',
-                '+41'=>'🇨🇭','+43'=>'🇦🇹','+32'=>'🇧🇪','+31'=>'🇳🇱','+48'=>'🇵🇱',
-                '+46'=>'🇸🇪','+47'=>'🇳🇴','+45'=>'🇩🇰','+358'=>'🇫🇮','+351'=>'🇵🇹',
-                '+30'=>'🇬🇷','+36'=>'🇭🇺','+40'=>'🇷🇴','+420'=>'🇨🇿','+7'=>'🇰🇿',
-                '+374'=>'🇦🇲','+994'=>'🇦🇿','+995'=>'🇬🇪','+998'=>'🇺🇿',
-                '+61'=>'🇦🇺','+64'=>'🇳🇿','+81'=>'🇯🇵','+82'=>'🇰🇷','+86'=>'🇨🇳',
-                '+91'=>'🇮🇳','+971'=>'🇦🇪','+972'=>'🇮🇱','+52'=>'🇲🇽','+55'=>'🇧🇷',
-              ];
-              foreach ($dialOptions as $dial => $flag):
-              ?>
-              <option value="<?php echo $dial; ?>" <?php echo $editPhoneDial === $dial ? 'selected' : ''; ?>><?php echo $flag; ?> <?php echo $dial; ?></option>
-              <?php endforeach; ?>
-            </select>
+            <div class="dial-picker" id="dialPicker">
+              <button type="button" class="dial-trigger" id="dialTrigger" onclick="toggleDialDropdown(event)">
+                <span class="dial-trigger-flag" id="dialSelectedFlag">🇫🇷</span>
+                <span class="dial-trigger-code" id="dialSelectedCode"><?php echo htmlspecialchars($editPhoneDial); ?></span>
+                <svg class="dial-trigger-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="dial-dropdown" id="dialDropdown">
+                <div class="dial-search-wrap">
+                  <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                  <input type="text" class="dial-search-input" id="dialSearch" placeholder="Страна или +код…" oninput="filterDialList(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off">
+                </div>
+                <div class="dial-list" id="dialList"></div>
+              </div>
+              <input type="hidden" name="phone_country" id="phoneCountry" value="<?php echo htmlspecialchars($editPhoneDial); ?>">
+            </div>
             <input type="tel" class="form-input" id="phone" name="phone"
               value="<?php echo htmlspecialchars($editPhoneNum); ?>" placeholder="6 12 34 56 78">
           </div>
@@ -669,19 +854,23 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             value="<?php echo htmlspecialchars($service['website'] ?? ''); ?>" placeholder="https://example.com">
         </div>
 
+        </div><!-- /phoneEmailBlock -->
+
         <!-- АДРЕС -->
+        <div id="addressBlock">
         <div class="form-group">
           <label class="form-label">Адрес <span class="required">*</span></label>
           <input type="text" class="form-input" id="address" name="address"
             value="<?php echo htmlspecialchars($service['address'] ?? ''); ?>" placeholder="Улица, дом, город, страна">
           <div class="form-error" id="addressError"></div>
         </div>
+        </div><!-- /addressBlock -->
 
       </div>
     </div>
 
     <!-- ── ЧАСЫ РАБОТЫ ── -->
-    <div class="form-section">
+    <div class="form-section" id="hoursSection">
       <div class="section-header"><h2 class="section-title">🕐 Часы работы</h2></div>
       <div class="section-content">
         <div id="hoursContainer">
@@ -690,22 +879,51 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             $open  = $existingHours[$key]['open']  ?? '';
             $close = $existingHours[$key]['close'] ?? '';
             $closed = (empty($open) && empty($close));
+            $breakStart = $existingHours[$key]['break_start'] ?? '';
+            $breakEnd   = $existingHours[$key]['break_end']   ?? '';
+            $hasBreak   = (!empty($breakStart) && !empty($breakEnd));
+            $is24h = ($open === '00:00' && $close === '23:59') || ($open === '0:00' && $close === '23:59');
           ?>
-          <div class="hours-row" data-day="<?php echo $key; ?>">
+          <div class="hours-row<?php echo $closed ? ' is-closed' : ''; ?><?php echo $is24h ? ' is-24h' : ''; ?>" data-day="<?php echo $key; ?>">
             <div class="hours-day"><?php echo $name; ?></div>
-            <div class="hours-time">
-              <input type="time" name="hours[<?php echo $key; ?>][open]"  class="hours-open"  value="<?php echo htmlspecialchars($open); ?>"  <?php echo $closed ? 'disabled' : ''; ?>>
-              <span>—</span>
-              <input type="time" name="hours[<?php echo $key; ?>][close]" class="hours-close" value="<?php echo htmlspecialchars($close); ?>" <?php echo $closed ? 'disabled' : ''; ?>>
+            <div class="hours-main-row">
+              <div class="hours-time">
+                <input type="time" name="hours[<?php echo $key; ?>][open]"  class="hours-open"  value="<?php echo htmlspecialchars($open); ?>"  <?php echo ($closed || $is24h) ? 'disabled' : ''; ?>>
+                <span>—</span>
+                <input type="time" name="hours[<?php echo $key; ?>][close]" class="hours-close" value="<?php echo htmlspecialchars($close); ?>" <?php echo ($closed || $is24h) ? 'disabled' : ''; ?>>
+              </div>
+              <div class="hours-flags">
+                <label class="hours-flag-btn<?php echo $is24h ? ' active' : ''; ?>" title="Круглосуточно">
+                  <input type="checkbox" class="hours-24h-checkbox" onchange="toggle24h(this)" <?php echo $is24h ? 'checked' : ''; ?>>
+                  <span>24ч</span>
+                </label>
+                <label class="hours-closed">
+                  <input type="checkbox" class="hours-closed-checkbox" onchange="toggleHoursRow(this)" <?php echo $closed ? 'checked' : ''; ?>>
+                  Вых.
+                </label>
+              </div>
             </div>
-            <label class="hours-closed">
-              <input type="checkbox" class="hours-closed-checkbox" onchange="toggleHoursRow(this)" <?php echo $closed ? 'checked' : ''; ?>>
-              Закрыто
-            </label>
+            <div class="hours-break-row" style="<?php echo $hasBreak ? 'display:flex;' : 'display:none;'; ?>">
+              <span class="hours-break-label">Перерыв:</span>
+              <div class="hours-time">
+                <input type="time" name="hours[<?php echo $key; ?>][break_start]" class="hours-break-start" value="<?php echo htmlspecialchars($breakStart); ?>">
+                <span>—</span>
+                <input type="time" name="hours[<?php echo $key; ?>][break_end]" class="hours-break-end" value="<?php echo htmlspecialchars($breakEnd); ?>">
+              </div>
+              <button type="button" class="hours-break-remove" onclick="removeBreak(this)" title="Убрать перерыв">✕</button>
+            </div>
+            <button type="button" class="btn-add-break" onclick="addBreak(this)"<?php echo $hasBreak ? ' style="display:none;"' : ''; ?>>+ перерыв</button>
           </div>
           <?php endforeach; ?>
         </div>
-        <button type="button" class="btn-copy-hours" onclick="copyHoursToAll()">📋 Скопировать на все дни</button>
+        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+          <button type="button" class="btn-copy-hours" onclick="copyHoursToAll()">
+            📋 Скопировать на все дни
+          </button>
+          <button type="button" class="btn-copy-hours" onclick="setAll24h()" style="background:#EFF6FF; border-color:#BFDBFE; color:#1D4ED8;">
+            🕐 Все круглосуточно
+          </button>
+        </div>
       </div>
     </div>
 
@@ -726,7 +944,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
     </div>
 
     <!-- ── УСЛУГИ И ЦЕНЫ ── -->
-    <div class="form-section">
+    <div class="form-section" id="servicesPricesSection">
       <div class="section-header"><h2 class="section-title">💰 Услуги и цены</h2></div>
       <div class="section-content">
         <div class="services-list" id="servicesList">
@@ -880,6 +1098,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // Счётчик описания
   document.getElementById('descCount').textContent = document.getElementById('description').value.length;
+  // Инициализируем dial с сохранённым кодом страны
+  setPhoneDialCode('<?php echo $editPhoneDial; ?>');
+  // Применяем режим мессенджера если нужно
+  applyMessengerMode(document.getElementById('category').value === 'messengers');
 });
 
 // ── СТРАНА ───────────────────────────────────────────────────────────────────
@@ -916,6 +1138,20 @@ function selectCountry(code, name, flag) {
   document.getElementById('selectedCountryName').textContent = name;
   loadCities(code, 0);
   closeCountryModal();
+  // Автоподстановка телефонного кода страны
+  const phoneCodes = {
+    'fr': '+33', 'de': '+49', 'es': '+34', 'it': '+39', 'gb': '+44',
+    'us': '+1', 'ca': '+1', 'au': '+61', 'ru': '+7', 'ua': '+380',
+    'by': '+375', 'kz': '+7', 'nl': '+31', 'be': '+32', 'ch': '+41',
+    'at': '+43', 'pt': '+351', 'gr': '+30', 'pl': '+48', 'cz': '+420',
+    'se': '+46', 'no': '+47', 'dk': '+45', 'fi': '+358', 'ie': '+353',
+    'nz': '+64', 'ae': '+971', 'il': '+972', 'tr': '+90', 'th': '+66',
+    'jp': '+81', 'kr': '+82', 'sg': '+65', 'hk': '+852', 'mx': '+52',
+    'br': '+55', 'ar': '+54', 'cl': '+56', 'co': '+57', 'za': '+27',
+  };
+  if (phoneCodes[code]) {
+    setPhoneDialCode(phoneCodes[code]);
+  }
 }
 document.getElementById('closeCountryModal').addEventListener('click', closeCountryModal);
 document.getElementById('countryModal').addEventListener('click', e => { if (e.target === document.getElementById('countryModal')) closeCountryModal(); });
@@ -995,6 +1231,7 @@ function updateSubcategories() {
   } else {
     sel.disabled = true;
   }
+  applyMessengerMode(cat === 'messengers');
 }
 
 // ── СЧЁТЧИК ОПИСАНИЯ ─────────────────────────────────────────────────────────
@@ -1003,24 +1240,105 @@ document.getElementById('description').addEventListener('input', function() {
 });
 
 // ── ЧАСЫ РАБОТЫ ──────────────────────────────────────────────────────────────
-function toggleHoursRow(cb) {
-  const row = cb.closest('.hours-row');
-  const o = row.querySelector('.hours-open'), c = row.querySelector('.hours-close');
-  if (cb.checked) { o.disabled = c.disabled = true; o.value = c.value = ''; }
-  else            { o.disabled = c.disabled = false; }
+function toggleHoursRow(checkbox) {
+const row = checkbox.closest('.hours-row');
+const openInput = row.querySelector('.hours-open');
+const closeInput = row.querySelector('.hours-close');
+const btn24h = row.querySelector('.hours-24h-checkbox');
+if (checkbox.checked) {
+row.classList.add('is-closed');
+openInput.disabled = true; closeInput.disabled = true;
+openInput.value = ''; closeInput.value = '';
+if (btn24h) { btn24h.checked = false; row.classList.remove('is-24h'); btn24h.closest('.hours-flag-btn').classList.remove('active'); }
+} else {
+row.classList.remove('is-closed');
+openInput.disabled = false; closeInput.disabled = false;
+}
+hasUnsavedChanges = true;
+}
+function toggle24h(checkbox) {
+const row = checkbox.closest('.hours-row');
+const openInput = row.querySelector('.hours-open');
+const closeInput = row.querySelector('.hours-close');
+const closedCheckbox = row.querySelector('.hours-closed-checkbox');
+if (checkbox.checked) {
+row.classList.add('is-24h');
+checkbox.closest('.hours-flag-btn').classList.add('active');
+openInput.value = '00:00'; closeInput.value = '23:59';
+openInput.disabled = true; closeInput.disabled = true;
+if (closedCheckbox) { closedCheckbox.checked = false; row.classList.remove('is-closed'); }
+} else {
+row.classList.remove('is-24h');
+checkbox.closest('.hours-flag-btn').classList.remove('active');
+openInput.disabled = false; closeInput.disabled = false;
+openInput.value = ''; closeInput.value = '';
+}
+hasUnsavedChanges = true;
+}
+function addBreak(btn) {
+const row = btn.closest('.hours-row');
+const breakRow = row.querySelector('.hours-break-row');
+if (breakRow.style.display === 'none' || !breakRow.style.display) {
+breakRow.style.display = 'flex';
+btn.style.display = 'none';
+}
+hasUnsavedChanges = true;
+}
+function removeBreak(btn) {
+const row = btn.closest('.hours-row');
+const breakRow = row.querySelector('.hours-break-row');
+breakRow.style.display = 'none';
+breakRow.querySelector('.hours-break-start').value = '';
+breakRow.querySelector('.hours-break-end').value = '';
+row.querySelector('.btn-add-break').style.display = '';
+hasUnsavedChanges = true;
+}
+function setAll24h() {
+document.querySelectorAll('.hours-row').forEach(row => {
+const cb = row.querySelector('.hours-24h-checkbox');
+if (cb) { cb.checked = true; toggle24h(cb); }
+});
 }
 function copyHoursToAll() {
-  const first = document.querySelector('.hours-row');
-  const open  = first.querySelector('.hours-open').value;
-  const close = first.querySelector('.hours-close').value;
-  const closed= first.querySelector('.hours-closed-checkbox').checked;
-  document.querySelectorAll('.hours-row').forEach(row => {
-    const o = row.querySelector('.hours-open'), c = row.querySelector('.hours-close');
-    const cb= row.querySelector('.hours-closed-checkbox');
-    cb.checked = closed;
-    if (closed) { o.disabled = c.disabled = true; o.value = c.value = ''; }
-    else        { o.disabled = c.disabled = false; o.value = open; c.value = close; }
-  });
+const firstRow = document.querySelector('.hours-row');
+const openTime = firstRow.querySelector('.hours-open').value;
+const closeTime = firstRow.querySelector('.hours-close').value;
+const isClosed = firstRow.querySelector('.hours-closed-checkbox').checked;
+const is24h = firstRow.querySelector('.hours-24h-checkbox').checked;
+const hasBreak = firstRow.querySelector('.hours-break-row').style.display !== 'none';
+const breakStart = firstRow.querySelector('.hours-break-start').value;
+const breakEnd = firstRow.querySelector('.hours-break-end').value;
+document.querySelectorAll('.hours-row').forEach(row => {
+const openInput = row.querySelector('.hours-open');
+const closeInput = row.querySelector('.hours-close');
+const closedCb = row.querySelector('.hours-closed-checkbox');
+const cb24h = row.querySelector('.hours-24h-checkbox');
+const breakRow = row.querySelector('.hours-break-row');
+const breakStartInput = row.querySelector('.hours-break-start');
+const breakEndInput = row.querySelector('.hours-break-end');
+const addBreakBtn = row.querySelector('.btn-add-break');
+if (is24h) {
+cb24h.checked = true; toggle24h(cb24h);
+} else if (isClosed) {
+closedCb.checked = true; toggleHoursRow(closedCb);
+} else {
+closedCb.checked = false; cb24h.checked = false;
+row.classList.remove('is-closed','is-24h');
+cb24h.closest('.hours-flag-btn').classList.remove('active');
+openInput.disabled = false; closeInput.disabled = false;
+openInput.value = openTime; closeInput.value = closeTime;
+if (hasBreak && breakStart && breakEnd) {
+breakRow.style.display = 'flex';
+breakStartInput.value = breakStart; breakEndInput.value = breakEnd;
+if (addBreakBtn) addBreakBtn.style.display = 'none';
+} else {
+breakRow.style.display = 'none';
+breakStartInput.value = ''; breakEndInput.value = '';
+if (addBreakBtn) addBreakBtn.style.display = '';
+}
+}
+});
+hasUnsavedChanges = true;
 }
 
 // ── УСЛУГИ ───────────────────────────────────────────────────────────────────
@@ -1097,11 +1415,17 @@ function validateForm(skipRequired = false) {
     const nm = document.getElementById('name').value;
     if (nm.length < 3) { document.getElementById('nameError').textContent = 'Минимум 3 символа'; document.getElementById('name').classList.add('error'); valid = false; }
     if (document.getElementById('description').value.length < 100) { document.getElementById('descriptionError').textContent = 'Минимум 100 символов'; document.getElementById('description').classList.add('error'); valid = false; }
-    if (!document.getElementById('phone').value) { document.getElementById('phoneError').textContent = 'Введите телефон'; document.getElementById('phone').classList.add('error'); valid = false; }
+    const isMess = document.getElementById('category').value === 'messengers';
+    if (isMess && !document.getElementById('groupLink').value) {
+      document.getElementById('groupLinkError').textContent = 'Введите ссылку на группу';
+      document.getElementById('groupLink').classList.add('error');
+      valid = false;
+    }
+    if (!isMess && !document.getElementById('phone').value) { document.getElementById('phoneError').textContent = 'Введите телефон'; document.getElementById('phone').classList.add('error'); valid = false; }
     const em = document.getElementById('email').value;
-    if (!em || !em.includes('@')) { document.getElementById('emailError').textContent = 'Введите корректный email'; document.getElementById('email').classList.add('error'); valid = false; }
-    if (!document.getElementById('address').value) { document.getElementById('addressError').textContent = 'Введите адрес'; document.getElementById('address').classList.add('error'); valid = false; }
-    if (!document.querySelectorAll('.service-row').length) { document.getElementById('servicesError').textContent = 'Добавьте хотя бы одну услугу'; valid = false; }
+    if (!isMess && (!em || !em.includes('@'))) { document.getElementById('emailError').textContent = 'Введите корректный email'; document.getElementById('email').classList.add('error'); valid = false; }
+    if (!isMess && !document.getElementById('address').value) { document.getElementById('addressError').textContent = 'Введите адрес'; document.getElementById('address').classList.add('error'); valid = false; }
+    if (!isMess && !document.querySelectorAll('.service-row').length) { document.getElementById('servicesError').textContent = 'Добавьте хотя бы одну услугу'; valid = false; }
   }
   return valid;
 }
@@ -1110,17 +1434,315 @@ function validateForm(skipRequired = false) {
 function saveDraft() {
   if (!validateForm(true)) return;
   document.getElementById('formAction').value = 'draft';
+  enableHoursFields();
   document.getElementById('serviceForm').submit();
 }
 
 // ── ОТПРАВИТЬ НА МОДЕРАЦИЮ ────────────────────────────────────────────────────
+function enableHoursFields() {
+  document.querySelectorAll('.hours-open, .hours-close, .hours-break-start, .hours-break-end').forEach(inp => {
+    inp.disabled = false;
+  });
+}
 function submitForm() {
   if (!validateForm()) return;
   if (confirm('Отправить сервис на модерацию? После отправки редактирование будет недоступно до проверки.')) {
     document.getElementById('formAction').value = 'publish';
+    enableHoursFields();
     document.getElementById('serviceForm').submit();
   }
 }
+
+// ── МЕССЕНДЖЕРЫ ──────────────────────────────────────────────────────────────
+function applyMessengerMode(isMessenger) {
+  // Ссылка на группу
+  document.getElementById('groupLinkBlock').style.display = isMessenger ? 'block' : 'none';
+  // Телефон и Email
+  document.getElementById('phoneEmailBlock').style.display = isMessenger ? 'none' : 'block';
+  const phoneInput = document.getElementById('phone');
+  const emailInput = document.getElementById('email');
+  if (phoneInput) phoneInput.required = !isMessenger;
+  if (emailInput) emailInput.required = !isMessenger;
+  // Адрес
+  document.getElementById('addressBlock').style.display = isMessenger ? 'none' : 'block';
+  const addressInput = document.getElementById('address');
+  if (addressInput) addressInput.required = !isMessenger;
+  // Услуги и цены
+  document.getElementById('servicesPricesSection').style.display = isMessenger ? 'none' : 'block';
+  // Часы работы
+  document.getElementById('hoursSection').style.display = isMessenger ? 'none' : 'block';
+  // Название: сервис vs группа
+  const nameLabel = document.getElementById('nameLabelText');
+  if (nameLabel) nameLabel.innerHTML = isMessenger
+    ? 'Название группы <span class="required">*</span>'
+    : 'Название сервиса <span class="required">*</span>';
+  // Ссылка обязательна для мессенджеров
+  const groupLink = document.getElementById('groupLink');
+  if (groupLink) groupLink.required = isMessenger;
+}
+
+// ── Dial code picker ──────────────────────────────────────────────────────────
+const DIAL_POPULAR = ['ru','by','ua','kz','fr','de','es','it','gb','us','ca','au'];
+const DIAL_ALL = [
+  {code:'ru',flag:'🇷🇺',name:'Россия',dial:'+7'},
+  {code:'by',flag:'🇧🇾',name:'Беларусь',dial:'+375'},
+  {code:'ua',flag:'🇺🇦',name:'Украина',dial:'+380'},
+  {code:'kz',flag:'🇰🇿',name:'Казахстан',dial:'+7'},
+  {code:'fr',flag:'🇫🇷',name:'Франция',dial:'+33'},
+  {code:'de',flag:'🇩🇪',name:'Германия',dial:'+49'},
+  {code:'es',flag:'🇪🇸',name:'Испания',dial:'+34'},
+  {code:'it',flag:'🇮🇹',name:'Италия',dial:'+39'},
+  {code:'gb',flag:'🇬🇧',name:'Великобритания',dial:'+44'},
+  {code:'us',flag:'🇺🇸',name:'США',dial:'+1'},
+  {code:'ca',flag:'🇨🇦',name:'Канада',dial:'+1'},
+  {code:'au',flag:'🇦🇺',name:'Австралия',dial:'+61'},
+  {code:'at',flag:'🇦🇹',name:'Австрия',dial:'+43'},
+  {code:'az',flag:'🇦🇿',name:'Азербайджан',dial:'+994'},
+  {code:'dz',flag:'🇩🇿',name:'Алжир',dial:'+213'},
+  {code:'ao',flag:'🇦🇴',name:'Ангола',dial:'+244'},
+  {code:'ad',flag:'🇦🇩',name:'Андорра',dial:'+376'},
+  {code:'ag',flag:'🇦🇬',name:'Антигуа и Барбуда',dial:'+1268'},
+  {code:'ar',flag:'🇦🇷',name:'Аргентина',dial:'+54'},
+  {code:'am',flag:'🇦🇲',name:'Армения',dial:'+374'},
+  {code:'af',flag:'🇦🇫',name:'Афганистан',dial:'+93'},
+  {code:'bd',flag:'🇧🇩',name:'Бангладеш',dial:'+880'},
+  {code:'bb',flag:'🇧🇧',name:'Барбадос',dial:'+1246'},
+  {code:'bh',flag:'🇧🇭',name:'Бахрейн',dial:'+973'},
+  {code:'bz',flag:'🇧🇿',name:'Белиз',dial:'+501'},
+  {code:'be',flag:'🇧🇪',name:'Бельгия',dial:'+32'},
+  {code:'bj',flag:'🇧🇯',name:'Бенин',dial:'+229'},
+  {code:'bg',flag:'🇧🇬',name:'Болгария',dial:'+359'},
+  {code:'bo',flag:'🇧🇴',name:'Боливия',dial:'+591'},
+  {code:'ba',flag:'🇧🇦',name:'Босния и Герцеговина',dial:'+387'},
+  {code:'bw',flag:'🇧🇼',name:'Ботсвана',dial:'+267'},
+  {code:'br',flag:'🇧🇷',name:'Бразилия',dial:'+55'},
+  {code:'bn',flag:'🇧🇳',name:'Бруней',dial:'+673'},
+  {code:'bf',flag:'🇧🇫',name:'Буркина-Фасо',dial:'+226'},
+  {code:'bi',flag:'🇧🇮',name:'Бурунди',dial:'+257'},
+  {code:'bt',flag:'🇧🇹',name:'Бутан',dial:'+975'},
+  {code:'vu',flag:'🇻🇺',name:'Вануату',dial:'+678'},
+  {code:'va',flag:'🇻🇦',name:'Ватикан',dial:'+379'},
+  {code:'hu',flag:'🇭🇺',name:'Венгрия',dial:'+36'},
+  {code:'ve',flag:'🇻🇪',name:'Венесуэла',dial:'+58'},
+  {code:'vn',flag:'🇻🇳',name:'Вьетнам',dial:'+84'},
+  {code:'ga',flag:'🇬🇦',name:'Габон',dial:'+241'},
+  {code:'ht',flag:'🇭🇹',name:'Гаити',dial:'+509'},
+  {code:'gy',flag:'🇬🇾',name:'Гайана',dial:'+592'},
+  {code:'gm',flag:'🇬🇲',name:'Гамбия',dial:'+220'},
+  {code:'gh',flag:'🇬🇭',name:'Гана',dial:'+233'},
+  {code:'gt',flag:'🇬🇹',name:'Гватемала',dial:'+502'},
+  {code:'gn',flag:'🇬🇳',name:'Гвинея',dial:'+224'},
+  {code:'gw',flag:'🇬🇼',name:'Гвинея-Бисау',dial:'+245'},
+  {code:'hn',flag:'🇭🇳',name:'Гондурас',dial:'+504'},
+  {code:'hk',flag:'🇭🇰',name:'Гонконг',dial:'+852'},
+  {code:'gd',flag:'🇬🇩',name:'Гренада',dial:'+1473'},
+  {code:'gr',flag:'🇬🇷',name:'Греция',dial:'+30'},
+  {code:'ge',flag:'🇬🇪',name:'Грузия',dial:'+995'},
+  {code:'dk',flag:'🇩🇰',name:'Дания',dial:'+45'},
+  {code:'dj',flag:'🇩🇯',name:'Джибути',dial:'+253'},
+  {code:'dm',flag:'🇩🇲',name:'Доминика',dial:'+1767'},
+  {code:'do',flag:'🇩🇴',name:'Доминиканская Республика',dial:'+1809'},
+  {code:'eg',flag:'🇪🇬',name:'Египет',dial:'+20'},
+  {code:'zm',flag:'🇿🇲',name:'Замбия',dial:'+260'},
+  {code:'zw',flag:'🇿🇼',name:'Зимбабве',dial:'+263'},
+  {code:'il',flag:'🇮🇱',name:'Израиль',dial:'+972'},
+  {code:'in',flag:'🇮🇳',name:'Индия',dial:'+91'},
+  {code:'id',flag:'🇮🇩',name:'Индонезия',dial:'+62'},
+  {code:'jo',flag:'🇯🇴',name:'Иордания',dial:'+962'},
+  {code:'iq',flag:'🇮🇶',name:'Ирак',dial:'+964'},
+  {code:'ir',flag:'🇮🇷',name:'Иран',dial:'+98'},
+  {code:'ie',flag:'🇮🇪',name:'Ирландия',dial:'+353'},
+  {code:'is',flag:'🇮🇸',name:'Исландия',dial:'+354'},
+  {code:'ye',flag:'🇾🇪',name:'Йемен',dial:'+967'},
+  {code:'cv',flag:'🇨🇻',name:'Кабо-Верде',dial:'+238'},
+  {code:'kh',flag:'🇰🇭',name:'Камбоджа',dial:'+855'},
+  {code:'cm',flag:'🇨🇲',name:'Камерун',dial:'+237'},
+  {code:'qa',flag:'🇶🇦',name:'Катар',dial:'+974'},
+  {code:'ke',flag:'🇰🇪',name:'Кения',dial:'+254'},
+  {code:'cy',flag:'🇨🇾',name:'Кипр',dial:'+357'},
+  {code:'cn',flag:'🇨🇳',name:'Китай',dial:'+86'},
+  {code:'co',flag:'🇨🇴',name:'Колумбия',dial:'+57'},
+  {code:'km',flag:'🇰🇲',name:'Коморы',dial:'+269'},
+  {code:'cg',flag:'🇨🇬',name:'Конго',dial:'+242'},
+  {code:'cd',flag:'🇨🇩',name:'Конго Д.Р.',dial:'+243'},
+  {code:'xk',flag:'🇽🇰',name:'Косово',dial:'+383'},
+  {code:'cr',flag:'🇨🇷',name:'Коста-Рика',dial:'+506'},
+  {code:'ci',flag:'🇨🇮',name:'Кот-д\'Ивуар',dial:'+225'},
+  {code:'cu',flag:'🇨🇺',name:'Куба',dial:'+53'},
+  {code:'kw',flag:'🇰🇼',name:'Кувейт',dial:'+965'},
+  {code:'kg',flag:'🇰🇬',name:'Кыргызстан',dial:'+996'},
+  {code:'la',flag:'🇱🇦',name:'Лаос',dial:'+856'},
+  {code:'lv',flag:'🇱🇻',name:'Латвия',dial:'+371'},
+  {code:'ls',flag:'🇱🇸',name:'Лесото',dial:'+266'},
+  {code:'lr',flag:'🇱🇷',name:'Либерия',dial:'+231'},
+  {code:'lb',flag:'🇱🇧',name:'Ливан',dial:'+961'},
+  {code:'ly',flag:'🇱🇾',name:'Ливия',dial:'+218'},
+  {code:'li',flag:'🇱🇮',name:'Лихтенштейн',dial:'+423'},
+  {code:'lt',flag:'🇱🇹',name:'Литва',dial:'+370'},
+  {code:'lu',flag:'🇱🇺',name:'Люксембург',dial:'+352'},
+  {code:'mu',flag:'🇲🇺',name:'Маврикий',dial:'+230'},
+  {code:'mr',flag:'🇲🇷',name:'Мавритания',dial:'+222'},
+  {code:'mg',flag:'🇲🇬',name:'Мадагаскар',dial:'+261'},
+  {code:'mw',flag:'🇲🇼',name:'Малави',dial:'+265'},
+  {code:'my',flag:'🇲🇾',name:'Малайзия',dial:'+60'},
+  {code:'mv',flag:'🇲🇻',name:'Мальдивы',dial:'+960'},
+  {code:'ml',flag:'🇲🇱',name:'Мали',dial:'+223'},
+  {code:'mt',flag:'🇲🇹',name:'Мальта',dial:'+356'},
+  {code:'ma',flag:'🇲🇦',name:'Марокко',dial:'+212'},
+  {code:'mx',flag:'🇲🇽',name:'Мексика',dial:'+52'},
+  {code:'md',flag:'🇲🇩',name:'Молдова',dial:'+373'},
+  {code:'mc',flag:'🇲🇨',name:'Монако',dial:'+377'},
+  {code:'mn',flag:'🇲🇳',name:'Монголия',dial:'+976'},
+  {code:'mz',flag:'🇲🇿',name:'Мозамбик',dial:'+258'},
+  {code:'mm',flag:'🇲🇲',name:'Мьянма',dial:'+95'},
+  {code:'na',flag:'🇳🇦',name:'Намибия',dial:'+264'},
+  {code:'np',flag:'🇳🇵',name:'Непал',dial:'+977'},
+  {code:'ne',flag:'🇳🇪',name:'Нигер',dial:'+227'},
+  {code:'ng',flag:'🇳🇬',name:'Нигерия',dial:'+234'},
+  {code:'nl',flag:'🇳🇱',name:'Нидерланды',dial:'+31'},
+  {code:'ni',flag:'🇳🇮',name:'Никарагуа',dial:'+505'},
+  {code:'nz',flag:'🇳🇿',name:'Новая Зеландия',dial:'+64'},
+  {code:'no',flag:'🇳🇴',name:'Норвегия',dial:'+47'},
+  {code:'ae',flag:'🇦🇪',name:'ОАЭ',dial:'+971'},
+  {code:'om',flag:'🇴🇲',name:'Оман',dial:'+968'},
+  {code:'pk',flag:'🇵🇰',name:'Пакистан',dial:'+92'},
+  {code:'pa',flag:'🇵🇦',name:'Панама',dial:'+507'},
+  {code:'pg',flag:'🇵🇬',name:'Папуа Новая Гвинея',dial:'+675'},
+  {code:'py',flag:'🇵🇾',name:'Парагвай',dial:'+595'},
+  {code:'pe',flag:'🇵🇪',name:'Перу',dial:'+51'},
+  {code:'pl',flag:'🇵🇱',name:'Польша',dial:'+48'},
+  {code:'pt',flag:'🇵🇹',name:'Португалия',dial:'+351'},
+  {code:'rw',flag:'🇷🇼',name:'Руанда',dial:'+250'},
+  {code:'ro',flag:'🇷🇴',name:'Румыния',dial:'+40'},
+  {code:'sv',flag:'🇸🇻',name:'Сальвадор',dial:'+503'},
+  {code:'ws',flag:'🇼🇸',name:'Самоа',dial:'+685'},
+  {code:'sm',flag:'🇸🇲',name:'Сан-Марино',dial:'+378'},
+  {code:'st',flag:'🇸🇹',name:'Сан-Томе и Принсипи',dial:'+239'},
+  {code:'sa',flag:'🇸🇦',name:'Саудовская Аравия',dial:'+966'},
+  {code:'sn',flag:'🇸🇳',name:'Сенегал',dial:'+221'},
+  {code:'rs',flag:'🇷🇸',name:'Сербия',dial:'+381'},
+  {code:'sg',flag:'🇸🇬',name:'Сингапур',dial:'+65'},
+  {code:'sy',flag:'🇸🇾',name:'Сирия',dial:'+963'},
+  {code:'sk',flag:'🇸🇰',name:'Словакия',dial:'+421'},
+  {code:'si',flag:'🇸🇮',name:'Словения',dial:'+386'},
+  {code:'so',flag:'🇸🇴',name:'Сомали',dial:'+252'},
+  {code:'sd',flag:'🇸🇩',name:'Судан',dial:'+249'},
+  {code:'sr',flag:'🇸🇷',name:'Суринам',dial:'+597'},
+  {code:'sl',flag:'🇸🇱',name:'Сьерра-Леоне',dial:'+232'},
+  {code:'tj',flag:'🇹🇯',name:'Таджикистан',dial:'+992'},
+  {code:'th',flag:'🇹🇭',name:'Таиланд',dial:'+66'},
+  {code:'tw',flag:'🇹🇼',name:'Тайвань',dial:'+886'},
+  {code:'tz',flag:'🇹🇿',name:'Танзания',dial:'+255'},
+  {code:'tg',flag:'🇹🇬',name:'Того',dial:'+228'},
+  {code:'to',flag:'🇹🇴',name:'Тонга',dial:'+676'},
+  {code:'tt',flag:'🇹🇹',name:'Тринидад и Тобаго',dial:'+1868'},
+  {code:'tn',flag:'🇹🇳',name:'Тунис',dial:'+216'},
+  {code:'tm',flag:'🇹🇲',name:'Туркменистан',dial:'+993'},
+  {code:'tr',flag:'🇹🇷',name:'Турция',dial:'+90'},
+  {code:'ug',flag:'🇺🇬',name:'Уганда',dial:'+256'},
+  {code:'uz',flag:'🇺🇿',name:'Узбекистан',dial:'+998'},
+  {code:'uy',flag:'🇺🇾',name:'Уругвай',dial:'+598'},
+  {code:'fj',flag:'🇫🇯',name:'Фиджи',dial:'+679'},
+  {code:'ph',flag:'🇵🇭',name:'Филиппины',dial:'+63'},
+  {code:'fi',flag:'🇫🇮',name:'Финляндия',dial:'+358'},
+  {code:'hr',flag:'🇭🇷',name:'Хорватия',dial:'+385'},
+  {code:'cf',flag:'🇨🇫',name:'ЦАР',dial:'+236'},
+  {code:'td',flag:'🇹🇩',name:'Чад',dial:'+235'},
+  {code:'me',flag:'🇲🇪',name:'Черногория',dial:'+382'},
+  {code:'cz',flag:'🇨🇿',name:'Чехия',dial:'+420'},
+  {code:'cl',flag:'🇨🇱',name:'Чили',dial:'+56'},
+  {code:'ch',flag:'🇨🇭',name:'Швейцария',dial:'+41'},
+  {code:'se',flag:'🇸🇪',name:'Швеция',dial:'+46'},
+  {code:'lk',flag:'🇱🇰',name:'Шри-Ланка',dial:'+94'},
+  {code:'ec',flag:'🇪🇨',name:'Эквадор',dial:'+593'},
+  {code:'gq',flag:'🇬🇶',name:'Экваториальная Гвинея',dial:'+240'},
+  {code:'er',flag:'🇪🇷',name:'Эритрея',dial:'+291'},
+  {code:'sz',flag:'🇸🇿',name:'Эсватини',dial:'+268'},
+  {code:'ee',flag:'🇪🇪',name:'Эстония',dial:'+372'},
+  {code:'et',flag:'🇪🇹',name:'Эфиопия',dial:'+251'},
+  {code:'za',flag:'🇿🇦',name:'ЮАР',dial:'+27'},
+  {code:'kr',flag:'🇰🇷',name:'Южная Корея',dial:'+82'},
+  {code:'ss',flag:'🇸🇸',name:'Южный Судан',dial:'+211'},
+  {code:'jm',flag:'🇯🇲',name:'Ямайка',dial:'+1876'},
+  {code:'jp',flag:'🇯🇵',name:'Япония',dial:'+81'},
+];
+const DIAL_POPULAR_SET = new Set(DIAL_POPULAR);
+
+let _dialSelected = DIAL_ALL.find(c => c.code === 'fr');
+let _dialOpen = false;
+
+function renderDialList(query) {
+  const list = document.getElementById('dialList');
+  const q = query.trim().toLowerCase();
+  let items;
+  if (q) {
+    items = DIAL_ALL.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.dial.includes(q) ||
+      c.dial.replace('+','').startsWith(q.replace('+',''))
+    );
+    list.innerHTML = items.length
+      ? items.map(dialItemHTML).join('')
+      : '<div class="dial-empty">Ничего не найдено</div>';
+  } else {
+    const popular = DIAL_ALL.filter(c => DIAL_POPULAR_SET.has(c.code));
+    const rest    = DIAL_ALL.filter(c => !DIAL_POPULAR_SET.has(c.code));
+    list.innerHTML =
+      '<div class="dial-group-label">Популярные</div>' +
+      popular.map(dialItemHTML).join('') +
+      '<div class="dial-divider"></div>' +
+      rest.map(dialItemHTML).join('');
+  }
+}
+function dialItemHTML(c) {
+  const sel = _dialSelected && _dialSelected.code === c.code ? ' selected' : '';
+  return `<div class="dial-item${sel}" onclick="selectDialItem('${c.code}')">
+    <span class="dial-item-flag">${c.flag}</span>
+    <span class="dial-item-name">${c.name}</span>
+    <span class="dial-item-code">${c.dial}</span>
+  </div>`;
+}
+function selectDialItem(code) {
+  const c = DIAL_ALL.find(x => x.code === code);
+  if (!c) return;
+  _dialSelected = c;
+  document.getElementById('dialSelectedFlag').textContent = c.flag;
+  document.getElementById('dialSelectedCode').textContent = c.dial;
+  document.getElementById('phoneCountry').value = c.dial;
+  document.getElementById('dialSearch').value = '';
+  closeDialDropdown();
+}
+function setPhoneDialCode(dialCode) {
+  const c = DIAL_ALL.find(x => x.dial === dialCode);
+  if (c) {
+    _dialSelected = c;
+    document.getElementById('dialSelectedFlag').textContent = c.flag;
+    document.getElementById('dialSelectedCode').textContent = c.dial;
+  } else {
+    document.getElementById('dialSelectedCode').textContent = dialCode;
+  }
+  document.getElementById('phoneCountry').value = dialCode;
+}
+function toggleDialDropdown(e) {
+  e.stopPropagation();
+  _dialOpen ? closeDialDropdown() : openDialDropdown();
+}
+function openDialDropdown() {
+  _dialOpen = true;
+  document.getElementById('dialDropdown').classList.add('open');
+  document.getElementById('dialTrigger').classList.add('open');
+  renderDialList('');
+  setTimeout(() => document.getElementById('dialSearch').focus(), 60);
+}
+function closeDialDropdown() {
+  _dialOpen = false;
+  document.getElementById('dialDropdown').classList.remove('open');
+  document.getElementById('dialTrigger').classList.remove('open');
+}
+function filterDialList(q) { renderDialList(q); }
+document.addEventListener('click', function(e) {
+  if (_dialOpen && !document.getElementById('dialPicker').contains(e.target)) closeDialDropdown();
+});
 </script>
 </body>
 </html>
