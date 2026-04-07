@@ -732,6 +732,18 @@ cursor: pointer;
         </div>
       </div>
     </div>
+    <!-- ССЫЛКА НА ГРУППУ (мессенджеры) -->
+    <div class="form-section" id="groupLinkSection" style="display:none;">
+      <div class="section-content">
+        <div class="form-group">
+          <label class="form-label">Ссылка на группу <span class="required">*</span></label>
+          <input type="url" class="form-input" id="groupLink" name="group_link"
+            value="<?php echo htmlspecialchars($service['group_link'] ?? ''); ?>"
+            placeholder="https://chat.whatsapp.com/... или https://t.me/...">
+          <div class="form-error" id="groupLinkError"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- ── ОСНОВНАЯ ИНФОРМАЦИЯ ── -->
     <div class="form-section">
@@ -795,15 +807,6 @@ cursor: pointer;
             <input type="hidden" id="customCityHidden" name="city_id_hidden" value="0">
             <button type="button" onclick="cancelCustomCity()" style="margin-top:8px;background:none;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;padding:4px 0;">← Вернуться к списку</button>
           </div>
-        </div>
-
-        <!-- ССЫЛКА НА ГРУППУ (мессенджеры) -->
-        <div class="form-group" id="groupLinkBlock" style="display:none;">
-          <label class="form-label">Ссылка на группу <span class="required">*</span></label>
-          <input type="url" class="form-input" id="groupLink" name="group_link"
-            value="<?php echo htmlspecialchars($service['group_link'] ?? ''); ?>"
-            placeholder="https://chat.whatsapp.com/... или https://t.me/...">
-          <div class="form-error" id="groupLinkError"></div>
         </div>
 
         <!-- ТЕЛЕФОН -->
@@ -1456,7 +1459,7 @@ function submitForm() {
 // ── МЕССЕНДЖЕРЫ ──────────────────────────────────────────────────────────────
 function applyMessengerMode(isMessenger) {
   // Ссылка на группу
-  document.getElementById('groupLinkBlock').style.display = isMessenger ? 'block' : 'none';
+  document.getElementById('groupLinkSection').style.display = isMessenger ? 'block' : 'none';
   // Телефон и Email
   document.getElementById('phoneEmailBlock').style.display = isMessenger ? 'none' : 'block';
   const phoneInput = document.getElementById('phone');
