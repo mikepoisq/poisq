@@ -9,6 +9,24 @@ if (isset($_SESSION['user_id'])) {
         $favCount = (int)$st->fetchColumn();
     } catch (Exception $e) { $favCount = 0; }
 }
+// Подсчёт новых статей для залогиненного юзера
+$newArticlesCount = 0;
+if (isset($_SESSION['user_id'])) {
+    try {
+        $pdo_menu2 = getDbConnection();
+        // Берём last_visit юзера из БД
+        $stLv = $pdo_menu2->prepare("SELECT last_visit FROM users WHERE id = ? LIMIT 1");
+        $stLv->execute([$_SESSION['user_id']]);
+        $lastVisit = $stLv->fetchColumn();
+        if ($lastVisit) {
+            // Страна юзера из сессии (определяется по IP)
+            $userCountryForMenu = $_SESSION['user_country'] ?? 'fr';
+            $stArt = $pdo_menu2->prepare("SELECT COUNT(*) FROM articles WHERE status='published' AND created_at > ? AND (country_code = ? OR country_code = 'all')");
+            $stArt->execute([$lastVisit, $userCountryForMenu]);
+            $newArticlesCount = (int)$stArt->fetchColumn();
+        }
+    } catch (Exception $e) { $newArticlesCount = 0; }
+}
 $menuIsLoggedIn  = isset($_SESSION['user_id']);
 $menuUserName    = $_SESSION['user_name']   ?? 'Гость';
 $menuUserEmail   = $_SESSION['user_email']  ?? '';
@@ -88,6 +106,7 @@ $menuUserInitial = $menuIsLoggedIn ? strtoupper(mb_substr($menuUserName, 0, 1, '
     <a href="/useful.php" class="menu-item">
       <span class="menu-icon mi-blue"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
       Полезное
+      <?php if ($newArticlesCount > 0): ?><span class="menu-badge"><?php echo $newArticlesCount; ?></span><?php endif; ?>
     </a>
     <a href="/help.php" class="menu-item">
       <span class="menu-icon mi-gray"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>

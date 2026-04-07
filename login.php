@@ -53,6 +53,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $_SESSION['user_email'] = $user['email'];
                 $_SESSION['user_name']  = $user['name'];
                 $_SESSION['user_avatar']= $user['avatar'];
+                // Обновляем last_visit
+                try { $pdo->prepare("UPDATE users SET last_visit = NOW() WHERE id = ?")->execute([$user['id']]); } catch (Exception $e) {}
 
                 if (ob_get_length()) ob_end_clean();
 

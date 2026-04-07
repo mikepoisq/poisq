@@ -7,6 +7,14 @@ ini_set('session.cookie_httponly', '1');
 ini_set('session.use_strict_mode', '1');
 session_start();
 $isLoggedIn  = isset($_SESSION['user_id']);
+// Обновляем last_visit когда юзер открыл страницу Полезное (сбрасывает счётчик новых статей)
+if ($isLoggedIn) {
+    try {
+        require_once __DIR__ . '/config/database.php';
+        $pdo_lv = getDbConnection();
+        $pdo_lv->prepare("UPDATE users SET last_visit = NOW() WHERE id = ?")->execute([$_SESSION['user_id']]);
+    } catch (Exception $e) {}
+}
 $userName    = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
 $userAvatar  = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
