@@ -372,37 +372,6 @@ padding: 8px; cursor: pointer; background: none; border: none; border-radius: 12
 .btn-burger.active span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
 .btn-burger.active span:nth-child(2) { opacity: 0; }
 .btn-burger.active span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
-.side-menu {
-position: fixed; top: 0; right: -100%; width: 280px; height: 100vh;
-background: var(--bg); z-index: 400; transition: right 0.3s ease;
-box-shadow: -4px 0 20px rgba(0,0,0,0.15); display: flex; flex-direction: column;
-}
-.side-menu.active { right: 0; }
-.side-menu-overlay {
-position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-background: rgba(0,0,0,0.5); z-index: 399; display: none;
-}
-.side-menu-overlay.active { display: block; }
-.side-menu-header { padding: 20px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-light); }
-.user-info { display: flex; align-items: center; gap: 12px; }
-.user-avatar {
-width: 50px; height: 50px; border-radius: 50%; background: var(--primary);
-display: flex; align-items: center; justify-content: center;
-color: white; font-weight: 700; font-size: 18px; flex-shrink: 0;
-}
-.user-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-.user-details { flex: 1; }
-.user-name { font-size: 16px; font-weight: 600; color: var(--text); }
-.user-email { font-size: 13px; color: var(--text-secondary); }
-.side-menu-items { flex: 1; overflow-y: auto; padding: 10px 0; }
-.menu-item {
-display: flex; align-items: center; gap: 14px; padding: 14px 20px;
-color: var(--text); text-decoration: none; font-size: 15px;
-font-weight: 500; transition: background 0.15s ease;
-}
-.menu-item:active { background: var(--bg-secondary); }
-.menu-item svg { width: 22px; height: 22px; stroke: var(--text-secondary); flex-shrink: 0; }
-.menu-divider { height: 1px; background: var(--border-light); margin: 10px 0; }
 .breadcrumbs {
 padding: 12px 16px;
 background: var(--bg-secondary);
@@ -1102,45 +1071,7 @@ color: white;
 </button>
 </div>
 </header>
-<div class="side-menu-overlay" id="menuOverlay"></div>
-<div class="side-menu" id="sideMenu">
-<div class="side-menu-header">
-<div class="user-info">
-<div class="user-avatar">
-<?php if ($userAvatar): ?>
-<img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="Avatar">
-<?php else: ?>
-<?php echo $userInitial; ?>
-<?php endif; ?>
-</div>
-<div class="user-details">
-<div class="user-name"><?php echo htmlspecialchars($userName); ?></div>
-<div class="user-email"><?php echo htmlspecialchars($userEmail); ?></div>
-</div>
-</div>
-</div>
-<div class="side-menu-items">
-<a href="profile.php" class="menu-item">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-</svg>
-Личный кабинет
-</a>
-<a href="index.php" class="menu-item">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-</svg>
-Главная
-</a>
-<div class="menu-divider"></div>
-<a href="logout.php" class="menu-item">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-</svg>
-Выйти
-</a>
-</div>
-</div>
+<?php include __DIR__ . '/includes/menu.php'; ?>
 <nav class="breadcrumbs">
 <a href="profile.php" class="breadcrumb-item">Личный кабинет</a>
 <span class="breadcrumb-separator">/</span>
@@ -1518,17 +1449,6 @@ const savedFormData = {
   category: '<?php echo htmlspecialchars($formData['category'] ?? ''); ?>',
   subcategory: '<?php echo htmlspecialchars($formData['subcategory'] ?? ''); ?>'
 };
-const menuToggle = document.getElementById('menuToggle');
-const sideMenu = document.getElementById('sideMenu');
-const menuOverlay = document.getElementById('menuOverlay');
-function toggleMenu() {
-menuToggle.classList.toggle('active');
-sideMenu.classList.toggle('active');
-menuOverlay.classList.toggle('active');
-document.body.style.overflow = sideMenu.classList.contains('active') ? 'hidden' : '';
-}
-menuToggle.addEventListener('click', toggleMenu);
-menuOverlay.addEventListener('click', toggleMenu);
 function openCountryModal() {
 const modal = document.getElementById('countryModal');
 const list = document.getElementById('countryList');

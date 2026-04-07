@@ -175,26 +175,6 @@ body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; ba
 .not-found-btn { margin-top: 8px; display: inline-block; padding: 12px 24px; background: var(--primary); color: white; border-radius: var(--radius-sm); font-size: 15px; font-weight: 700; text-decoration: none; transition: transform 0.12s; }
 .not-found-btn:active { transform: scale(0.97); }
 
-/* SIDE MENU */
-.side-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.4); backdrop-filter: blur(3px); z-index: 399; display: none; }
-.side-overlay.active { display: block; }
-.side-menu { position: fixed; top: 0; right: -290px; width: 270px; height: 100%; background: var(--bg); z-index: 400; transition: right 0.3s cubic-bezier(.4,0,.2,1); box-shadow: -8px 0 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; border-radius: 20px 0 0 20px; }
-.side-menu.active { right: 0; }
-.side-menu-head { padding: 28px 20px 20px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-light); }
-.side-avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; margin-bottom: 10px; overflow: hidden; }
-.side-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.side-user-name { font-size: 15px; font-weight: 700; color: var(--text); }
-.side-user-sub { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; margin-top: 2px; }
-.side-items { flex: 1; overflow-y: auto; padding: 8px 0; }
-.side-item { display: flex; align-items: center; gap: 13px; padding: 13px 20px; color: var(--text); text-decoration: none; font-size: 14.5px; font-weight: 600; transition: background 0.15s; }
-.side-item:active { background: var(--bg-secondary); }
-.side-item svg { width: 19px; height: 19px; stroke: var(--text-secondary); fill: none; stroke-width: 2; flex-shrink: 0; }
-.side-item.highlight { color: var(--primary); }
-.side-item.highlight svg { stroke: var(--primary); }
-.side-item.danger { color: var(--danger); }
-.side-item.danger svg { stroke: var(--danger); }
-.side-divider { height: 1px; background: var(--border-light); margin: 6px 20px; }
-
 ::-webkit-scrollbar { display: none; }
 </style>
 <script src="/assets/js/theme.js"></script>
@@ -279,82 +259,6 @@ body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; ba
 
 </div>
 
-<!-- SIDE MENU -->
-<div class="side-overlay" id="menuOverlay" onclick="closeMenu()"></div>
-<div class="side-menu" id="sideMenu">
-  <div class="side-menu-head">
-    <div class="side-avatar">
-      <?php if ($isLoggedIn && $userAvatar): ?>
-        <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="">
-      <?php elseif ($isLoggedIn): ?>
-        <?php echo $userInitial; ?>
-      <?php else: ?>
-        👤
-      <?php endif; ?>
-    </div>
-    <div class="side-user-name"><?php echo $isLoggedIn ? htmlspecialchars($userName) : 'Добро пожаловать!'; ?></div>
-    <div class="side-user-sub"><?php echo $isLoggedIn ? htmlspecialchars($_SESSION['user_email'] ?? '') : 'Войдите в аккаунт'; ?></div>
-  </div>
-  <div class="side-items">
-    <?php if ($isLoggedIn): ?>
-    <a href="/profile.php" class="side-item">
-      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Личный кабинет
-    </a>
-    <a href="/add-service.php" class="side-item highlight">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Добавить сервис
-    </a>
-    <?php else: ?>
-    <a href="/login.php" class="side-item highlight">
-      <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-      Войти
-    </a>
-    <a href="/register.php" class="side-item">
-      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-      Регистрация
-    </a>
-    <a href="/add-service.php" class="side-item">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Добавить сервис
-    </a>
-    <?php endif; ?>
-    <a href="/useful.php" class="side-item highlight">
-      <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-      Полезное
-    </a>
-    <div class="side-divider"></div>
-    <a href="/contact.php" class="side-item">
-      <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      Контакт
-    </a>
-    <?php if ($isLoggedIn): ?>
-    <div class="side-divider"></div>
-    <a href="/logout.php" class="side-item danger">
-      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Выйти
-    </a>
-    <?php endif; ?>
-  </div>
-</div>
-
-<script>
-const menuToggle  = document.getElementById('menuToggle');
-const sideMenu    = document.getElementById('sideMenu');
-const menuOverlay = document.getElementById('menuOverlay');
-menuToggle.addEventListener('click', toggleMenu);
-function toggleMenu() {
-  const open = sideMenu.classList.toggle('active');
-  menuOverlay.classList.toggle('active', open);
-  menuToggle.classList.toggle('active', open);
-  document.body.style.overflow = open ? 'hidden' : '';
-}
-function closeMenu() {
-  sideMenu.classList.remove('active');
-  menuOverlay.classList.remove('active');
-  menuToggle.classList.remove('active');
-  document.body.style.overflow = '';
-}
-</script>
+<?php include __DIR__ . '/includes/menu.php'; ?>
 </body>
 </html>

@@ -221,62 +221,6 @@ body {
 .btn-burger.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .btn-burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--text); }
 
-/* ── БОКОВОЕ МЕНЮ ── */
-.side-overlay {
-  position: fixed; inset: 0;
-  background: rgba(15,23,42,0.4);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  z-index: 399; display: none;
-  animation: fadeOverlay 0.2s ease;
-}
-.side-overlay.active { display: block; }
-@keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
-
-.side-menu {
-  position: fixed; top: 0; right: -290px; width: 270px; height: 100%;
-  background: var(--bg); z-index: 400;
-  transition: right 0.3s cubic-bezier(.4,0,.2,1);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.12);
-  display: flex; flex-direction: column;
-  border-radius: 20px 0 0 20px;
-}
-.side-menu.active { right: 0; }
-
-.side-menu-head {
-  padding: 52px 20px 20px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-light);
-}
-.side-user { display: flex; align-items: center; gap: 12px; }
-.side-avatar {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  background: var(--primary);
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-weight: 800; font-size: 18px;
-  flex-shrink: 0; overflow: hidden;
-  box-shadow: 0 2px 10px rgba(59,108,244,0.3);
-}
-.side-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.side-user-name  { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
-.side-user-email { font-size: 12.5px; color: var(--text-secondary); margin-top: 1px; font-weight: 500; }
-
-.side-items { flex: 1; overflow-y: auto; padding: 8px 0; }
-.side-item {
-  display: flex; align-items: center; gap: 13px;
-  padding: 13px 20px;
-  color: var(--text); text-decoration: none;
-  font-size: 14.5px; font-weight: 600;
-  transition: background 0.15s;
-  letter-spacing: -0.1px;
-}
-.side-item:active { background: var(--bg-secondary); }
-.side-item svg { width: 19px; height: 19px; stroke: var(--text-secondary); fill: none; stroke-width: 2; flex-shrink: 0; }
-.side-item.logout { color: var(--danger); margin-top: 4px; }
-.side-item.logout svg { stroke: var(--danger); }
-.side-divider { height: 1px; background: var(--border-light); margin: 6px 20px; }
-
 /* ── КОНТЕНТ ── */
 .profile-container {
   flex: 1;
@@ -1138,51 +1082,7 @@ body {
     </div>
   </header>
 
-  <!-- OVERLAY + БОКОВОЕ МЕНЮ -->
-  <div class="side-overlay" id="menuOverlay" onclick="closeMenu()"></div>
-  <div class="side-menu" id="sideMenu">
-    <div class="side-menu-head">
-      <div class="side-user">
-        <div class="side-avatar">
-          <?php if ($userAvatar): ?>
-            <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="">
-          <?php else: ?>
-            <?php echo $userInitial; ?>
-          <?php endif; ?>
-        </div>
-        <div>
-          <div class="side-user-name"><?php echo htmlspecialchars($userName); ?></div>
-          <div class="side-user-email"><?php echo htmlspecialchars($userEmail); ?></div>
-        </div>
-      </div>
-    </div>
-    <div class="side-items">
-      <a href="index.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Главная
-      </a>
-      <a href="<?php echo $slotsLeft > 0 ? 'add-service.php' : '#'; ?>"
-         class="side-item"
-         <?php if ($slotsLeft <= 0): ?>onclick="openSlotsModal(); return false;"<?php endif; ?>>
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Добавить сервис
-      </a>
-      <a href="useful.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Полезное
-      </a>
-      <div class="side-divider"></div>
-      <a href="contact.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        Контакт
-      </a>
-      <div class="side-divider"></div>
-      <a href="logout.php" class="side-item logout">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Выйти
-      </a>
-    </div>
-  </div>
+  <?php include __DIR__ . '/includes/menu.php'; ?>
 
   <!-- КОНТЕНТ -->
   <main class="profile-container">
@@ -1808,26 +1708,6 @@ function showToast(msg) {
   t.className = 'toast show';
   clearTimeout(t._t);
   t._t = setTimeout(() => { t.className = 'toast'; }, 2600);
-}
-
-// ── БОКОВОЕ МЕНЮ ──────────────────────────────
-const menuToggle  = document.getElementById('menuToggle');
-const sideMenu    = document.getElementById('sideMenu');
-const menuOverlay = document.getElementById('menuOverlay');
-
-menuToggle.addEventListener('click', toggleMenu);
-
-function toggleMenu() {
-  const open = sideMenu.classList.toggle('active');
-  menuOverlay.classList.toggle('active', open);
-  menuToggle.classList.toggle('active', open);
-  document.body.style.overflow = open ? 'hidden' : '';
-}
-function closeMenu() {
-  sideMenu.classList.remove('active');
-  menuOverlay.classList.remove('active');
-  menuToggle.classList.remove('active');
-  document.body.style.overflow = '';
 }
 
 // ── МОДАЛКА СВЕЖИЕ СЕРВИСЫ ─────────────────────

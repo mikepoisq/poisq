@@ -854,60 +854,6 @@ body {
 .page-btn.disabled { opacity: 0.4; pointer-events: none; }
 .page-btn svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.5; fill: none; }
 
-/* ===== SIDE MENU ===== */
-.side-menu-overlay {
-  position: fixed; inset: 0;
-  background: rgba(15,23,42,0.4);
-  backdrop-filter: blur(4px);
-  z-index: 300; display: none; opacity: 0; transition: opacity 0.25s;
-}
-.side-menu-overlay.active { display: block; opacity: 1; }
-.side-menu {
-  position: fixed; top: 0; right: -100%; width: 280px; height: 100vh;
-  background: var(--bg); z-index: 400;
-  transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.12);
-  border-radius: 20px 0 0 20px;
-  display: flex; flex-direction: column; overflow: hidden;
-}
-.side-menu.active { right: 0; }
-.side-menu-header {
-  padding: 20px; background: var(--primary);
-}
-.side-user-avatar {
-  width: 52px; height: 52px; border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 800; color: white; margin-bottom: 12px;
-  overflow: hidden; border: 2px solid rgba(255,255,255,0.3);
-}
-.side-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.side-user-name { font-size: 16px; font-weight: 800; color: white; margin-bottom: 2px; }
-.side-user-sub { font-size: 12px; color: rgba(255,255,255,0.7); }
-.side-menu-items { flex: 1; overflow-y: auto; padding: 8px 0; }
-.menu-item {
-  display: flex; align-items: center; gap: 14px; padding: 14px 20px;
-  color: var(--text); text-decoration: none; font-size: 15px; font-weight: 600;
-  transition: background 0.15s; cursor: pointer; border: none; background: none; width: 100%;
-}
-.menu-item:active { background: var(--bg-secondary); }
-.menu-icon {
-  width: 36px; height: 36px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.menu-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2; }
-.mi-blue { background: #EEF2FF; }
-.mi-blue svg { stroke: var(--primary); }
-.mi-green { background: #F0FDF4; }
-.mi-green svg { stroke: #16A34A; }
-.mi-orange { background: #FFF7ED; }
-.mi-orange svg { stroke: #EA580C; }
-.mi-red { background: #FFF1F2; }
-.mi-red svg { stroke: var(--danger); }
-.mi-slate { background: var(--bg-secondary); }
-.mi-slate svg { stroke: var(--text-secondary); }
-.menu-divider { height: 1px; background: var(--border-light); margin: 6px 16px; }
-
 /* ===== FILTER MODAL ===== */
 .filter-modal-overlay {
   position: fixed; inset: 0;
@@ -1539,55 +1485,7 @@ body {
 
 </div><!-- /app-container -->
 
-<!-- SIDE MENU -->
-<div class="side-menu-overlay" id="menuOverlay"></div>
-<div class="side-menu" id="sideMenu">
-  <div class="side-menu-header">
-    <div class="side-user-avatar">
-      <?php if ($isLoggedIn && $userAvatar): ?>
-        <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="">
-      <?php elseif ($isLoggedIn): ?>
-        <?php echo $userInitial; ?>
-      <?php else: ?>
-        👤
-      <?php endif; ?>
-    </div>
-    <div class="side-user-name"><?php echo $isLoggedIn ? htmlspecialchars($userName) : 'Гость'; ?></div>
-    <div class="side-user-sub"><?php echo $isLoggedIn ? htmlspecialchars($_SESSION['user_email'] ?? '') : 'Войдите в аккаунт'; ?></div>
-  </div>
-  <div class="side-menu-items">
-    <?php if ($isLoggedIn): ?>
-    <a href="/profile.php" class="menu-item">
-      <div class="menu-icon mi-blue"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-      Личный кабинет
-    </a>
-    <a href="/my-services.php" class="menu-item">
-      <div class="menu-icon mi-green"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg></div>
-      Мои сервисы
-    </a>
-    <?php endif; ?>
-    <a href="<?php echo ($isLoggedIn && $slotsLeft <= 0) ? '#' : '/add-service.php'; ?>" class="menu-item" <?php if ($isLoggedIn && $slotsLeft <= 0): ?>onclick="openSlotsModal(); return false;"<?php endif; ?>>
-      <div class="menu-icon mi-orange"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-      Добавить сервис
-    </a>
-    <div class="menu-divider"></div>
-    <?php if ($isLoggedIn): ?>
-    <a href="/logout.php" class="menu-item">
-      <div class="menu-icon mi-red"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
-      Выйти
-    </a>
-    <?php else: ?>
-    <a href="/login.php" class="menu-item">
-      <div class="menu-icon mi-blue"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
-      Войти
-    </a>
-    <a href="/register.php" class="menu-item">
-      <div class="menu-icon mi-green"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
-      Регистрация
-    </a>
-    <?php endif; ?>
-  </div>
-</div>
+<?php include __DIR__ . '/includes/menu.php'; ?>
 
 <!-- FILTER MODAL -->
 <div class="filter-modal-overlay" id="filterModalOverlay">
@@ -1728,20 +1626,6 @@ let currentRating = <?php echo $ratingFilter; ?>;
 let currentVerified = <?php echo $verifiedFilter; ?>;
 let currentLanguages = <?php echo json_encode($languagesFilter); ?>;
 const countryCode = '<?php echo $countryCode; ?>';
-// === ПОИСК — OVERLAY ===
-const menuToggle = document.getElementById('menuToggle');
-const sideMenu = document.getElementById('sideMenu');
-const menuOverlay = document.getElementById('menuOverlay');
-
-function toggleMenu() {
-  menuToggle.classList.toggle('active');
-  sideMenu.classList.toggle('active');
-  menuOverlay.classList.toggle('active');
-  document.body.style.overflow = sideMenu.classList.contains('active') ? 'hidden' : '';
-}
-menuToggle.addEventListener('click', toggleMenu);
-menuOverlay.addEventListener('click', toggleMenu);
-
 // === ПОИСК — OVERLAY ===
 const soInput   = document.getElementById('soInput');
 const soClearBtn = document.getElementById('soClearBtn');

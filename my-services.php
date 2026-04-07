@@ -730,52 +730,6 @@ body {
 .btn-burger.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .btn-burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--text); }
 
-/* ── БОКОВОЕ МЕНЮ ── */
-.side-overlay {
-  position: fixed; inset: 0;
-  background: rgba(15,23,42,0.4);
-  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-  z-index: 399; display: none;
-}
-.side-overlay.active { display: block; }
-.side-menu {
-  position: fixed; top: 0; right: -290px; width: 270px; height: 100%;
-  background: var(--bg); z-index: 400;
-  transition: right 0.3s cubic-bezier(.4,0,.2,1);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.12);
-  display: flex; flex-direction: column;
-  border-radius: 20px 0 0 20px;
-}
-.side-menu.active { right: 0; }
-.side-menu-head {
-  padding: 52px 20px 20px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-light);
-}
-.side-user { display: flex; align-items: center; gap: 12px; }
-.side-avatar {
-  width: 46px; height: 46px; border-radius: 50%;
-  background: var(--primary);
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-weight: 800; font-size: 18px;
-  flex-shrink: 0; overflow: hidden;
-}
-.side-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.side-user-name { font-size: 15px; font-weight: 700; color: var(--text); }
-.side-user-email { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; margin-top: 1px; }
-.side-items { flex: 1; overflow-y: auto; padding: 8px 0; }
-.side-item {
-  display: flex; align-items: center; gap: 13px;
-  padding: 13px 20px;
-  color: var(--text); text-decoration: none;
-  font-size: 14.5px; font-weight: 600;
-  transition: background 0.15s;
-}
-.side-item:active { background: var(--bg-secondary); }
-.side-item svg { width: 19px; height: 19px; stroke: var(--text-secondary); fill: none; stroke-width: 2; flex-shrink: 0; }
-.side-item.logout { color: var(--danger); }
-.side-item.logout svg { stroke: var(--danger); }
-.side-divider { height: 1px; background: var(--border-light); margin: 6px 20px; }
 
 </style>
 <script src="/assets/js/theme.js"></script>
@@ -797,44 +751,7 @@ body {
     </button>
   </header>
 
-  <!-- OVERLAY + БОКОВОЕ МЕНЮ -->
-  <div class="side-overlay" id="menuOverlay" onclick="closeMenu()"></div>
-  <div class="side-menu" id="sideMenu">
-    <div class="side-menu-head">
-      <div class="side-user">
-        <div class="side-avatar">
-          <?php if ($userAvatar): ?>
-            <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="">
-          <?php else: ?>
-            <?php echo $userInitial; ?>
-          <?php endif; ?>
-        </div>
-        <div>
-          <div class="side-user-name"><?php echo htmlspecialchars($userName); ?></div>
-          <div class="side-user-email"><?php echo htmlspecialchars($userEmail); ?></div>
-        </div>
-      </div>
-    </div>
-    <div class="side-items">
-      <a href="index.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Главная
-      </a>
-      <a href="add-service.php" class="side-item">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Добавить сервис
-      </a>
-      <a href="profile.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Профиль
-      </a>
-      <div class="side-divider"></div>
-      <a href="logout.php" class="side-item logout">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Выйти
-      </a>
-    </div>
-  </div>
+  <?php include __DIR__ . '/includes/menu.php'; ?>
 
   <!-- КОНТЕНТ -->
   <main class="content">
@@ -1196,23 +1113,6 @@ function editService(id) {
   window.location.href = 'edit-service.php?id=' + id;
 }
 
-// ── БОКОВОЕ МЕНЮ ──────────────────────────────
-const menuToggle  = document.getElementById('menuToggle');
-const sideMenu    = document.getElementById('sideMenu');
-const menuOverlay = document.getElementById('menuOverlay');
-menuToggle.addEventListener('click', toggleMenu);
-function toggleMenu() {
-  const open = sideMenu.classList.toggle('active');
-  menuOverlay.classList.toggle('active', open);
-  menuToggle.classList.toggle('active', open);
-  document.body.style.overflow = open ? 'hidden' : '';
-}
-function closeMenu() {
-  sideMenu.classList.remove('active');
-  menuOverlay.classList.remove('active');
-  menuToggle.classList.remove('active');
-  document.body.style.overflow = '';
-}
 </script>
 </body>
 </html>

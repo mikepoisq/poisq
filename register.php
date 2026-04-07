@@ -209,55 +209,6 @@ body {
 .btn-burger.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .btn-burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--text); }
 
-/* ── БОКОВОЕ МЕНЮ ── */
-.side-overlay {
-  position: fixed; inset: 0;
-  background: rgba(15,23,42,0.4);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  z-index: 399; display: none;
-  animation: fadeOverlay 0.2s ease;
-}
-.side-overlay.active { display: block; }
-@keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
-
-.side-menu {
-  position: fixed; top: 0; right: -290px; width: 270px; height: 100%;
-  background: var(--bg); z-index: 400;
-  transition: right 0.3s cubic-bezier(.4,0,.2,1);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.12);
-  display: flex; flex-direction: column;
-  border-radius: 20px 0 0 20px;
-}
-.side-menu.active { right: 0; }
-
-.side-menu-head {
-  padding: 52px 20px 20px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-light);
-}
-.side-user { display: flex; align-items: center; gap: 12px; }
-.side-avatar {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: var(--border);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-secondary); font-size: 20px; flex-shrink: 0;
-}
-.side-user-name  { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
-.side-user-email { font-size: 12.5px; color: var(--text-secondary); margin-top: 1px; font-weight: 500; }
-
-.side-items { flex: 1; overflow-y: auto; padding: 8px 0; }
-.side-item {
-  display: flex; align-items: center; gap: 13px;
-  padding: 13px 20px;
-  color: var(--text); text-decoration: none;
-  font-size: 14.5px; font-weight: 600;
-  transition: background 0.15s; letter-spacing: -0.1px;
-}
-.side-item:active { background: var(--bg-secondary); }
-.side-item svg { width: 19px; height: 19px; stroke: var(--text-secondary); fill: none; stroke-width: 2; flex-shrink: 0; }
-.side-divider { height: 1px; background: var(--border-light); margin: 6px 20px; }
-
 /* ── ФОРМА ── */
 .auth-wrap {
   flex: 1;
@@ -434,38 +385,7 @@ body {
     </div>
   </header>
 
-  <!-- OVERLAY + БОКОВОЕ МЕНЮ -->
-  <div class="side-overlay" id="menuOverlay" onclick="closeMenu()"></div>
-  <div class="side-menu" id="sideMenu">
-    <div class="side-menu-head">
-      <div class="side-user">
-        <div class="side-avatar">👤</div>
-        <div>
-          <div class="side-user-name">Гость</div>
-          <div class="side-user-email">Создайте аккаунт</div>
-        </div>
-      </div>
-    </div>
-    <div class="side-items">
-      <a href="index.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Главная
-      </a>
-      <a href="login.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-        Вход
-      </a>
-      <a href="useful.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Полезное
-      </a>
-      <div class="side-divider"></div>
-      <a href="contact.php" class="side-item">
-        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        Контакт
-      </a>
-    </div>
-  </div>
+  <?php include __DIR__ . '/includes/menu.php'; ?>
 
   <!-- ФОРМА -->
   <main class="auth-wrap">
@@ -565,25 +485,6 @@ body {
     document.cookie = 'cookietest=1; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }
 
-  const menuToggle  = document.getElementById('menuToggle');
-  const sideMenu    = document.getElementById('sideMenu');
-  const menuOverlay = document.getElementById('menuOverlay');
-
-  function openMenu() {
-    menuToggle.classList.add('active');
-    sideMenu.classList.add('active');
-    menuOverlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeMenu() {
-    menuToggle.classList.remove('active');
-    sideMenu.classList.remove('active');
-    menuOverlay.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-  menuToggle.addEventListener('click', () => {
-    sideMenu.classList.contains('active') ? closeMenu() : openMenu();
-  });
 </script>
 </body>
 </html>
