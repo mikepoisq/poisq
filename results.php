@@ -240,35 +240,34 @@ try {
             $totalCount  = ($r2['estimatedTotalHits'] ?? 0) + count($cityHits);
             $meiliOk     = true;
         }
-        if ($meiliOk && (!empty($cleanQuery) || !empty($messengerFilter)) && count($meiliIds) < 5) {
-            // Сначала ищем в стране пользователя
-            $r3user = meiliSearch($cleanQuery, [
-                'filter' => ($mf ? "$mf AND " : '') . "country_code = '$userCountry' AND country_code != '$countryCode'",
-                'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
-            ]);
-            $meiliIds2user = array_column($r3user['hits'] ?? [], 'id');
-            // Показываем только страну юзера в блоке "Похожее в твоей стране"
-            $meiliIds2 = $meiliIds2user;
+    }
+    // Блоки "Похожее" — работают всегда когда результатов < 5
+    if ($meiliOk && count($meiliIds) < 5) {
+        // Сначала ищем в стране пользователя
+        $r3user = meiliSearch($cleanQuery, [
+            'filter' => ($mf ? "$mf AND " : '') . "country_code = '$userCountry' AND country_code != '$countryCode'",
+            'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
+        ]);
+        $meiliIds2 = array_column($r3user['hits'] ?? [], 'id');
+    }
+    // Ищем в других странах для блока "Похожее в других странах"
+    if ($meiliOk && (!empty($cleanQuery) || !empty($messengerFilter) || $cityFilter > 0)) {
+        $r4 = meiliSearch($cleanQuery, [
+            'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode' AND country_code != '$userCountry'",
+            'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
+        ]);
+        $meiliIds3 = array_column($r4['hits'] ?? [], 'id');
+    }
+    // Если в своей стране 0 результатов — глобальные идут в основной список
+    if ($meiliOk && count($meiliIds) === 0) {
+        if (!empty($meiliIds2)) {
+            $meiliIds   = $meiliIds2;
+            $meiliIds2  = [];
+        } elseif (!empty($meiliIds3)) {
+            $meiliIds   = $meiliIds3;
+            $meiliIds3  = [];
         }
-        // Ищем в других странах для блока "Похожее в других странах"
-        if ($meiliOk && (!empty($cleanQuery) || !empty($messengerFilter))) {
-            $r4 = meiliSearch($cleanQuery, [
-                'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode' AND country_code != '$userCountry'",
-                'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
-            ]);
-            $meiliIds3 = array_column($r4['hits'] ?? [], 'id');
-        }
-        // Если в своей стране 0 результатов — глобальные идут в основной список
-        if ($meiliOk && count($meiliIds) === 0) {
-            if (!empty($meiliIds2)) {
-                $meiliIds   = $meiliIds2;
-                $meiliIds2  = [];
-            } elseif (!empty($meiliIds3)) {
-                $meiliIds   = $meiliIds3;
-                $meiliIds3  = [];
-            }
-            $totalCount = count($meiliIds);
-        }
+        $totalCount = count($meiliIds);
     }
 } catch (Exception $e) {
     error_log('Meilisearch error: ' . $e->getMessage());
