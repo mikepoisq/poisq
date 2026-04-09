@@ -78,11 +78,11 @@ $menuUserInitial = $menuIsLoggedIn ? strtoupper(mb_substr($menuUserName, 0, 1, '
     <div class="side-user-sub"><?php echo $menuIsLoggedIn ? htmlspecialchars($menuUserEmail) : 'Войдите в аккаунт'; ?></div>
   </div>
   <div class="side-menu-items">
-    <?php if ($menuIsLoggedIn): ?>
     <a href="/" class="menu-item">
       <div class="menu-icon mi-blue"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
       Главная
     </a>
+    <?php if ($menuIsLoggedIn): ?>
     <a href="/profile.php" class="menu-item">
       <span class="menu-icon mi-blue"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
       Личный кабинет
