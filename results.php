@@ -240,7 +240,7 @@ try {
             $totalCount  = ($r2['estimatedTotalHits'] ?? 0) + count($cityHits);
             $meiliOk     = true;
         }
-        if ($meiliOk && !empty($cleanQuery) && count($meiliIds) < 5) {
+        if ($meiliOk && (!empty($cleanQuery) || !empty($messengerFilter)) && count($meiliIds) < 5) {
             // Сначала ищем в стране пользователя
             $r3user = meiliSearch($cleanQuery, [
                 'filter' => ($mf ? "$mf AND " : '') . "country_code = '$userCountry' AND country_code != '$countryCode'",
@@ -1545,7 +1545,7 @@ body {
 <?php endif; ?>
 
 <?php if (!empty($servicesGlobal)): ?>
-<div class="results-list" style="padding-top:0;margin-top:-28px">
+<div class="results-list" style="padding-top:0">
   <div style="display:flex;align-items:center;gap:10px;padding:2px 2px 14px;">
     <div style="flex:1;height:1.5px;background:var(--border)"></div>
     <span style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">
