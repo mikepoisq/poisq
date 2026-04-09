@@ -151,6 +151,24 @@ if (!empty($searchQuery) && $cityFilter === 0) {
     }
 }
 
+// Парсим страну из текста запроса (если город не найден или страна не определена из URL)
+if (!empty($searchQuery)) {
+    try {
+        $countries_list = $pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1")->fetchAll(PDO::FETCH_ASSOC);
+        $qLower = mb_strtolower($searchQuery, 'UTF-8');
+        foreach ($countries_list as $cnt) {
+            $cname = mb_strtolower($cnt['name_ru'], 'UTF-8');
+            if (mb_strpos($qLower, $cname) !== false) {
+                // Нашли страну в запросе
+                $countryCode = $cnt['code'];
+                // Убираем название страны из cleanQuery
+                $cleanQuery = trim(preg_replace('/'.preg_quote($cname,'/').'/'.'i', '', $cleanQuery));
+                $cleanQuery = trim(preg_replace('/\s+/', ' ', $cleanQuery));
+                break;
+            }
+        }
+    } catch (Exception $e) {}
+}
 // Базовый фильтр Meilisearch
 $mf_parts = [];
 if ($verifiedFilter)             $mf_parts[] = "verified = 1";
