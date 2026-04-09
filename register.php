@@ -467,6 +467,7 @@ body {
 
   <footer class="auth-footer">
     <div class="footer-links">
+      <a href="/useful.php"  class="footer-link">Полезное</a>
       <a href="/help.php"    class="footer-link">Помощь</a>
       <a href="/terms.php"   class="footer-link">Условия</a>
       <a href="/about.php"   class="footer-link">О нас</a>
