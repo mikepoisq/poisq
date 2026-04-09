@@ -1570,7 +1570,7 @@ async function loadAnnServices(cityId) {
               catch { photo = s.photo; }
             }
             return `
-            <div class="ann-item" onclick="location.href='service.php?id=${s.id}'">
+            <div class="ann-item" onclick="location.href='/service.php?id=${s.id}'">
               <img src="${photo}" alt="${s.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/200?text=Poisq'">
               <div class="ann-date">${fmtDate(s.created_at)}</div>
               <div class="ann-item-name">${s.name}</div>
