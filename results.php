@@ -1411,13 +1411,13 @@ body {
     <?php endif; ?>
   </div><!-- /results-list -->
 <?php if (!empty($servicesExtra)): ?>
-<div class="results-list" style="padding-top:0">
-  <div style="display:flex;align-items:center;gap:8px;padding:4px 2px 16px;">
-    <div style="flex:1;height:1px;background:var(--border)"></div>
-    <span style="font-size:12px;font-weight:700;color:var(--text-secondary);white-space:nowrap">
+<div class="results-list" style="padding-top:0;margin-top:-28px">
+  <div style="display:flex;align-items:center;gap:10px;padding:2px 2px 14px;">
+    <div style="flex:1;height:1.5px;background:var(--border)"></div>
+    <span style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">
       📍 Похожее в твоей стране
     </span>
-    <div style="flex:1;height:1px;background:var(--border)"></div>
+    <div style="flex:1;height:1.5px;background:var(--border)"></div>
   </div>
   <?php foreach ($servicesExtra as $svc):
     $photo = !empty($svc['photo_arr']) ? $svc['photo_arr'][0] : '';
