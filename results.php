@@ -97,6 +97,7 @@ require_once 'config/helpers.php';
 
 $services       = [];
 $servicesExtra  = [];
+$servicesGlobal = [];
 $totalCount     = 0;
 $totalPages     = 1;
 $detectedCity   = null;
@@ -204,6 +205,7 @@ $meiliOk    = false;
 $pinId      = isset($_GET['pin']) ? (int)$_GET['pin'] : 0;
 $meiliIds   = [];
 $meiliIds2  = [];
+$meiliIds3  = [];
 
 try {
     if ($cityFilter > 0) {
@@ -248,10 +250,23 @@ try {
             // Показываем только страну юзера в блоке "Похожее в твоей стране"
             $meiliIds2 = $meiliIds2user;
         }
-        // Если в своей стране 0 результатов — добавляем глобальные в основной список
-        if ($meiliOk && count($meiliIds) === 0 && !empty($meiliIds2)) {
-            $meiliIds   = $meiliIds2;
-            $meiliIds2  = [];
+        // Ищем в других странах для блока "Похожее в других странах"
+        if ($meiliOk) {
+            $r4 = meiliSearch($cleanQuery, [
+                'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode' AND country_code != '$userCountry'",
+                'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
+            ]);
+            $meiliIds3 = array_column($r4['hits'] ?? [], 'id');
+        }
+        // Если в своей стране 0 результатов — глобальные идут в основной список
+        if ($meiliOk && count($meiliIds) === 0) {
+            if (!empty($meiliIds2)) {
+                $meiliIds   = $meiliIds2;
+                $meiliIds2  = [];
+            } elseif (!empty($meiliIds3)) {
+                $meiliIds   = $meiliIds3;
+                $meiliIds3  = [];
+            }
             $totalCount = count($meiliIds);
         }
     }
@@ -279,8 +294,9 @@ function fetchFullByIds(PDO $pdo, array $ids): array {
 }
 
 if ($meiliOk) {
-    $services      = fetchFullByIds($pdo, $meiliIds);
-    $servicesExtra = fetchFullByIds($pdo, $meiliIds2);
+    $services       = fetchFullByIds($pdo, $meiliIds);
+    $servicesExtra  = fetchFullByIds($pdo, $meiliIds2);
+    $servicesGlobal = fetchFullByIds($pdo, $meiliIds3);
 } else {
     // Fallback: MySQL FULLTEXT + LIKE
     function buildSearchCondition(string $text, array &$params, string $alias = 's'): string {
@@ -1528,6 +1544,123 @@ body {
 </div>
 <?php endif; ?>
 
+<?php if (!empty($servicesGlobal)): ?>
+<div class="results-list" style="padding-top:0;margin-top:-28px">
+  <div style="display:flex;align-items:center;gap:10px;padding:2px 2px 14px;">
+    <div style="flex:1;height:1.5px;background:var(--border)"></div>
+    <span style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">
+      🌍 Похожее в других странах
+    </span>
+    <div style="flex:1;height:1.5px;background:var(--border)"></div>
+  </div>
+  <?php foreach ($servicesGlobal as $svc):
+    $photo = !empty($svc['photo_arr']) ? $svc['photo_arr'][0] : '';
+    $phone = $svc['phone'] ?? '';
+    $whatsapp = $svc['whatsapp'] ?? '';
+    $langs = $svc['languages_arr'];
+    $svcList = array_slice($svc['service_list_arr'], 0, 2);
+    $catLabel = $categories[$svc['category']] ?? $svc['category'];
+    $isNew = (time() - strtotime($svc['created_at'])) < 7 * 86400;
+    $flagMap = [
+      'ru' => '🇷🇺 Русский', 'fr' => '🇫🇷 Français', 'en' => '🇬🇧 English',
+      'de' => '🇩🇪 Deutsch', 'es' => '🇪🇸 Español', 'it' => '🇮🇹 Italiano',
+      'uk' => '🇺🇦 Українська', 'he' => '🇮🇱 עברית', 'tr' => '🇹🇷 Türkçe',
+    ];
+    $faviconLetter = mb_strtoupper(mb_substr($svc['name'], 0, 1));
+    $faviconColorsEx = [
+      'health'=>['bg'=>'#FCE4EC','color'=>'#C62828'],'legal'=>['bg'=>'#E3F2FD','color'=>'#1565C0'],
+      'family'=>['bg'=>'#F3E5F5','color'=>'#6A1B9A'],'shops'=>['bg'=>'#FFF8E1','color'=>'#F57F17'],
+      'home'=>['bg'=>'#E8F5E9','color'=>'#2E7D32'],'education'=>['bg'=>'#E0F2F1','color'=>'#00695C'],
+      'business'=>['bg'=>'#E8EAF6','color'=>'#283593'],'transport'=>['bg'=>'#FBE9E7','color'=>'#BF360C'],
+      'it'=>['bg'=>'#E1F5FE','color'=>'#0277BD'],'events'=>['bg'=>'#FCE4EC','color'=>'#880E4F'],
+      'realestate'=>['bg'=>'#F1F8E9','color'=>'#33691E'],
+    ];
+    $fc = $faviconColorsEx[$svc['category']] ?? ['bg'=>'#E8F0FE','color'=>'#1A73E8'];
+    $crumbCat = strip_tags($catLabel);
+    $crumbCity = $svc['city_name'] ?? '';
+    $cardTitle = htmlspecialchars($svc['name']);
+    if ($crumbCity) $cardTitle .= ' — ' . htmlspecialchars($crumbCity);
+    $rating = floatval($svc['rating']);
+    $fullStars = floor($rating);
+    $halfStar  = ($rating - $fullStars) >= 0.5;
+    $emptyStars = 5 - $fullStars - ($halfStar ? 1 : 0);
+    $starFilled = '<svg class="card-star-filled" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
+    $starHalf   = '<svg class="card-star-filled" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.55"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
+    $starEmpty  = '<svg class="card-star-empty" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
+    $starsHtml = str_repeat($starFilled, $fullStars) . ($halfStar ? $starHalf : '') . str_repeat($starEmpty, $emptyStars);
+    $isMessengerCard = ($svc['category'] === 'messengers');
+    $groupLink = trim($svc['group_link'] ?? '');
+    $isTelegram = $groupLink && (strpos($groupLink, 't.me') !== false || strpos($groupLink, 'telegram') !== false);
+  ?>
+  <div class="service-card" onclick="sessionStorage.setItem('resultsScroll',window.scrollY);window.location.href='<?php echo serviceUrl($svc['id'], $svc['name']); ?>'">
+    <div class="card-url-row">
+      <div class="card-favicon" style="background:<?php echo $fc['bg']; ?>;color:<?php echo $fc['color']; ?>;border-color:<?php echo $fc['bg']; ?>">
+        <?php if ($photo): ?>
+          <img src="<?php echo htmlspecialchars($photo); ?>" alt="" loading="lazy"
+            onerror="this.style.display='none';this.parentElement.innerHTML='<?php echo $faviconLetter; ?>'">
+        <?php else: ?>
+          <?php echo $faviconLetter; ?>
+        <?php endif; ?>
+      </div>
+      <div class="card-site-info">
+        <div class="card-site-name">
+          <?php echo htmlspecialchars($svc['name']); ?>
+          <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
+            <span class="verified-dot"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg></span>
+          <?php endif; ?>
+          <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
+        </div>
+        <div class="card-breadcrumb">
+          poisq.com › <?php echo htmlspecialchars($crumbCat); ?><?php if ($crumbCity): ?> › <?php echo htmlspecialchars($crumbCity); ?><?php endif; ?>
+        </div>
+      </div>
+    </div>
+    <div class="card-title"><?php echo $cardTitle; ?></div>
+    <?php if ($rating > 0): ?>
+    <div class="card-rating-row">
+      <span class="card-rating-num"><?php echo number_format($rating, 1); ?></span>
+      <div class="card-stars"><?php echo $starsHtml; ?></div>
+      <?php if ($svc['reviews_count'] > 0): ?>
+        <span class="card-reviews-cnt">(<?php echo $svc['reviews_count']; ?> <?php echo $svc['reviews_count'] === 1 ? 'отзыв' : ($svc['reviews_count'] < 5 ? 'отзыва' : 'отзывов'); ?>)</span>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+    <?php if ($svc['description']): ?>
+    <div class="card-snippet"><?php echo htmlspecialchars($svc['description']); ?></div>
+    <?php endif; ?>
+    <?php if (!empty($langs)): ?>
+    <div class="card-tags">
+      <?php foreach ($langs as $lang): ?>
+        <span class="card-tag tag-lang"><?php echo $flagMap[$lang] ?? strtoupper($lang); ?></span>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <div class="card-actions" onclick="event.stopPropagation()">
+      <?php if ($phone): ?>
+      <a href="tel:<?php echo htmlspecialchars($phone); ?>" class="btn-call">
+        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        Позвонить
+      </a>
+      <?php else: ?>
+      <a href="<?php echo serviceUrl($svc['id'], $svc['name']); ?>" class="card-no-phone">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        Подробнее
+      </a>
+      <?php endif; ?>
+      <?php if ($whatsapp): ?>
+      <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
+        target="_blank" class="btn-icon" aria-label="WhatsApp">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      </a>
+      <?php endif; ?>
+      <a href="<?php echo serviceUrl($svc['id'], $svc['name']); ?>" class="btn-icon" aria-label="Подробнее">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </a>
+    </div>
+  </div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
 </div><!-- /app-container -->
 
 <?php include __DIR__ . '/includes/menu.php'; ?>
