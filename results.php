@@ -169,6 +169,23 @@ if (!empty($searchQuery)) {
         }
     } catch (Exception $e) {}
 }
+// Распознаём мессенджер из запроса → фильтр по subcategory
+$messengerFilter = '';
+$messengerKeywords = [
+    'WhatsApp группа' => ['ватсап','вотсап','whatsapp','ватсапп'],
+    'Telegram группа' => ['телеграм','telegram','телеграмм','тг'],
+];
+foreach ($messengerKeywords as $subcatValue => $keywords) {
+    foreach ($keywords as $kw) {
+        if (mb_strpos(mb_strtolower($cleanQuery, 'UTF-8'), $kw) !== false ||
+            mb_strpos(mb_strtolower($searchQuery, 'UTF-8'), $kw) !== false) {
+            $messengerFilter = $subcatValue;
+            $cleanQuery = trim(preg_replace('/'.preg_quote($kw,'/').'/'.'i', '', $cleanQuery));
+            $cleanQuery = trim(preg_replace('/\s+/', ' ', $cleanQuery));
+            break 2;
+        }
+    }
+}
 // Базовый фильтр Meilisearch
 $mf_parts = [];
 if ($verifiedFilter)             $mf_parts[] = "verified = 1";
@@ -178,6 +195,7 @@ if (!empty($languagesFilter)) {
     $langConds = array_map(fn($l) => "languages = '$l'", $languagesFilter);
     $mf_parts[] = '(' . implode(' OR ', $langConds) . ')';
 }
+if (!empty($messengerFilter)) $mf_parts[] = "subcategory = '$messengerFilter'";
 $mf = !empty($mf_parts) ? implode(' AND ', $mf_parts) : '';
 
 $userCityId = (int)($_SESSION['user_city_id'] ?? 0);
