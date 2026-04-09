@@ -1524,7 +1524,16 @@ body {
     </div>
     <?php endif; ?>
     <div class="card-actions" onclick="event.stopPropagation()">
-      <?php if ($phone): ?>
+      <?php if ($isMessengerCard && $groupLink): ?>
+      <a href="<?php echo htmlspecialchars($groupLink); ?>" target="_blank" class="btn-call <?php echo $isTelegram ? 'btn-call-tg' : 'btn-call-wa'; ?>">
+        <?php if ($isTelegram): ?>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.69 7.96c-.12.56-.46.7-.93.43l-2.58-1.9-1.24 1.19c-.14.14-.25.25-.52.25l.19-2.66 4.84-4.37c.21-.19-.05-.29-.32-.1L7.5 14.47l-2.54-.8c-.55-.17-.56-.55.12-.82l9.92-3.82c.46-.17.86.11.64.77z"/></svg>
+        <?php else: ?>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="white"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        <?php endif; ?>
+        Посмотреть группу
+      </a>
+      <?php elseif (!$isMessengerCard && $phone): ?>
       <a href="tel:<?php echo htmlspecialchars($phone); ?>" class="btn-call">
         <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
         Позвонить
@@ -1535,7 +1544,7 @@ body {
         Подробнее
       </a>
       <?php endif; ?>
-      <?php if ($whatsapp): ?>
+      <?php if (!$isMessengerCard && $whatsapp): ?>
       <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
         target="_blank" class="btn-icon" aria-label="WhatsApp">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
@@ -1642,7 +1651,16 @@ body {
     </div>
     <?php endif; ?>
     <div class="card-actions" onclick="event.stopPropagation()">
-      <?php if ($phone): ?>
+      <?php if ($isMessengerCard && $groupLink): ?>
+      <a href="<?php echo htmlspecialchars($groupLink); ?>" target="_blank" class="btn-call <?php echo $isTelegram ? 'btn-call-tg' : 'btn-call-wa'; ?>">
+        <?php if ($isTelegram): ?>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.69 7.96c-.12.56-.46.7-.93.43l-2.58-1.9-1.24 1.19c-.14.14-.25.25-.52.25l.19-2.66 4.84-4.37c.21-.19-.05-.29-.32-.1L7.5 14.47l-2.54-.8c-.55-.17-.56-.55.12-.82l9.92-3.82c.46-.17.86.11.64.77z"/></svg>
+        <?php else: ?>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="white"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        <?php endif; ?>
+        Посмотреть группу
+      </a>
+      <?php elseif (!$isMessengerCard && $phone): ?>
       <a href="tel:<?php echo htmlspecialchars($phone); ?>" class="btn-call">
         <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
         Позвонить
@@ -1653,7 +1671,7 @@ body {
         Подробнее
       </a>
       <?php endif; ?>
-      <?php if ($whatsapp): ?>
+      <?php if (!$isMessengerCard && $whatsapp): ?>
       <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
         target="_blank" class="btn-icon" aria-label="WhatsApp">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
