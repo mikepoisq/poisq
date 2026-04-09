@@ -251,7 +251,7 @@ try {
             $meiliIds2 = $meiliIds2user;
         }
         // Ищем в других странах для блока "Похожее в других странах"
-        if ($meiliOk) {
+        if ($meiliOk && (!empty($cleanQuery) || !empty($messengerFilter))) {
             $r4 = meiliSearch($cleanQuery, [
                 'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode' AND country_code != '$userCountry'",
                 'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
@@ -417,6 +417,13 @@ foreach ($services as &$svc) {
 }
 unset($svc);
 foreach ($servicesExtra as &$svc) {
+    $svc['photo_arr']        = json_decode($svc['photo']        ?? '[]', true) ?: [];
+    $svc['languages_arr']    = json_decode($svc['languages']    ?? '[]', true) ?: [];
+    $svc['service_list_arr'] = json_decode($svc['service_list'] ?? '[]', true) ?: [];
+    $svc['social_arr']       = json_decode($svc['social']       ?? '{}', true) ?: [];
+}
+unset($svc);
+foreach ($servicesGlobal as &$svc) {
     $svc['photo_arr']        = json_decode($svc['photo']        ?? '[]', true) ?: [];
     $svc['languages_arr']    = json_decode($svc['languages']    ?? '[]', true) ?: [];
     $svc['service_list_arr'] = json_decode($svc['service_list'] ?? '[]', true) ?: [];
