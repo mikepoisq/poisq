@@ -115,8 +115,22 @@ if (!empty($citySlug) && $cityFilter === 0) {
     } catch (Exception $e) {}
 }
 
+// Убираем "русский/русскоязычный" и похожие — они мешают поиску (все сервисы и так русскоязычные)
+$russianStopWords = [
+    'русскоязычный','русскоязычная','русскоязычное','русскоязычные','русскоязычных',
+    'русскоговорящий','русскоговорящая','русскоговорящие','русскоговорящих',
+    'русскоязычному','русскоязычной',
+    'русский','русская','русское','русские','русских','русского','русскому',
+    'на русском','на русском языке',
+];
+$cleanQuery = mb_strtolower(trim($searchQuery), 'UTF-8');
+foreach ($russianStopWords as $sw) {
+    $cleanQuery = preg_replace('/'.preg_quote($sw,'/').'/' , '', $cleanQuery);
+}
+$cleanQuery = trim(preg_replace('/\s+/', ' ', $cleanQuery));
+// Если после очистки запрос пустой — используем оригинал
+if (empty($cleanQuery)) $cleanQuery = $searchQuery;
 // Парсим город из текста запроса
-$cleanQuery = $searchQuery;
 if (!empty($searchQuery) && $cityFilter === 0) {
     $qwords = array_filter(explode(' ', mb_strtolower($searchQuery)), fn($w) => mb_strlen($w) >= 3);
     foreach ($qwords as $qw) {
