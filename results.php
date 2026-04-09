@@ -245,13 +245,8 @@ try {
                 'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
             ]);
             $meiliIds2user = array_column($r3user['hits'] ?? [], 'id');
-            // Потом остальные страны
-            $r3 = meiliSearch($cleanQuery, [
-                'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode' AND country_code != '$userCountry'",
-                'limit'  => 5, 'sort' => ['verified:desc','rating:desc'],
-            ]);
-            $meiliIds2other = array_column($r3['hits'] ?? [], 'id');
-            $meiliIds2 = array_unique(array_merge($meiliIds2user, $meiliIds2other));
+            // Показываем только страну юзера в блоке "Похожее в твоей стране"
+            $meiliIds2 = $meiliIds2user;
         }
         // Если в своей стране 0 результатов — добавляем глобальные в основной список
         if ($meiliOk && count($meiliIds) === 0 && !empty($meiliIds2)) {
