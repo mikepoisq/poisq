@@ -156,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return (str_starts_with($num, '+')) ? $num : $dial . $num;
         })(),
         'whatsapp' => trim($_POST['whatsapp'] ?? ''),
-        'email' => trim($_POST['email'] ?? ''),
+        'email' => $userEmail,
         'website' => trim($_POST['website'] ?? ''),
         'address' => trim($_POST['address'] ?? ''),
         'status' => $action === 'publish' ? 'pending' : 'draft',
@@ -184,7 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($formData['name']) || strlen($formData['name']) < 3) $errors[] = 'Название должно быть не менее 3 символов';
     if (empty($formData['description']) || strlen($formData['description']) < 100) $errors[] = 'Описание должно быть не менее 100 символов';
     if (!$isMessengers && empty($formData['phone'])) $errors[] = 'Введите телефон';
-    if (!$isMessengers && (empty($formData['email']) || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL))) $errors[] = 'Введите корректный email';
     if (!$isMessengers && empty($formData['address'])) $errors[] = 'Введите адрес';
     if (!$isMessengers && (empty($formData['services']) || !is_array($formData['services']))) $errors[] = 'Добавьте хотя бы одну услугу';
     if ($isMessengers && empty($formData['group_link'])) $errors[] = 'Введите ссылку на группу';
@@ -1235,18 +1234,20 @@ placeholder="6 12 34 56 78" required>
 <div class="form-error" id="phoneError"></div>
 </div>
 <div class="form-group">
-<label class="form-label">WhatsApp (опционально)</label>
+<label class="form-label">WhatsApp 📲 <span style="color:#10B981;font-weight:600;font-size:12px;">Рекомендуем — больше просмотров!</span></label>
+<div style="position:relative;">
 <input type="tel" class="form-input" id="whatsapp" name="whatsapp"
 value="<?php echo htmlspecialchars($formData['whatsapp'] ?? ''); ?>"
-placeholder="Тот же номер или другой">
+placeholder="Тот же номер или другой"
+style="padding-right:110px;">
+<button type="button"
+onclick="var dial=document.getElementById('phoneCountry').value||'';var num=document.getElementById('phone').value||'';document.getElementById('whatsapp').value=dial+num;"
+style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:12px;color:#2E73D8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:4px 10px;cursor:pointer;white-space:nowrap;font-family:inherit;">
+☎️ Тот же
+</button>
 </div>
-<div class="form-group">
-<label class="form-label">Email <span class="required">*</span></label>
-<input type="email" class="form-input" id="email" name="email"
-value="<?php echo htmlspecialchars($formData['email'] ?? ''); ?>"
-placeholder="example@mail.com" required>
-<div class="form-error" id="emailError"></div>
 </div>
+
 </div><!-- /phoneEmailBlock -->
 <div class="form-group">
 <label class="form-label">Веб-сайт (опционально)</label>
@@ -1608,7 +1609,6 @@ document.getElementById('phoneEmailBlock').style.display = isMessenger ? 'none' 
 const phoneInput = document.getElementById('phone');
 const emailInput = document.getElementById('email');
 if (phoneInput) phoneInput.required = !isMessenger;
-if (emailInput) emailInput.required = !isMessenger;
 // Адрес
 document.getElementById('addressBlock').style.display = isMessenger ? 'none' : 'block';
 const addressInput = document.getElementById('address');
@@ -1881,10 +1881,7 @@ document.getElementById('phoneError').textContent = 'Введите телефо
 document.getElementById('phone').classList.add('error');
 isValid = false;
 }
-const email = document.getElementById('email').value;
-if (!skipRequired && !isMessengerCat && (!email || !email.includes('@'))) {
-document.getElementById('emailError').textContent = 'Введите корректный email';
-document.getElementById('email').classList.add('error');
+if (false) {
 isValid = false;
 }
 if (!skipRequired && !document.getElementById('address').value && document.getElementById('addressBlock').style.display !== 'none') {

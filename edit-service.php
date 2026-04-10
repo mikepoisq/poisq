@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return (str_starts_with($num, '+')) ? $num : $dial . $num;
         })(),
         'whatsapp'    => trim($_POST['whatsapp']    ?? ''),
-        'email'       => trim($_POST['email']       ?? ''),
+        'email'       => $userEmail,
         'website'     => trim($_POST['website']     ?? ''),
         'address'     => trim($_POST['address']     ?? ''),
         'group_link'  => trim($_POST['group_link']  ?? ''),
@@ -197,7 +197,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isMessengers = ($formData['category'] === 'messengers');
     if ($isMessengers && empty($formData['group_link'])) $errors[] = 'Введите ссылку на группу';
     if (!$isMessengers && empty($formData['phone']))      $errors[] = 'Введите телефон';
-    if (!$isMessengers && (empty($formData['email']) || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL))) $errors[] = 'Введите корректный email';
     if (!$isMessengers && empty($formData['address']))    $errors[] = 'Введите адрес';
     if (!$isMessengers && (empty($formData['services']) || !is_array($formData['services']))) $errors[] = 'Добавьте хотя бы одну услугу';
 
@@ -804,13 +803,7 @@ cursor: pointer;
             value="<?php echo htmlspecialchars($service['whatsapp'] ?? ''); ?>" placeholder="Тот же номер или другой">
         </div>
 
-        <!-- EMAIL -->
-        <div class="form-group">
-          <label class="form-label">Email <span class="required">*</span></label>
-          <input type="email" class="form-input" id="email" name="email"
-            value="<?php echo htmlspecialchars($service['email']); ?>" placeholder="example@mail.com">
-          <div class="form-error" id="emailError"></div>
-        </div>
+
 
         <!-- САЙТ -->
         <div class="form-group">
@@ -1375,8 +1368,6 @@ function validateForm(skipRequired = false) {
       valid = false;
     }
     if (!isMess && !document.getElementById('phone').value) { document.getElementById('phoneError').textContent = 'Введите телефон'; document.getElementById('phone').classList.add('error'); valid = false; }
-    const em = document.getElementById('email').value;
-    if (!isMess && (!em || !em.includes('@'))) { document.getElementById('emailError').textContent = 'Введите корректный email'; document.getElementById('email').classList.add('error'); valid = false; }
     if (!isMess && !document.getElementById('address').value) { document.getElementById('addressError').textContent = 'Введите адрес'; document.getElementById('address').classList.add('error'); valid = false; }
     if (!isMess && !document.querySelectorAll('.service-row').length) { document.getElementById('servicesError').textContent = 'Добавьте хотя бы одну услугу'; valid = false; }
   }
@@ -1415,7 +1406,6 @@ function applyMessengerMode(isMessenger) {
   const phoneInput = document.getElementById('phone');
   const emailInput = document.getElementById('email');
   if (phoneInput) phoneInput.required = !isMessenger;
-  if (emailInput) emailInput.required = !isMessenger;
   // Адрес
   document.getElementById('addressBlock').style.display = isMessenger ? 'none' : 'block';
   const addressInput = document.getElementById('address');
