@@ -36,9 +36,7 @@ $statsQuery = $pdo->prepare("
     SELECT ms.stat_date, m.id as mod_id, m.name as mod_name,
            SUM(CASE WHEN ms.action='created'  THEN 1 ELSE 0 END) as created,
            SUM(CASE WHEN ms.action='reached'  THEN 1 ELSE 0 END) as reached,
-           SUM(CASE WHEN ms.action='no_answer' THEN 1 ELSE 0 END) as no_answer,
-           SUM(CASE WHEN ms.action='no_number' THEN 1 ELSE 0 END) as no_number,
-           SUM(CASE WHEN ms.action='other'    THEN 1 ELSE 0 END) as other
+           SUM(CASE WHEN ms.action IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
     FROM moderator_stats ms
     JOIN moderators m ON ms.moderator_id = m.id
     WHERE ms.stat_date BETWEEN ? AND ?
@@ -50,10 +48,11 @@ $statsQuery->execute($params);
 $statsRows = $statsQuery->fetchAll(PDO::FETCH_ASSOC);
 
 // Итого
-$totals = ['created'=>0,'reached'=>0,'no_answer'=>0,'no_number'=>0,'other'=>0];
+$totals = ['created'=>0,'reached'=>0,'not_reached'=>0];
 foreach ($statsRows as $r) {
-    foreach ($totals as $k => &$v) $v += (int)$r[$k];
-    unset($v);
+    $totals['created']     += (int)$r['created'];
+    $totals['reached']     += (int)$r['reached'];
+    $totals['not_reached'] += (int)$r['not_reached'];
 }
 
 // ── История входов ──
@@ -125,7 +124,7 @@ ob_start();
 </form>
 
 <!-- Итоговые карточки -->
-<div class="stat-grid stat-grid-4" style="margin-bottom:24px;">
+<div class="stat-grid stat-grid-3" style="margin-bottom:24px;">
     <div class="stat-card blue">
         <div class="stat-card-label">Создано сервисов</div>
         <div class="stat-card-value"><?php echo $totals['created']; ?></div>
@@ -136,11 +135,7 @@ ob_start();
     </div>
     <div class="stat-card yellow">
         <div class="stat-card-label">☎️ Не дозвонились</div>
-        <div class="stat-card-value"><?php echo $totals['no_answer']; ?></div>
-    </div>
-    <div class="stat-card gray">
-        <div class="stat-card-label">🚫 Нет номера</div>
-        <div class="stat-card-value"><?php echo $totals['no_number']; ?></div>
+        <div class="stat-card-value"><?php echo $totals['not_reached']; ?></div>
     </div>
 </div>
 
@@ -164,8 +159,6 @@ ob_start();
                 <th>Создано</th>
                 <th>✅ Дозвонились</th>
                 <th>☎️ Не дозвонились</th>
-                <th>🚫 Нет номера</th>
-                <th>📝 Другое</th>
             </tr>
         </thead>
         <tbody>
@@ -180,9 +173,7 @@ ob_start();
             </td>
             <td style="font-weight:600;"><?php echo (int)$r['created'] ?: '—'; ?></td>
             <td style="color:#10B981;font-weight:<?php echo $r['reached']?'600':'400'; ?>"><?php echo (int)$r['reached'] ?: '—'; ?></td>
-            <td style="color:#F59E0B;font-weight:<?php echo $r['no_answer']?'600':'400'; ?>"><?php echo (int)$r['no_answer'] ?: '—'; ?></td>
-            <td style="color:#9CA3AF;"><?php echo (int)$r['no_number'] ?: '—'; ?></td>
-            <td style="color:#3B6CF4;"><?php echo (int)$r['other'] ?: '—'; ?></td>
+            <td style="color:#F59E0B;font-weight:<?php echo $r['not_reached']?'600':'400'; ?>"><?php echo (int)$r['not_reached'] ?: '—'; ?></td>
         </tr>
         <?php endforeach; ?>
         </tbody>
@@ -191,9 +182,7 @@ ob_start();
                 <td colspan="2">Итого</td>
                 <td><?php echo $totals['created']; ?></td>
                 <td style="color:#10B981;"><?php echo $totals['reached']; ?></td>
-                <td style="color:#F59E0B;"><?php echo $totals['no_answer']; ?></td>
-                <td style="color:#9CA3AF;"><?php echo $totals['no_number']; ?></td>
-                <td style="color:#3B6CF4;"><?php echo $totals['other']; ?></td>
+                <td style="color:#F59E0B;"><?php echo $totals['not_reached']; ?></td>
             </tr>
         </tfoot>
     </table>

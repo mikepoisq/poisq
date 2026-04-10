@@ -615,6 +615,11 @@ body.dark-theme [style*="color:var(--warning)"] {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
             Статистика
         </a>
+        <a href="/panel-5588/moderator-earnings.php"
+           class="nav-item <?php echo $currentPage === 'moderator-earnings' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Заработок
+        </a>
 
         <?php else: ?>
         <!-- ═══════ НАВИГАЦИЯ МОДЕРАТОРА ═══════ -->

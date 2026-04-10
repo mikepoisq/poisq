@@ -1,4 +1,5 @@
 <?php
+session_start();
 define('MOD_PANEL', true);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../config/database.php';
@@ -30,7 +31,7 @@ $totalPages = max(1, ceil($total / $perPage));
 $offset = ($page - 1) * $perPage;
 
 $stmt = $pdo->prepare("
-    SELECT s.id, s.user_id, s.name, s.category, s.status, s.is_visible, s.country_code, s.created_at, s.views,
+    SELECT s.id, s.user_id, s.name, s.category, s.status, s.is_visible, s.country_code, s.created_at, s.views, s.created_by_admin, s.created_by_moderator,
            s.verified, s.verified_until,
            u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s
@@ -62,6 +63,8 @@ ob_start();
 ?>
 
 <style>
+.crown-blue { color: #3B6CF4; font-size: 13px; cursor: default; }
+.crown-green { color: #10B981; font-size: 13px; cursor: default; }
 .svc-table-wrap { width: 100%; }
 .svc-table { table-layout: auto; width: 100%; }
 .svc-table .col-id      { width: 40px;  min-width: 40px; }
@@ -145,6 +148,11 @@ ob_start();
                 <td class="col-name" style="max-width:200px;">
                     <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
                         <span style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;"><?php echo htmlspecialchars($svc["name"]); ?></span>
+                        <?php if ($svc['created_by_moderator'] !== null): ?>
+                        <span class="crown-green" title="Создан модератором" style="flex-shrink:0;">👑</span>
+                        <?php elseif ($svc['created_by_admin'] !== null): ?>
+                        <span class="crown-blue" title="Создан администратором" style="flex-shrink:0;">👑</span>
+                        <?php endif; ?>
                         <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
                         <span style="font-size:10px;background:var(--success-bg);color:#065F46;padding:1px 5px;border-radius:4px;font-weight:700;white-space:nowrap;flex-shrink:0;">✓</span>
                         <?php endif; ?>
@@ -165,8 +173,10 @@ ob_start();
                 <td class="col-status"><span class="badge <?php echo $sc['class']; ?>" style="font-size:11px;padding:2px 7px;white-space:nowrap;"><?php echo $sc['label']; ?></span></td>
                 <td class="col-views" style="font-size:12px;color:var(--text-secondary);"><?php echo (int)$svc['views']; ?></td>
                 <td class="col-date" style="font-size:11px;color:var(--text-light);white-space:nowrap;"><?php echo date("d.m.y", strtotime($svc["created_at"])); ?></td>
-                <td class="col-actions">
+                <td class="col-actions" style="white-space:nowrap;">
                     <a href="https://poisq.com<?php echo serviceUrl($svc["id"], $svc["name"]); ?>" target="_blank" class="btn btn-secondary btn-sm" title="Открыть" style="padding:4px 7px;">👁</a>
+                    <a href="/mod/edit.php?id=<?php echo $svc['id']; ?>" class="btn btn-secondary btn-sm" title="Редактировать" style="padding:4px 7px;">✏️</a>
+                    <button onclick="confirmDelete(<?php echo $svc['id']; ?>, '<?php echo addslashes($svc['name']); ?>')" class="btn btn-sm" title="Удалить" style="padding:4px 7px;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;">🗑</button>
                 </td>
             </tr>
             <?php endforeach; ?>

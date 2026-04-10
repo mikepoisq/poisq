@@ -29,13 +29,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
 
         if ($action === 'save') {
-            $modId    = (int)($_POST['mod_id'] ?? 0);
-            $name     = trim($_POST['name']     ?? '');
-            $email    = trim($_POST['email']    ?? '');
-            $password = $_POST['password']      ?? '';
-            $isActive = isset($_POST['is_active']) ? 1 : 0;
-            $perms    = $_POST['permissions']   ?? [];
-            $perms    = array_values(array_intersect(array_keys($allPermissions), $perms));
+            $modId       = (int)($_POST['mod_id'] ?? 0);
+            $name        = trim($_POST['name']     ?? '');
+            $email       = trim($_POST['email']    ?? '');
+            $password    = $_POST['password']      ?? '';
+            $isActive    = isset($_POST['is_active']) ? 1 : 0;
+            $perms       = $_POST['permissions']   ?? [];
+            $perms       = array_values(array_intersect(array_keys($allPermissions), $perms));
+            $rateReached    = round(max(0, (float)($_POST['rate_reached']     ?? 0.50)), 2);
+            $rateNotReached = round(max(0, (float)($_POST['rate_not_reached'] ?? 0.30)), 2);
 
             if (empty($name) || empty($email)) {
                 $error = 'Имя и email обязательны';
@@ -70,11 +72,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         try {
                             $pdo->prepare("INSERT INTO moderators (name, email, password_hash, is_active, permissions, created_by) VALUES (?,?,?,?,?,?)")
                                 ->execute([$name, $email, $hash, $isActive, $permsJson, SUPER_ADMIN_ID]);
+                            $modId = (int)$pdo->lastInsertId();
                             $success = 'Модератор добавлен';
                         } catch (PDOException $e) {
                             $error = 'Email уже занят';
                         }
                     }
+                }
+                // Сохранить ставки (если нет ошибки и modId известен)
+                if (!$error && $modId > 0) {
+                    $pdo->prepare("INSERT INTO moderator_rates (moderator_id, rate_reached, rate_not_reached)
+                                   VALUES (?,?,?)
+                                   ON DUPLICATE KEY UPDATE rate_reached=VALUES(rate_reached), rate_not_reached=VALUES(rate_not_reached)")
+                        ->execute([$modId, $rateReached, $rateNotReached]);
                 }
             }
         } elseif ($action === 'deactivate') {
@@ -104,11 +114,17 @@ $moderators = $pdo->query("
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Редактируемый модератор
-$editMod = null;
+$editMod  = null;
+$editRate = ['rate_reached' => 0.50, 'rate_not_reached' => 0.30];
 if (isset($_GET['edit'])) {
     $stmt = $pdo->prepare("SELECT * FROM moderators WHERE id=?");
     $stmt->execute([(int)$_GET['edit']]);
     $editMod = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($editMod) {
+        $rStmt = $pdo->prepare("SELECT * FROM moderator_rates WHERE moderator_id=?");
+        $rStmt->execute([$editMod['id']]);
+        $editRate = $rStmt->fetch(PDO::FETCH_ASSOC) ?: $editRate;
+    }
 }
 
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
@@ -233,6 +249,23 @@ $formTitle = $editMod ? 'Редактировать модератора: ' . ht
                     <input type="checkbox" name="is_active" value="1" <?php echo ($fm['is_active'] ?? 1) ? 'checked' : ''; ?> style="width:18px;height:18px;accent-color:var(--primary);">
                     <span style="font-size:14px;font-weight:500;">Активен</span>
                 </label>
+            </div>
+        </div>
+
+        <!-- Ставки -->
+        <div style="margin-bottom:20px;padding:16px;background:var(--success-bg);border:1px solid #A7F3D0;border-radius:var(--radius-sm);">
+            <div style="font-size:12px;font-weight:700;color:#065F46;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">💶 Ставки оплаты (€ за сервис)</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <label style="font-size:12px;font-weight:600;color:#065F46;display:block;margin-bottom:6px;">✅ За дозвон (reached)</label>
+                    <input type="number" name="rate_reached" class="form-control" step="0.05" min="0" max="99"
+                           value="<?php echo number_format((float)$editRate['rate_reached'], 2, '.', ''); ?>">
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:600;color:#065F46;display:block;margin-bottom:6px;">☎️ За остальные (не дозвон)</label>
+                    <input type="number" name="rate_not_reached" class="form-control" step="0.05" min="0" max="99"
+                           value="<?php echo number_format((float)$editRate['rate_not_reached'], 2, '.', ''); ?>">
+                </div>
             </div>
         </div>
 

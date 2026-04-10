@@ -1,4 +1,5 @@
 <?php
+session_start();
 define('MOD_PANEL', true);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../config/database.php';
