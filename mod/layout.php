@@ -83,6 +83,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .empty-state-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;}
 .empty-state-text{font-size:14px;color:var(--text-secondary);}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.content{padding:16px}.stat-grid-4{grid-template-columns:repeat(2,1fr)}}
+body.dark-theme {
+    --primary: #5B9BD5;
+    --primary-light: #1E2D3D;
+    --primary-dark: #7CB8F0;
+    --success: #34D399;
+    --success-bg: #1A2E28;
+    --warning: #FBBF24;
+    --warning-bg: #2A2210;
+    --danger: #F87171;
+    --danger-bg: #2D1A1A;
+    --text: #E2E8F0;
+    --text-secondary: #94A3B8;
+    --text-light: #64748B;
+    --bg: #1A1F2E;
+    --bg-white: #242B3D;
+    --border: #2E3748;
+    --border-light: #2A3142;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
 </style>
 </head>
 <body>
@@ -171,6 +190,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 <div class="main-wrap">
     <header class="topbar">
         <div class="topbar-title"><?php echo htmlspecialchars($pageTitle); ?></div>
+        <button onclick="toggleTheme()" id="themeBtn" title="Переключить тему"
+            style="background:none;border:1px solid var(--border);border-radius:7px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text-secondary);display:flex;align-items:center;gap:5px;transition:all 0.2s;">
+            <span id="themeIcon">🌙</span>
+        </button>
         <div>
             <span class="topbar-badge">Модератор</span>
         </div>
@@ -180,6 +203,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     </main>
 </div>
 
+
+<script>
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('poisq_admin_theme', isDark ? 'dark' : 'light');
+    document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+}
+(function() {
+    if (localStorage.getItem('poisq_admin_theme') === 'dark') {
+        document.body.classList.add('dark-theme');
+        const btn = document.getElementById('themeIcon');
+        if (btn) btn.textContent = '☀️';
+    }
+})();
+</script>
 </body>
 </html>
 <?php

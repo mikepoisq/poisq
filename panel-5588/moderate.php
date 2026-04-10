@@ -39,6 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 $services = $pdo->query("
     SELECT s.*, s.created_by_admin, s.created_by_moderator, s.call_status, s.call_note,
@@ -188,6 +189,24 @@ ob_start();
                     <a href="<?php echo htmlspecialchars($svc['website']); ?>" target="_blank" style="color:var(--primary);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?php echo htmlspecialchars($svc["website"]); ?></a>
                 </div>
                 <?php endif; ?>
+                <?php
+                $groupLink = trim($svc["group_link"] ?? "");
+                $isTg = $groupLink && (strpos($groupLink,"t.me")!==false || strpos($groupLink,"telegram")!==false);
+                $isWa = $groupLink && strpos($groupLink,"whatsapp")!==false;
+                if ($groupLink && $svc["category"] === "messengers"):
+                ?>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:6px;padding-top:8px;border-top:1px solid var(--border-light);">
+                    <span style="width:16px"><?php echo $isTg ? "✈️" : ($isWa ? "💬" : "🔗"); ?></span>
+                    <a href="<?php echo htmlspecialchars($groupLink); ?>" target="_blank"
+                       style="color:<?php echo $isTg ? "#2AABEE" : ($isWa ? "#25D366" : "var(--primary)"); ?>;text-decoration:none;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">
+                        <?php echo htmlspecialchars($groupLink); ?>
+                    </a>
+                    <a href="<?php echo htmlspecialchars($groupLink); ?>" target="_blank"
+                       style="font-size:11px;white-space:nowrap;background:<?php echo $isTg ? "#2AABEE" : ($isWa ? "#25D366" : "var(--primary)"); ?>;color:white;padding:3px 8px;border-radius:4px;text-decoration:none;flex-shrink:0;">
+                        Открыть →
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Созвон -->
@@ -219,7 +238,11 @@ ob_start();
             <div style="background:var(--primary-light);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
                 <div style="font-size:11px;font-weight:700;color:var(--primary-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Владелец</div>
                 <div style="font-size:13px;font-weight:600;color:var(--text)"><?php echo htmlspecialchars($svc["user_name"]); ?></div>
-                <div style="font-size:12px;color:var(--text-secondary)"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
+                <a href="mailto:<?php echo htmlspecialchars($svc['user_email']); ?>?subject=<?php echo urlencode("Poisq: " . $svc["name"]); ?>"
+                   style="font-size:12px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--primary);padding:4px 10px;border-radius:5px;">
+                    ✉️ Написать владельцу
+                </a>
             </div>
 
             <!-- Pending city warning -->
@@ -382,5 +405,5 @@ async function approveCity(cityId, svcId) {
 
 <?php
 $content = ob_get_clean();
-renderLayout('Модерация', $content, $pendingCount);
+renderLayout('Модерация', $content, $pendingCount, 0, $pendingReviewCount);
 ?>

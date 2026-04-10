@@ -136,7 +136,7 @@ $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 $total = $pdo->prepare("
     SELECT COUNT(*) FROM reviews r
     JOIN services s ON s.id = r.service_id
-    JOIN users u    ON u.id = r.user_id
+    LEFT JOIN users u ON u.id = r.user_id
     $whereSQL
 ");
 $total->execute($params);
@@ -152,7 +152,7 @@ $stmt = $pdo->prepare("
            rop.id AS reply_id, rop.text AS reply_text
     FROM reviews r
     JOIN services s ON s.id = r.service_id
-    JOIN users u    ON u.id = r.user_id
+    LEFT JOIN users u ON u.id = r.user_id
     LEFT JOIN review_owner_replies rop ON rop.review_id = r.id
     $whereSQL
     ORDER BY r.created_at DESC
@@ -266,8 +266,8 @@ ob_start();
                     <div style="font-size:11px;color:var(--text-light);">#<?= $rev['service_id'] ?></div>
                 </td>
                 <td>
-                    <div style="font-size:13px;font-weight:600;"><?= htmlspecialchars($rev['user_name']) ?></div>
-                    <div style="font-size:11px;color:var(--text-secondary);"><?= htmlspecialchars($rev['user_email']) ?></div>
+                    <div style="font-size:13px;font-weight:600;"><?= htmlspecialchars($rev['user_name'] ?: '🗑 Пользователь удалён') ?></div>
+                    <div style="font-size:11px;color:var(--text-secondary);"><?= htmlspecialchars($rev['user_email'] ?: '—') ?></div>
                 </td>
                 <td style="white-space:nowrap;">
                     <span style="color:#F59E0B;font-size:16px;letter-spacing:-1px;">

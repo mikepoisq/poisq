@@ -44,6 +44,7 @@ $stmt->execute($params);
 $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 $statusConfig = [
     "approved" => ["label"=>"Активен",     "class"=>"badge-green"],
@@ -233,5 +234,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-renderLayout('Сервисы', $content, $pendingCount);
+renderLayout('Сервисы', $content, $pendingCount, 0, $pendingReviewCount);
 ?>

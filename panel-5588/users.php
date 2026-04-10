@@ -59,6 +59,7 @@ $totalUsers   = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $blockedUsers = $pdo->query("SELECT COUNT(*) FROM users WHERE is_blocked=1")->fetchColumn();
 $newThisWeek  = $pdo->query("SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 ob_start();
 ?>
@@ -209,5 +210,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-renderLayout('Пользователи', $content, $pendingCount);
+renderLayout('Пользователи', $content, $pendingCount, 0, $pendingReviewCount);
 ?>

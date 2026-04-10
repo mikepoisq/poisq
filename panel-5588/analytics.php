@@ -69,6 +69,7 @@ $byDay = $byDay->fetchAll(PDO::FETCH_ASSOC);
 
 $countries = $pdo->query("SELECT DISTINCT country_code FROM search_logs ORDER BY country_code")->fetchAll(PDO::FETCH_COLUMN);
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 $countryNames = [
     'fr'=>'🇫🇷 Франция','de'=>'🇩🇪 Германия','es'=>'🇪🇸 Испания','it'=>'🇮🇹 Италия',
@@ -280,5 +281,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-renderLayout('Аналитика поиска', $content, $pendingCount);
+renderLayout('Аналитика поиска', $content, $pendingCount, 0, $pendingReviewCount);
 ?>

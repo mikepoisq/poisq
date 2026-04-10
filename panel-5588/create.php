@@ -162,6 +162,7 @@ $countryNames = [
 ];
 
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 ob_start();
 ?>
@@ -514,5 +515,5 @@ function removeService(btn) {
 
 <?php
 $content = ob_get_clean();
-renderLayout('Создать сервис', $content, $pendingCount);
+renderLayout('Создать сервис', $content, $pendingCount, 0, $pendingReviewCount);
 ?>

@@ -111,6 +111,7 @@ if (isset($_GET['edit'])) {
 }
 
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 $csrf = csrfToken();
 
 ob_start();
@@ -263,5 +264,5 @@ $formTitle = $editMod ? 'Редактировать модератора: ' . ht
 
 <?php
 $content = ob_get_clean();
-renderLayout('Модераторы', $content, $pendingCount);
+renderLayout('Модераторы', $content, $pendingCount, 0, $pendingReviewCount);
 ?>

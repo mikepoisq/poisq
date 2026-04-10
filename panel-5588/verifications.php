@@ -92,8 +92,9 @@ $requests = $pdo->prepare("
 $requests->execute($params);
 $requests = $requests->fetchAll(PDO::FETCH_ASSOC);
 
-$pendingVerifCount = (int)$pdo->query("SELECT COUNT(*) FROM verification_requests WHERE status='pending'")->fetchColumn();
-$pendingCount      = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingVerifCount  = (int)$pdo->query("SELECT COUNT(*) FROM verification_requests WHERE status='pending'")->fetchColumn();
+$pendingCount       = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 ob_start();
 ?>
@@ -155,7 +156,7 @@ ob_start();
         </td>
         <td>
           <?php if ($r['document_path']): ?>
-          <a href="<?php echo htmlspecialchars($r['document_path']); ?>" target="_blank" class="btn btn-secondary btn-sm">
+          <a href="/panel-5588/get-document.php?file=<?php echo urlencode(basename($r['document_path'])); ?>" target="_blank" class="btn btn-secondary btn-sm">
             📄 Просмотреть
           </a>
           <?php if ($r['document_original_name']): ?>
@@ -316,5 +317,5 @@ function escHtml(str) {
 
 <?php
 $content = ob_get_clean();
-renderLayout('Проверки', $content, $pendingCount, $pendingVerifCount);
+renderLayout('Проверки', $content, $pendingCount, $pendingVerifCount, $pendingReviewCount);
 ?>

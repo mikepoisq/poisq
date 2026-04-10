@@ -85,6 +85,7 @@ $categories = [
 ];
 $photos = json_decode($service['photo'] ?? '[]', true) ?: [];
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 $statusBadge = [
     'draft'    => 'badge-gray',
@@ -307,14 +308,48 @@ ob_start();
                     </div>
                     <?php endif; ?>
                 </div>
-                <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-light);">
+                <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-light);display:flex;flex-direction:column;gap:8px;">
                     <a href="https://poisq.com<?php echo serviceUrl($serviceId, $service['name']); ?>" target="_blank" class="btn btn-secondary" style="width:100%;justify-content:center;">
                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         Открыть на сайте
                     </a>
+                    <a href="mailto:<?php echo htmlspecialchars($service['user_email']); ?>?subject=<?php echo urlencode('Poisq: ' . $service['name']); ?>"
+                       class="btn btn-secondary" style="width:100%;justify-content:center;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        Написать владельцу
+                    </a>
                 </div>
             </div>
         </div>
+
+        <!-- Ссылка на группу (только для messengers) -->
+        <?php
+        $groupLink = trim($service['group_link'] ?? '');
+        $isTg = $groupLink && (strpos($groupLink,'t.me')!==false || strpos($groupLink,'telegram')!==false);
+        $isWa = $groupLink && strpos($groupLink,'whatsapp')!==false;
+        if ($service['category'] === 'messengers' && $groupLink):
+        ?>
+        <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-header"><div class="panel-title">💬 Ссылка на группу</div></div>
+            <div style="padding:14px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                    <span style="font-size:20px;"><?php echo $isTg ? '✈️' : ($isWa ? '💬' : '🔗'); ?></span>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;">
+                            <?php echo $isTg ? 'Telegram' : ($isWa ? 'WhatsApp' : 'Ссылка'); ?>
+                        </div>
+                        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            <?php echo htmlspecialchars($groupLink); ?>
+                        </div>
+                    </div>
+                </div>
+                <a href="<?php echo htmlspecialchars($groupLink); ?>" target="_blank"
+                   class="btn" style="width:100%;justify-content:center;background:<?php echo $isTg ? '#2AABEE' : ($isWa ? '#25D366' : 'var(--primary)'); ?>;color:white;border:none;">
+                    <?php echo $isTg ? '✈️ Открыть в Telegram' : ($isWa ? '💬 Открыть в WhatsApp' : '🔗 Открыть ссылку'); ?>
+                </a>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- Фото -->
         <?php if (!empty($photos)): ?>
@@ -406,5 +441,5 @@ async function saveCallStatus(serviceId) {
 
 <?php
 $content = ob_get_clean();
-renderLayout('Редактировать сервис #' . $serviceId, $content, $pendingCount);
+renderLayout('Редактировать сервис #' . $serviceId, $content, $pendingCount, 0, $pendingReviewCount);
 ?>

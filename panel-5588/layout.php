@@ -52,6 +52,25 @@ function renderLayout(string $pageTitle, string $content, int $pendingCount = 0,
     --radius-sm: 7px;
     --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
 }
+body.dark-theme {
+    --primary: #5B9BD5;
+    --primary-light: #1E2D3D;
+    --primary-dark: #7CB8F0;
+    --success: #34D399;
+    --success-bg: #1A2E28;
+    --warning: #FBBF24;
+    --warning-bg: #2A2210;
+    --danger: #F87171;
+    --danger-bg: #2D1A1A;
+    --text: #E2E8F0;
+    --text-secondary: #94A3B8;
+    --text-light: #64748B;
+    --bg: #1A1F2E;
+    --bg-white: #242B3D;
+    --border: #2E3748;
+    --border-light: #2A3142;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+}
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -270,6 +289,9 @@ body {
 }
 .table tr:last-child td { border-bottom: none; }
 .table tr:hover td { background: #FAFAFA; }
+body.dark-theme .table tr:hover td { background: #2A3344 !important; }
+body.dark-theme .table td { background: var(--bg-white) !important; color: var(--text) !important; }
+body.dark-theme .table th { background: #1E2535 !important; color: var(--text-secondary) !important; }
 
 /* Кнопки */
 .btn {
@@ -398,6 +420,115 @@ body {
 }
 @media (max-width: 480px) {
     .stat-grid-4, .stat-grid-3, .stat-grid-2 { grid-template-columns: 1fr 1fr; }
+}
+/* ── ТЁМНАЯ ТЕМА: исправление цветов текста ── */
+body.dark-theme input,
+body.dark-theme textarea,
+body.dark-theme select,
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+    background: #2E3748 !important;
+    color: #E2E8F0 !important;
+    border-color: #3D4D63 !important;
+}
+body.dark-theme input::placeholder,
+body.dark-theme textarea::placeholder {
+    color: #64748B !important;
+}
+body.dark-theme .btn-secondary {
+    background: #2E3748 !important;
+    color: #E2E8F0 !important;
+    border-color: #3D4D63 !important;
+}
+body.dark-theme .btn-secondary:hover {
+    background: #374357 !important;
+}
+body.dark-theme .reason-btn {
+    background: #2E3748 !important;
+    color: #E2E8F0 !important;
+    border-color: #3D4D63 !important;
+}
+body.dark-theme .reason-btn:hover {
+    background: #374357 !important;
+}
+body.dark-theme table th,
+body.dark-theme table td {
+    border-color: #2E3748 !important;
+    color: #E2E8F0 !important;
+}
+body.dark-theme .alert {
+    border-color: #3D4D63 !important;
+}
+body.dark-theme .alert-success {
+    background: #1A2E28 !important;
+    color: #34D399 !important;
+}
+body.dark-theme .alert-danger {
+    background: #2D1A1A !important;
+    color: #F87171 !important;
+}
+body.dark-theme label {
+    color: #94A3B8 !important;
+}
+body.dark-theme .badge-gray {
+    background: #2E3748 !important;
+    color: #94A3B8 !important;
+}
+body.dark-theme input[type="checkbox"] {
+    accent-color: #5B9BD5;
+}
+/* таблицы */
+body.dark-theme tbody tr {
+    background: var(--bg-white) !important;
+    color: var(--text) !important;
+}
+body.dark-theme tbody tr:hover {
+    background: #2A3344 !important;
+}
+body.dark-theme tbody tr:nth-child(even) {
+    background: #222938 !important;
+}
+body.dark-theme td, body.dark-theme th {
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+/* Все инлайн div/td/tr со светлым фоном — текст всегда светлый */
+body.dark-theme td *,
+body.dark-theme tr *,
+body.dark-theme .panel *,
+body.dark-theme .panel-header *,
+body.dark-theme .stat-card * {
+    color: inherit;
+}
+/* Перебиваем все инлайн background на элементах */
+body.dark-theme div[style],
+body.dark-theme td[style],
+body.dark-theme tr[style],
+body.dark-theme span[style] {
+    color: var(--text) !important;
+}
+/* Но сохраняем цвета для статус-бейджей и кнопок */
+body.dark-theme .badge-green,
+body.dark-theme .badge-yellow,
+body.dark-theme .badge-red,
+body.dark-theme .badge-blue,
+body.dark-theme .btn-success,
+body.dark-theme .btn-danger,
+body.dark-theme .btn-primary {
+    color: inherit !important;
+}
+body.dark-theme [style*="color:#10B981"],
+body.dark-theme [style*="color: #10B981"],
+body.dark-theme [style*="color:#EF4444"],
+body.dark-theme [style*="color: #EF4444"],
+body.dark-theme [style*="color:#F59E0B"],
+body.dark-theme [style*="color: #F59E0B"],
+body.dark-theme [style*="color:#2E73D8"],
+body.dark-theme [style*="color:var(--primary)"],
+body.dark-theme [style*="color:var(--success)"],
+body.dark-theme [style*="color:var(--danger)"],
+body.dark-theme [style*="color:var(--warning)"] {
+    color: inherit !important;
 }
 </style>
 </head>
@@ -582,6 +713,10 @@ body {
         <div class="topbar-title"><?php echo htmlspecialchars($pageTitle); ?></div>
         <div class="topbar-actions">
             <span class="topbar-time" id="topbarTime"></span>
+            <button onclick="toggleTheme()" id="themeBtn" title="Переключить тему"
+                style="background:none;border:1px solid var(--border);border-radius:7px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--text-secondary);display:flex;align-items:center;gap:5px;transition:all 0.2s;">
+                <span id="themeIcon">🌙</span>
+            </button>
             <a href="https://poisq.com" target="_blank" class="topbar-site">
                 <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                 Открыть сайт
@@ -604,6 +739,20 @@ function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 }
+// Время в топбаре
+// Тёмная тема
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('poisq_admin_theme', isDark ? 'dark' : 'light');
+    document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+}
+(function() {
+    if (localStorage.getItem('poisq_admin_theme') === 'dark') {
+        document.body.classList.add('dark-theme');
+        const btn = document.getElementById('themeIcon');
+        if (btn) btn.textContent = '☀️';
+    }
+})();
 // Время в топбаре
 function updateTime() {
     const now = new Date();

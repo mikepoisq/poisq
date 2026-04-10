@@ -76,6 +76,7 @@ $logins->execute($loginParams);
 $logins = $logins->fetchAll(PDO::FETCH_ASSOC);
 
 $pendingCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='pending'")->fetchColumn();
+$pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 
 ob_start();
 ?>
@@ -225,5 +226,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-renderLayout('Статистика модераторов', $content, $pendingCount);
+renderLayout('Статистика модераторов', $content, $pendingCount, 0, $pendingReviewCount);
 ?>
