@@ -162,13 +162,6 @@ body.dark-theme {
         </a>
         <?php endif; ?>
 
-        <?php if (in_array('analytics', $perms)): ?>
-        <a href="/panel-5588/analytics.php" class="nav-item <?php echo $curPage==='analytics'?'active':''; ?>">
-            <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-            Аналитика
-        </a>
-        <?php endif; ?>
-
         <?php if (in_array('my_stats', $perms)): ?>
         <div class="nav-label" style="margin-top:10px">Статистика</div>
         <a href="/mod/dashboard.php" class="nav-item <?php echo $curPage==='dashboard'?'active':''; ?>">
