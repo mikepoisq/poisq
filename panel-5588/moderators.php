@@ -17,6 +17,7 @@ $allPermissions = [
     'cities'          => 'Города и страны',
     'articles'        => 'Статьи (Полезное)',
     'faq'             => 'FAQ (Помощь)',
+    'analytics'       => 'Аналитика',
     'my_stats'        => 'Моя статистика',
 ];
 

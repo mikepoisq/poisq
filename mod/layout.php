@@ -82,6 +82,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .empty-state-icon{font-size:40px;margin-bottom:12px;}
 .empty-state-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;}
 .empty-state-text{font-size:14px;color:var(--text-secondary);}
+.panel-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.panel-body{padding:0;}
+.btn-success{background:var(--success);color:white;}.btn-success:hover{background:#059669;}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid #FECACA;}.btn-danger:hover{background:#FEE2E2;}
+.btn-lg{padding:10px 20px;font-size:15px;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap;}
+.badge-yellow{background:var(--warning-bg);color:#92400E;}
+.badge-green{background:var(--success-bg);color:#065F46;}
+.badge-red{background:var(--danger-bg);color:#991B1B;}
+.badge-gray{background:var(--border-light);color:var(--text-secondary);}
+.badge-blue{background:var(--primary-light);color:var(--primary-dark);}
+.form-select{padding-right:32px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;appearance:none;-webkit-appearance:none;}
+.pagination{display:flex;align-items:center;gap:4px;padding:14px 18px;border-top:1px solid var(--border-light);}
+.page-link{padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text-secondary);border:1px solid var(--border);background:var(--bg-white);text-decoration:none;transition:all .15s;cursor:pointer;}
+.page-link:hover{background:var(--bg);color:var(--text);}
+.page-link.active{background:var(--primary);color:white;border-color:var(--primary);}
+.page-link.disabled{opacity:.4;pointer-events:none;}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:5px 12px;border-radius:99px;font-size:13px;font-weight:600;color:var(--text-secondary);border:1px solid var(--border);background:var(--bg-white);text-decoration:none;transition:all .15s;cursor:pointer;display:inline-flex;align-items:center;}
+.chip:hover{border-color:var(--primary);color:var(--primary);}
+.chip.active{background:var(--primary);color:white;border-color:var(--primary);}
+.alert-success{background:var(--success-bg);color:#065F46;border:1px solid #A7F3D0;}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.content{padding:16px}.stat-grid-4{grid-template-columns:repeat(2,1fr)}}
 body.dark-theme {
     --primary: #5B9BD5;
@@ -102,6 +124,32 @@ body.dark-theme {
     --border-light: #2A3142;
     --shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
+/* таблицы */
+body.dark-theme .table tr:hover td { background: #2A3344 !important; }
+body.dark-theme .table td { background: var(--bg-white) !important; color: var(--text) !important; }
+body.dark-theme .table th { background: #1E2535 !important; color: var(--text-secondary) !important; }
+/* формы */
+body.dark-theme input,
+body.dark-theme textarea,
+body.dark-theme select,
+body.dark-theme .form-control { background: #2E3748 !important; color: #E2E8F0 !important; border-color: #3D4D63 !important; }
+body.dark-theme input::placeholder,
+body.dark-theme textarea::placeholder { color: #64748B !important; }
+/* кнопки */
+body.dark-theme .btn-secondary { background: #2E3748 !important; color: #E2E8F0 !important; border-color: #3D4D63 !important; }
+body.dark-theme .btn-secondary:hover { background: #374357 !important; }
+/* инлайн белые фоны */
+body.dark-theme div[style*="background:white"],
+body.dark-theme div[style*="background: white"],
+body.dark-theme div[style*="background:#fff"],
+body.dark-theme div[style*="background:#FFF"],
+body.dark-theme div[style*="background:#FFFFFF"] { background: var(--bg-white) !important; color: var(--text) !important; }
+body.dark-theme td[style], body.dark-theme tr[style], body.dark-theme div[style], body.dark-theme span[style] { color: var(--text) !important; }
+/* сохраняем цветные элементы */
+body.dark-theme .badge-green, body.dark-theme .stat-card.green .stat-card-value { color: var(--success) !important; }
+body.dark-theme .badge-yellow, body.dark-theme .stat-card.yellow .stat-card-value { color: var(--warning) !important; }
+body.dark-theme .badge-red { color: var(--danger) !important; }
+body.dark-theme .stat-card.blue .stat-card-value { color: var(--primary) !important; }
 </style>
 </head>
 <body>
@@ -121,44 +169,51 @@ body.dark-theme {
         <div class="nav-label">Работа</div>
 
         <?php if (in_array('moderation', $perms)): ?>
-        <a href="/panel-5588/moderate.php" class="nav-item <?php echo $curPage==='moderate'?'active':''; ?>">
+        <a href="/mod/moderate.php" class="nav-item <?php echo $curPage==='moderate'?'active':''; ?>">
             <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             Модерация
         </a>
         <?php endif; ?>
 
         <?php if (in_array('services', $perms)): ?>
-        <a href="/panel-5588/services.php" class="nav-item <?php echo $curPage==='services'?'active':''; ?>">
+        <a href="/mod/services.php" class="nav-item <?php echo $curPage==='services'?'active':''; ?>">
             <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             Сервисы
         </a>
         <?php endif; ?>
 
         <?php if (in_array('services_create', $perms)): ?>
-        <a href="/panel-5588/create.php" class="nav-item <?php echo $curPage==='create'?'active':''; ?>">
+        <a href="/mod/create.php" class="nav-item <?php echo $curPage==='create'?'active':''; ?>">
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Создать сервис
         </a>
         <?php endif; ?>
 
         <?php if (in_array('cities', $perms)): ?>
-        <a href="/panel-5588/settings/cities.php" class="nav-item <?php echo $curPage==='cities'?'active':''; ?>">
+        <a href="/mod/cities.php" class="nav-item <?php echo $curPage==='cities'?'active':''; ?>">
             <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>
             Города и страны
         </a>
         <?php endif; ?>
 
         <?php if (in_array('articles', $perms)): ?>
-        <a href="/panel-5588/pages/articles.php" class="nav-item <?php echo $curPage==='articles'?'active':''; ?>">
+        <a href="/mod/articles.php" class="nav-item <?php echo $curPage==='articles'?'active':''; ?>">
             <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
             Статьи (Полезное)
         </a>
         <?php endif; ?>
 
         <?php if (in_array('faq', $perms)): ?>
-        <a href="/panel-5588/pages/faq.php" class="nav-item <?php echo $curPage==='faq'?'active':''; ?>">
+        <a href="/mod/faq.php" class="nav-item <?php echo $curPage==='faq'?'active':''; ?>">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-linecap="round" stroke-width="3"/></svg>
             FAQ (Помощь)
+        </a>
+        <?php endif; ?>
+
+        <?php if (in_array('analytics', $perms)): ?>
+        <a href="/mod/analytics.php" class="nav-item <?php echo $curPage==='analytics'?'active':''; ?>">
+            <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Аналитика
         </a>
         <?php endif; ?>
 
