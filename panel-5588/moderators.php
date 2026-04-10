@@ -164,7 +164,7 @@ ob_start();
             </td>
             <td style="font-size:12px;max-width:200px;">
                 <?php foreach ($mPerms as $p): ?>
-                <span style="display:inline-block;background:#EFF6FF;color:#1D4ED8;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;margin:2px;"><?php echo htmlspecialchars($allPermissions[$p] ?? $p); ?></span>
+                <span style="display:inline-block;background:var(--primary-light);color:var(--primary-dark);padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;margin:2px;"><?php echo htmlspecialchars($allPermissions[$p] ?? $p); ?></span>
                 <?php endforeach; ?>
             </td>
             <td style="font-size:13px;color:#6B7280;">
@@ -239,8 +239,8 @@ $formTitle = $editMod ? 'Редактировать модератора: ' . ht
             <div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Права доступа</div>
             <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
                 <?php foreach ($allPermissions as $key => $label): ?>
-                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;transition:background .15s;"
-                       onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='white'">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;transition:background .15s;background:var(--bg-white);color:var(--text);"
+                       onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg-white)'">
                     <input type="checkbox" name="permissions[]" value="<?php echo $key; ?>"
                            <?php echo in_array($key, $fmPerms) ? 'checked' : ''; ?>
                            style="width:16px;height:16px;accent-color:var(--primary);">
