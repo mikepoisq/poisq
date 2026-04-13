@@ -28,21 +28,21 @@ $allMods = $pdo->query("SELECT id, name FROM moderators ORDER BY name")->fetchAl
 $params = [$fromDate, $toDate];
 $modFilter = '';
 if ($filterModId > 0) {
-    $modFilter = 'AND ms.moderator_id = ?';
+    $modFilter = 'AND s.created_by_moderator = ?';
     $params[] = $filterModId;
 }
 
 $statsQuery = $pdo->prepare("
-    SELECT ms.stat_date, m.id as mod_id, m.name as mod_name,
-           SUM(CASE WHEN ms.action='created'  THEN 1 ELSE 0 END) as created,
-           SUM(CASE WHEN ms.action='reached'  THEN 1 ELSE 0 END) as reached,
-           SUM(CASE WHEN ms.action IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
-    FROM moderator_stats ms
-    JOIN moderators m ON ms.moderator_id = m.id
-    WHERE ms.stat_date BETWEEN ? AND ?
+    SELECT DATE(s.created_at) as stat_date, m.id as mod_id, m.name as mod_name,
+           COUNT(*) as created,
+           SUM(CASE WHEN s.call_status = 'reached' THEN 1 ELSE 0 END) as reached,
+           SUM(CASE WHEN s.call_status IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
+    FROM services s
+    JOIN moderators m ON s.created_by_moderator = m.id
+    WHERE DATE(s.created_at) BETWEEN ? AND ?
     $modFilter
-    GROUP BY ms.stat_date, ms.moderator_id
-    ORDER BY ms.stat_date DESC, m.name
+    GROUP BY DATE(s.created_at), s.created_by_moderator
+    ORDER BY stat_date DESC, m.name
 ");
 $statsQuery->execute($params);
 $statsRows = $statsQuery->fetchAll(PDO::FETCH_ASSOC);

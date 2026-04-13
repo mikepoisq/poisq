@@ -69,7 +69,7 @@ foreach ($allMods as $m) {
         if ($lastPayDate) {
             $effFrom = date('Y-m-d', strtotime($lastPayDate . ' +1 day'));
         } else {
-            $firstStmt = $pdo->prepare("SELECT MIN(stat_date) FROM moderator_stats WHERE moderator_id=?");
+            $firstStmt = $pdo->prepare("SELECT MIN(DATE(created_at)) FROM services WHERE created_by_moderator=?");
             $firstStmt->execute([$mid]);
             $effFrom = $firstStmt->fetchColumn() ?: date('Y-m-d');
         }
@@ -82,11 +82,11 @@ foreach ($allMods as $m) {
     // Статистика за период
     $statStmt = $pdo->prepare("
         SELECT
-            SUM(CASE WHEN action='created' THEN 1 ELSE 0 END) as created,
-            SUM(CASE WHEN action='reached' THEN 1 ELSE 0 END) as reached,
-            SUM(CASE WHEN action IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
-        FROM moderator_stats
-        WHERE moderator_id = ? AND stat_date BETWEEN ? AND ?
+            COUNT(*) as created,
+            SUM(CASE WHEN call_status = 'reached' THEN 1 ELSE 0 END) as reached,
+            SUM(CASE WHEN call_status IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
+        FROM services
+        WHERE created_by_moderator = ? AND DATE(created_at) BETWEEN ? AND ?
     ");
     $statStmt->execute([$mid, $effFrom, $effTo]);
     $stat = $statStmt->fetch(PDO::FETCH_ASSOC);

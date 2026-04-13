@@ -16,28 +16,31 @@ $modId = getModeratorId();
 function fetchPeriodStats(PDO $pdo, int $modId, string $fromDate, string $toDate = ''): array {
     if ($toDate) {
         $stmt = $pdo->prepare("
-            SELECT action, COUNT(*) as cnt
-            FROM moderator_stats
-            WHERE moderator_id = ? AND stat_date BETWEEN ? AND ?
-            GROUP BY action
+            SELECT
+                COUNT(*) as created,
+                SUM(CASE WHEN call_status = 'reached' THEN 1 ELSE 0 END) as reached,
+                SUM(CASE WHEN call_status IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
+            FROM services
+            WHERE created_by_moderator = ? AND DATE(created_at) BETWEEN ? AND ?
         ");
         $stmt->execute([$modId, $fromDate, $toDate]);
     } else {
         $stmt = $pdo->prepare("
-            SELECT action, COUNT(*) as cnt
-            FROM moderator_stats
-            WHERE moderator_id = ? AND stat_date >= ?
-            GROUP BY action
+            SELECT
+                COUNT(*) as created,
+                SUM(CASE WHEN call_status = 'reached' THEN 1 ELSE 0 END) as reached,
+                SUM(CASE WHEN call_status IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
+            FROM services
+            WHERE created_by_moderator = ? AND DATE(created_at) >= ?
         ");
         $stmt->execute([$modId, $fromDate]);
     }
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $result = ['created'=>0,'reached'=>0,'no_answer'=>0,'no_number'=>0,'other'=>0];
-    foreach ($rows as $r) {
-        if (isset($result[$r['action']])) $result[$r['action']] = (int)$r['cnt'];
-    }
-    $result['not_reached'] = $result['no_answer'] + $result['no_number'] + $result['other'];
-    return $result;
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return [
+        'created'     => (int)($row['created']     ?? 0),
+        'reached'     => (int)($row['reached']     ?? 0),
+        'not_reached' => (int)($row['not_reached'] ?? 0),
+    ];
 }
 
 $today   = fetchPeriodStats($pdo, $modId, date('Y-m-d'));
@@ -48,10 +51,13 @@ $month   = fetchPeriodStats($pdo, $modId, date('Y-m-d', strtotime('-29 days')));
 // Таблица по дням (последние 30 дней)
 // ──────────────────────────────────────────────
 $dailyStmt = $pdo->prepare("
-    SELECT stat_date, action, COUNT(*) as cnt
-    FROM moderator_stats
-    WHERE moderator_id = ? AND stat_date >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
-    GROUP BY stat_date, action
+    SELECT DATE(created_at) as stat_date,
+           COUNT(*) as created,
+           SUM(CASE WHEN call_status = 'reached' THEN 1 ELSE 0 END) as reached,
+           SUM(CASE WHEN call_status IN ('no_answer','no_number','other') THEN 1 ELSE 0 END) as not_reached
+    FROM services
+    WHERE created_by_moderator = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+    GROUP BY DATE(created_at)
     ORDER BY stat_date DESC
 ");
 $dailyStmt->execute([$modId]);
@@ -59,9 +65,11 @@ $dailyRaw = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $dailyMap = [];
 foreach ($dailyRaw as $r) {
-    $d = $r['stat_date'];
-    if (!isset($dailyMap[$d])) $dailyMap[$d] = ['created'=>0,'reached'=>0,'no_answer'=>0,'no_number'=>0,'other'=>0];
-    $dailyMap[$d][$r['action']] = (int)$r['cnt'];
+    $dailyMap[$r['stat_date']] = [
+        'created'     => (int)$r['created'],
+        'reached'     => (int)$r['reached'],
+        'not_reached' => (int)$r['not_reached'],
+    ];
 }
 
 // ──────────────────────────────────────────────
@@ -81,7 +89,7 @@ if ($lastPay) {
     $currentFrom = date('Y-m-d', strtotime($lastPay['period_to'] . ' +1 day'));
 } else {
     // Берём с самой первой записи в статистике
-    $firstStmt = $pdo->prepare("SELECT MIN(stat_date) FROM moderator_stats WHERE moderator_id = ?");
+    $firstStmt = $pdo->prepare("SELECT MIN(DATE(created_at)) FROM services WHERE created_by_moderator = ?");
     $firstStmt->execute([$modId]);
     $firstDate = $firstStmt->fetchColumn();
     $currentFrom = $firstDate ?: date('Y-m-d');
@@ -328,10 +336,10 @@ ob_start();
         <?php
         $totals = ['created'=>0,'reached'=>0,'not_reached'=>0,'earn'=>0.0];
         foreach ($dailyMap as $date => $s):
-            $nr = ($s['no_answer'] ?? 0) + ($s['no_number'] ?? 0) + ($s['other'] ?? 0);
+            $nr = $s['not_reached'];
             $dayEarn = round($s['reached'] * (float)$rates['rate_reached'] + $nr * (float)$rates['rate_not_reached'], 2);
-            $totals['created']     += $s['created'] ?? 0;
-            $totals['reached']     += $s['reached'] ?? 0;
+            $totals['created']     += $s['created'];
+            $totals['reached']     += $s['reached'];
             $totals['not_reached'] += $nr;
             $totals['earn']        += $dayEarn;
         ?>
