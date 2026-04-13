@@ -221,19 +221,22 @@ try {
         }
     } else {
         $cityHits = [];
-        if ($userCityId > 0) {
+        if ($userCityId > 0 && empty($cleanQuery)) {
             $r1 = meiliSearch($cleanQuery, [
                 'filter' => ($mf ? "$mf AND " : '') . "city_id = $userCityId AND country_code = '$countryCode'",
                 'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
             ]);
             $cityHits = array_column($r1['hits'] ?? [], 'id');
         }
-        $cityEx = $userCityId > 0 ? " AND city_id != $userCityId" : "";
-        $r2 = meiliSearch($cleanQuery, [
+        $cityEx = ($userCityId > 0 && empty($cleanQuery)) ? " AND city_id != $userCityId" : "";
+        $r2opts = [
             'filter' => ($mf ? "$mf AND " : '') . "country_code = '$countryCode'$cityEx",
             'limit'  => $perPage, 'offset' => $offset,
-            'sort'   => ['verified:desc','rating:desc','views:desc'],
-        ]);
+        ];
+        if (empty($cleanQuery)) {
+            $r2opts['sort'] = ['verified:desc','rating:desc','views:desc'];
+        }
+        $r2 = meiliSearch($cleanQuery, $r2opts);
         if (isset($r2['hits'])) {
             $countryHits = array_column($r2['hits'], 'id');
             $meiliIds    = array_unique(array_merge($cityHits, $countryHits));
