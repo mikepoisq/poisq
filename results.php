@@ -258,16 +258,9 @@ try {
         ]);
         $meiliIds3 = array_column($r4['hits'] ?? [], 'id');
     }
-    // Если в своей стране 0 результатов — глобальные идут в основной список
+    // Если в своей стране 0 результатов — основной список пустой, похожее в своём блоке
     if ($meiliOk && count($meiliIds) === 0) {
-        if (!empty($meiliIds2)) {
-            $meiliIds   = $meiliIds2;
-            $meiliIds2  = [];
-        } elseif (!empty($meiliIds3)) {
-            $meiliIds   = $meiliIds3;
-            $meiliIds3  = [];
-        }
-        $totalCount = count($meiliIds);
+        $totalCount = 0;
     }
 } catch (Exception $e) {
     error_log('Meilisearch error: ' . $e->getMessage());
@@ -1169,9 +1162,9 @@ body {
 
     <div class="header-search">
       <div class="search-bar" style="cursor:pointer;position:relative;">
-        <label for="soInput" onclick="openSearchOverlay()" style="display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;">
+        <label for="soInput" onclick="openSearchOverlay()" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;overflow:hidden;">
           <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--text-light);stroke-width:2.5;fill:none;flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-          <span style="flex:1;font-size:15px;font-weight:500;color:<?php echo $searchQuery ? 'var(--text)' : 'var(--text-light)'; ?>">
+          <span style="flex:1;font-size:15px;font-weight:500;color:<?php echo $searchQuery ? 'var(--text)' : 'var(--text-light)'; ?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             <?php echo $searchQuery ? htmlspecialchars($searchQuery) : 'Поиск сервисов...'; ?>
           </span>
         </label>
