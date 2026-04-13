@@ -1492,7 +1492,64 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             document.getElementById('favLoginForm').style.display = 'none';
             document.getElementById('favRegisterForm').style.display = 'none';
             document.getElementById('favVerifyForm').style.display = 'none';
+            document.getElementById('favForgotForm').style.display = 'none';
             document.getElementById('favModalFooter').style.display = 'none';
+        }
+
+        function showFavForgotForm() {
+            document.getElementById('favChoice').style.display = 'none';
+            document.getElementById('favLoginForm').style.display = 'none';
+            document.getElementById('favRegisterForm').style.display = 'none';
+            document.getElementById('favVerifyForm').style.display = 'none';
+            document.getElementById('favForgotForm').style.display = 'block';
+            document.getElementById('favForgotError').style.display = 'none';
+            document.getElementById('favForgotSuccess').style.display = 'none';
+            document.getElementById('favForgotEmailField').style.display = 'block';
+            const footer = document.getElementById('favModalFooter');
+            footer.style.display = 'block';
+            const btn = document.getElementById('favLoginBtn');
+            btn.textContent = 'Отправить инструкцию';
+            btn.onclick = submitFavForgotPassword;
+            setTimeout(() => document.getElementById('favForgotEmail').focus(), 100);
+        }
+
+        async function submitFavForgotPassword() {
+            const email  = document.getElementById('favForgotEmail').value.trim();
+            const errBox = document.getElementById('favForgotError');
+            const okBox  = document.getElementById('favForgotSuccess');
+            const btn    = document.getElementById('favLoginBtn');
+
+            errBox.style.display = 'none';
+            okBox.style.display = 'none';
+
+            if (!email) {
+                errBox.textContent = 'Введите email';
+                errBox.style.display = 'block'; return;
+            }
+
+            btn.textContent = 'Отправляем…'; btn.disabled = true;
+            try {
+                const fd = new FormData();
+                fd.append('email', email);
+                const res  = await fetch('/api/forgot-password.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('favForgotEmailField').style.display = 'none';
+                    okBox.textContent = 'Инструкция отправлена на ' + email + '. Проверьте почту.';
+                    okBox.style.display = 'block';
+                    btn.textContent = 'Отправить ещё раз';
+                    btn.onclick = () => { document.getElementById('favForgotEmailField').style.display='block'; okBox.style.display='none'; btn.textContent='Отправить инструкцию'; btn.onclick=submitFavForgotPassword; };
+                } else {
+                    errBox.textContent = data.error || 'Ошибка. Попробуйте ещё раз.';
+                    errBox.style.display = 'block';
+                    btn.textContent = 'Отправить инструкцию';
+                }
+            } catch(e) {
+                errBox.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+                errBox.style.display = 'block';
+                btn.textContent = 'Отправить инструкцию';
+            }
+            btn.disabled = false;
         }
 
         function showFavLoginForm() {
@@ -1946,10 +2003,67 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             document.getElementById('authLoginForm').style.display = 'none';
             document.getElementById('authRegisterForm').style.display = 'none';
             document.getElementById('authVerifyForm').style.display = 'none';
+            document.getElementById('authForgotForm').style.display = 'none';
             document.getElementById('reviewAuthFooter').style.display = 'none';
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
+        }
+
+        function showForgotForm() {
+            document.getElementById('authChoice').style.display = 'none';
+            document.getElementById('authLoginForm').style.display = 'none';
+            document.getElementById('authRegisterForm').style.display = 'none';
+            document.getElementById('authVerifyForm').style.display = 'none';
+            document.getElementById('authForgotForm').style.display = 'block';
+            document.getElementById('forgotError').style.display = 'none';
+            document.getElementById('forgotSuccess').style.display = 'none';
+            document.getElementById('forgotEmailField').style.display = 'block';
+            const reviewFooter = document.getElementById('reviewAuthFooter');
+            reviewFooter.style.display = 'block';
+            const btn = document.getElementById('btnLoginSubmit');
+            btn.textContent = 'Отправить инструкцию';
+            btn.onclick = submitForgotPassword;
+            setTimeout(() => document.getElementById('forgotEmail').focus(), 100);
+        }
+
+        async function submitForgotPassword() {
+            const email  = document.getElementById('forgotEmail').value.trim();
+            const errBox = document.getElementById('forgotError');
+            const okBox  = document.getElementById('forgotSuccess');
+            const btn    = document.getElementById('btnLoginSubmit');
+
+            errBox.style.display = 'none';
+            okBox.style.display = 'none';
+
+            if (!email) {
+                errBox.textContent = 'Введите email';
+                errBox.style.display = 'block'; return;
+            }
+
+            btn.textContent = 'Отправляем…'; btn.disabled = true;
+            try {
+                const fd = new FormData();
+                fd.append('email', email);
+                const res  = await fetch('/api/forgot-password.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('forgotEmailField').style.display = 'none';
+                    okBox.textContent = 'Инструкция отправлена на ' + email + '. Проверьте почту.';
+                    okBox.style.display = 'block';
+                    btn.textContent = 'Отправить ещё раз';
+                    btn.onclick = () => { document.getElementById('forgotEmailField').style.display='block'; okBox.style.display='none'; btn.textContent='Отправить инструкцию'; btn.onclick=submitForgotPassword; };
+                } else {
+                    errBox.textContent = data.error || 'Ошибка. Попробуйте ещё раз.';
+                    errBox.style.display = 'block';
+                    btn.textContent = 'Отправить инструкцию';
+                }
+            } catch(e) {
+                errBox.textContent = 'Ошибка соединения. Попробуйте ещё раз.';
+                errBox.style.display = 'block';
+                btn.textContent = 'Отправить инструкцию';
+            }
+            btn.disabled = false;
         }
 
         async function submitLogin() {
@@ -2188,7 +2302,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             <div class="login-field">
               <label>Пароль</label>
               <input type="password" id="loginPassword" placeholder="Введите пароль" autocomplete="current-password">
-              <a href="forgot-password.php" class="login-forgot">Забыли пароль?</a>
+              <a href="#" class="login-forgot" onclick="showForgotForm();return false;">Забыли пароль?</a>
             </div>
           </div>
 
@@ -2225,6 +2339,24 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
               <input type="text" id="verifyCode" placeholder="000000" maxlength="6"
                      style="font-size:28px;text-align:center;letter-spacing:10px;font-weight:700;"
                      inputmode="numeric" pattern="[0-9]*">
+            </div>
+          </div>
+
+          <!-- Восстановление пароля (скрыто по умолчанию) -->
+          <div id="authForgotForm" style="display:none">
+            <button class="btn-back-choice" onclick="showLoginForm()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Назад
+            </button>
+            <div class="login-form-title">Восстановление пароля</div>
+            <div style="font-size:13px;color:var(--text-secondary,#6B7280);margin-bottom:16px;line-height:1.5;">
+              Введите email — мы отправим ссылку для сброса пароля
+            </div>
+            <div id="forgotError" class="login-error" style="display:none"></div>
+            <div id="forgotSuccess" style="display:none;background:#F0FDF4;color:#10B981;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;"></div>
+            <div class="login-field" id="forgotEmailField">
+              <label>Email</label>
+              <input type="email" id="forgotEmail" placeholder="example@mail.com" autocomplete="email">
             </div>
           </div>
 
@@ -2282,7 +2414,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                 <div class="login-field">
                     <label>Пароль</label>
                     <input type="password" id="favPassword" placeholder="Введите пароль" autocomplete="current-password">
-                    <a href="forgot-password.php" class="login-forgot">Забыли пароль?</a>
+                    <a href="#" class="login-forgot" onclick="showFavForgotForm();return false;">Забыли пароль?</a>
                 </div>
             </div>
 
@@ -2319,6 +2451,24 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                     <input type="text" id="favVerifyCode" placeholder="000000" maxlength="6"
                            style="font-size:28px;text-align:center;letter-spacing:10px;font-weight:700;"
                            inputmode="numeric" pattern="[0-9]*">
+                </div>
+            </div>
+
+            <!-- Восстановление пароля избранного (скрыто по умолчанию) -->
+            <div id="favForgotForm" style="display:none">
+                <button class="btn-back-choice" onclick="showFavLoginForm()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Назад
+                </button>
+                <div class="login-form-title">Восстановление пароля</div>
+                <div style="font-size:13px;color:var(--text-secondary,#6B7280);margin-bottom:16px;line-height:1.5;">
+                    Введите email — мы отправим ссылку для сброса пароля
+                </div>
+                <div id="favForgotError" class="login-error" style="display:none"></div>
+                <div id="favForgotSuccess" style="display:none;background:#F0FDF4;color:#10B981;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;"></div>
+                <div class="login-field" id="favForgotEmailField">
+                    <label>Email</label>
+                    <input type="email" id="favForgotEmail" placeholder="example@mail.com" autocomplete="email">
                 </div>
             </div>
 
