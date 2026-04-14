@@ -305,10 +305,17 @@ ob_start();
                 <?php endif; ?>
             </div>
         </div>
+        <!-- Прогресс загрузки -->
+        <div id="uploadProgress" style="display:none;margin-bottom:12px;">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">📤 Загрузка фото...</div>
+            <div style="background:var(--border);border-radius:99px;height:6px;overflow:hidden;">
+                <div id="uploadProgressBar" style="height:100%;background:var(--primary);width:0%;transition:width 0.3s;border-radius:99px;"></div>
+            </div>
+        </div>
         <!-- Кнопки -->
         <div style="display:flex;gap:10px;">
             <a href="/mod/services.php" class="btn btn-secondary">← Назад</a>
-            <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">
+            <button type="submit" id="submitBtn" class="btn btn-primary" style="flex:1;justify-content:center;">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="white" fill="none" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 Сохранить изменения
             </button>
@@ -434,6 +441,38 @@ ob_start();
 .photo-new-remove:hover{background:var(--danger);}
 </style>
 <script>
+// Прогресс бар при загрузке
+document.getElementById('mainEditForm').addEventListener('submit', function(e) {
+    var fileInput = document.getElementById('newPhotoInput');
+    if (!fileInput || !fileInput.files.length) return;
+    e.preventDefault();
+    var form = this;
+    var btn = document.getElementById('submitBtn');
+    var progress = document.getElementById('uploadProgress');
+    var bar = document.getElementById('uploadProgressBar');
+    btn.disabled = true;
+    btn.textContent = 'Сохранение...';
+    progress.style.display = 'block';
+    var xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+            var pct = Math.round(e.loaded / e.total * 100);
+            bar.style.width = pct + '%';
+        }
+    });
+    xhr.addEventListener('load', function() {
+        window.location.reload();
+    });
+    xhr.addEventListener('error', function() {
+        btn.disabled = false;
+        btn.textContent = 'Сохранить изменения';
+        progress.style.display = 'none';
+        alert('Ошибка загрузки');
+    });
+    xhr.open('POST', form.action || window.location.href);
+    xhr.send(new FormData(form));
+});
+
 (function initPhotoDelete() {
     var btns = document.querySelectorAll('.photo-edit-remove');
     if (!btns.length) { setTimeout(initPhotoDelete, 100); return; }

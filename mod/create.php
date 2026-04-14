@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tmp  = $_FILES['photos']['tmp_name'][$i];
                 $info = @getimagesize($tmp);
                 if (!$info || !in_array($info['mime'], ['image/jpeg','image/png','image/webp'])) continue;
-                if ($_FILES['photos']['size'][$i] > 5 * 1024 * 1024) continue;
+                if ($_FILES['photos']['size'][$i] > 10 * 1024 * 1024) continue;
                 $fileName   = uniqid('photo_') . '.jpg';
                 $targetPath = $uploadDir . $fileName;
                 $src    = imagecreatefromstring(file_get_contents($tmp));
