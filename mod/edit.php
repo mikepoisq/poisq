@@ -41,14 +41,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name)) {
         $error = 'Название не может быть пустым';
     } else {
+        // Обработка фото
+        $currentPhotos = json_decode($service['photo'] ?? '[]', true) ?: [];
+        $deletePhotos = $_POST['delete_photos'] ?? [];
+        if (!empty($deletePhotos)) {
+            foreach ($deletePhotos as $dp) {
+                $filePath = __DIR__ . '/../' . ltrim($dp, '/');
+                if (file_exists($filePath)) @unlink($filePath);
+            }
+            $currentPhotos = array_values(array_filter($currentPhotos, fn($p) => !in_array($p, $deletePhotos)));
+        }
+        if (!empty($_FILES['photos']['name'][0])) {
+            $uploadDir = __DIR__ . '/../uploads/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+            $count = min(count($_FILES['photos']['name']), 5 - count($currentPhotos));
+            for ($i = 0; $i < $count; $i++) {
+                if ($_FILES['photos']['error'][$i] !== UPLOAD_ERR_OK) continue;
+                $tmp  = $_FILES['photos']['tmp_name'][$i];
+                $info = @getimagesize($tmp);
+                if (!$info || !in_array($info['mime'], ['image/jpeg','image/png','image/webp'])) continue;
+                if ($_FILES['photos']['size'][$i] > 10 * 1024 * 1024) continue;
+                $fileName   = uniqid('photo_') . '.jpg';
+                $targetPath = $uploadDir . $fileName;
+                $src = imagecreatefromstring(file_get_contents($tmp));
+                $width = imagesx($src); $height = imagesy($src);
+                if ($width > 800) {
+                    $ratio = 800 / $width;
+                    $dst   = imagecreatetruecolor(800, (int)($height * $ratio));
+                    imagecopyresampled($dst, $src, 0, 0, 0, 0, 800, (int)($height * $ratio), $width, $height);
+                    imagejpeg($dst, $targetPath, 85);
+                    imagedestroy($dst);
+                } else {
+                    imagejpeg($src, $targetPath, 85);
+                }
+                imagedestroy($src);
+                $currentPhotos[] = '/uploads/' . $fileName;
+            }
+        }
+        $photoJson = json_encode(array_values($currentPhotos), JSON_UNESCAPED_UNICODE);
+
         $pdo->prepare("
             UPDATE services SET
                 name=?, description=?, phone=?, whatsapp=?, email=?,
                 website=?, address=?, status=?, is_visible=?,
-                moderation_comment=?, updated_at=NOW()
+                moderation_comment=?, photo=?, updated_at=NOW()
             WHERE id=?
         ")->execute([$name, $description, $phone, $whatsapp, $email,
-                     $website, $address, $newStatus, $is_visible, $mod_comment, $serviceId]);
+                     $website, $address, $newStatus, $is_visible, $mod_comment, $photoJson, $serviceId]);
 
         if (file_exists(__DIR__ . '/../config/meilisearch.php')) {
             require_once __DIR__ . '/../config/meilisearch.php';
@@ -121,7 +160,7 @@ ob_start();
 
     <!-- Левая колонка: форма -->
     <div>
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data" id="mainEditForm">
 
         <!-- Статус -->
         <div class="panel" style="margin-bottom:16px;">
@@ -238,6 +277,34 @@ ob_start();
             </div>
         </div>
 
+        <!-- Фото -->
+        <div class="panel">
+            <div class="panel-header"><div class="panel-title">Фотографии (<?php echo count($photos); ?>/5)</div></div>
+            <div style="padding:14px;">
+                <?php if (!empty($photos)): ?>
+                <div id="currentPhotos" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+                    <?php foreach ($photos as $i => $p): ?>
+                    <div class="photo-edit-item">
+                        <img src="<?php echo htmlspecialchars($p); ?>" alt="" onerror="this.parentElement.style.opacity='0.3'">
+                        <?php if ($i === 0): ?><div class="photo-edit-badge">Главное</div><?php endif; ?>
+                        <button type="button" class="photo-edit-remove" data-photo="<?php echo htmlspecialchars($p); ?>" title="Удалить фото">✕</button>
+                        <input type="hidden" name="keep_photos[]" value="<?php echo htmlspecialchars($p); ?>">
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                <?php if (count($photos) < 5): ?>
+                <div onclick="document.getElementById('newPhotoInput').click()"
+                     style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;color:var(--text-secondary);font-size:13px;"
+                     onmouseenter="this.style.borderColor='var(--primary)'"
+                     onmouseleave="this.style.borderColor='var(--border)'">
+                    📷 Нажмите чтобы добавить фото (макс. <?php echo 5 - count($photos); ?> шт., до 10 МБ каждое)
+                </div>
+                <input type="file" id="newPhotoInput" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleNewPhotos(event)">
+                <div id="newPhotoPreview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;"></div>
+                <?php endif; ?>
+            </div>
+        </div>
         <!-- Кнопки -->
         <div style="display:flex;gap:10px;">
             <a href="/mod/services.php" class="btn btn-secondary">← Назад</a>
@@ -351,27 +418,73 @@ ob_start();
         </div>
         <?php endif; ?>
 
-        <!-- Фото -->
-        <?php if (!empty($photos)): ?>
-        <div class="panel">
-            <div class="panel-header"><div class="panel-title">Фотографии (<?php echo count($photos); ?>)</div></div>
-            <div style="padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-                <?php foreach ($photos as $i => $p): ?>
-                <div style="position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);">
-                    <img src="<?php echo htmlspecialchars($p); ?>" alt=""
-                         style="width:100%;height:100%;object-fit:cover;"
-                         onerror="this.parentElement.style.display='none'">
-                    <?php if ($i === 0): ?>
-                    <div style="position:absolute;top:4px;left:4px;background:var(--primary);color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;">Главное</div>
-                    <?php endif; ?>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
 </div>
 
+<style>
+.photo-edit-item{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;border:2px solid var(--border);background:var(--bg);}
+.photo-edit-item img{width:100%;height:100%;object-fit:cover;}
+.photo-edit-item.marked-delete{opacity:0.3;border-color:var(--danger);}
+.photo-edit-badge{position:absolute;top:4px;left:4px;background:var(--primary);color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;}
+.photo-edit-remove{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:white;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.photo-edit-remove:hover{background:var(--danger);}
+.photo-new-item{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;border:2px solid var(--success);background:var(--bg);}
+.photo-new-item img{width:100%;height:100%;object-fit:cover;}
+.photo-new-remove{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:white;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.photo-new-remove:hover{background:var(--danger);}
+</style>
+<script>
+(function initPhotoDelete() {
+    var btns = document.querySelectorAll('.photo-edit-remove');
+    if (!btns.length) { setTimeout(initPhotoDelete, 100); return; }
+    btns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var photoPath = btn.getAttribute('data-photo');
+            var item = btn.closest('.photo-edit-item');
+            var keepInput = item.querySelector('input[name="keep_photos[]"]');
+            if (item.classList.contains('marked-delete')) {
+                item.classList.remove('marked-delete');
+                btn.textContent = '✕';
+                if (keepInput) keepInput.disabled = false;
+                var form = document.getElementById('mainEditForm');
+                form.querySelectorAll('input[name="delete_photos[]"]').forEach(function(inp) {
+                    if (inp.value === photoPath) inp.remove();
+                });
+            } else {
+                item.classList.add('marked-delete');
+                btn.textContent = '↩';
+                if (keepInput) keepInput.disabled = true;
+                var delInput = document.createElement('input');
+                delInput.type = 'hidden';
+                delInput.name = 'delete_photos[]';
+                delInput.value = photoPath;
+                document.getElementById('mainEditForm').appendChild(delInput);
+            }
+        });
+    });
+})();
+function handleNewPhotos(e) {
+    var preview = document.getElementById('newPhotoPreview');
+    Array.from(e.target.files).forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var item = document.createElement('div');
+            item.className = 'photo-new-item';
+            var img = document.createElement('img');
+            img.src = ev.target.result;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'photo-new-remove';
+            btn.textContent = '✕';
+            btn.onclick = function() { item.remove(); };
+            item.appendChild(img);
+            item.appendChild(btn);
+            preview.appendChild(item);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+</script>
 <script>
 const adminPassword = '<?php echo addslashes($service["admin_password"] ?? ""); ?>';
 function togglePass() {
