@@ -288,10 +288,13 @@ ob_start();
 
         <!-- Созвон при создании -->
         <div class="panel" style="margin-bottom:16px;" id="callBlockCreate">
-            <div class="panel-header"><div class="panel-title">📞 Созвон с сервисом</div></div>
+            <div class="panel-header"><div class="panel-title">📞 Созвон с сервисом <span style="color:#EF4444;">*</span></div></div>
             <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+                <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;">
+                    ⚠️ <b>Обязательное поле.</b> Если оставить статус «Не звонили» — сервис не будет учитываться в общей статистике созвонов.
+                </div>
                 <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Статус созвона</label>
+                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Статус созвона <span style="color:#EF4444;">*</span></label>
                     <select name="call_status" id="createCallStatus" class="form-control form-select" onchange="onCreateCallChange()">
                         <option value="not_called">— Не звонили —</option>
                         <option value="no_answer">Не дозвонились</option>
