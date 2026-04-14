@@ -150,6 +150,13 @@ body.dark-theme .badge-green, body.dark-theme .stat-card.green .stat-card-value 
 body.dark-theme .badge-yellow, body.dark-theme .stat-card.yellow .stat-card-value { color: var(--warning) !important; }
 body.dark-theme .badge-red { color: var(--danger) !important; }
 body.dark-theme .stat-card.blue .stat-card-value { color: var(--primary) !important; }
+/* Пудровые фоны блоков */
+.panel-lavender { background: #EDE7FF !important; }
+.panel-blue     { background: #E8F2FF !important; }
+.panel-pink     { background: #FFE8F0 !important; }
+body.dark-theme .panel-lavender { background: #2D2040 !important; }
+body.dark-theme .panel-blue     { background: #1A2535 !important; }
+body.dark-theme .panel-pink     { background: #2D1A20 !important; }
 </style>
 </head>
 <body>

@@ -178,11 +178,11 @@ ob_start();
 <div style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:var(--radius);padding:24px;margin-bottom:20px;">
     <div style="font-size:18px;font-weight:800;color:#065F46;margin-bottom:16px;">✅ Сервис успешно создан!</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-        <div style="background:white;border-radius:var(--radius-sm);padding:14px;">
+        <div style="background:var(--bg-white);border-radius:var(--radius-sm);padding:14px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:6px;">Логин для входа</div>
             <div style="font-size:16px;font-weight:700;font-family:monospace;color:#1F2937;"><?php echo ADMIN_USER_EMAIL; ?></div>
         </div>
-        <div style="background:white;border-radius:var(--radius-sm);padding:14px;">
+        <div style="background:var(--bg-white);border-radius:var(--radius-sm);padding:14px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:6px;">Пароль (сохраните!)</div>
             <div style="font-size:20px;font-weight:800;font-family:monospace;color:var(--primary);letter-spacing:2px;"><?php echo htmlspecialchars($createdService['password']); ?></div>
         </div>
@@ -205,247 +205,24 @@ ob_start();
 </div>
 <?php endif; ?>
 
-<form method="POST" id="createForm" enctype="multipart/form-data">
-<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
-
-    <!-- Левая колонка -->
-    <div>
-
-        <!-- Категория -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header"><div class="panel-title">📋 Категория</div></div>
-            <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Категория *</label>
-                    <select name="category" id="categorySelect" class="form-control form-select" onchange="updateSubcategories()" required>
-                        <option value="">Выберите категорию</option>
-                        <?php foreach ($categories as $key => $cat): ?>
-                        <option value="<?php echo $key; ?>"><?php echo $cat['name']; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Подкатегория</label>
-                    <select name="subcategory" id="subcategorySelect" class="form-control form-select" disabled>
-                        <option value="">Сначала выберите категорию</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Основная информация -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header"><div class="panel-title">ℹ️ Основная информация</div></div>
-            <div style="padding:16px;display:flex;flex-direction:column;gap:14px;">
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Название сервиса *</label>
-                    <input type="text" name="name" class="form-control" placeholder="Например: Доктор Петрова Анна" required maxlength="255">
-                </div>
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Описание</label>
-                    <textarea name="description" class="form-control" rows="5" placeholder="Описание сервиса..."></textarea>
-                </div>
-            </div>
-        </div>
-
-        <!-- Контакты -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header"><div class="panel-title">📞 Контакты</div></div>
-            <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Телефон</label>
-                    <input type="tel" name="phone" class="form-control" placeholder="+33 6 12 34 56 78">
-                </div>
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">WhatsApp</label>
-                    <input type="tel" name="whatsapp" class="form-control" placeholder="+33 6 12 34 56 78">
-                </div>
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Email</label>
-                    <input type="email" name="email" class="form-control" placeholder="contact@example.com">
-                </div>
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Сайт</label>
-                    <input type="url" name="website" class="form-control" placeholder="https://example.com">
-                </div>
-                <div style="grid-column:1/-1;">
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Адрес</label>
-                    <input type="text" name="address" class="form-control" placeholder="Улица, дом, город">
-                </div>
-            </div>
-        </div>
-
-        <!-- Часы работы -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header"><div class="panel-title">🕐 Часы работы</div></div>
-            <div style="padding:16px;">
-                <div id="hoursContainer">
-                <?php
-                $days = ['mon'=>'Понедельник','tue'=>'Вторник','wed'=>'Среда','thu'=>'Четверг','fri'=>'Пятница','sat'=>'Суббота','sun'=>'Воскресенье'];
-                $hoursData = $hoursData ?? [];
-                foreach ($days as $key => $dayName):
-                    $dayHours = $hoursData[$key] ?? [];
-                ?>
-                <div class="hours-row" data-day="<?php echo $key; ?>">
-                    <div class="hours-day"><?php echo $dayName; ?></div>
-                    <div class="hours-main-row">
-                        <div class="hours-time">
-                            <input type="text" name="hours[<?php echo $key; ?>][open]" class="hours-open" placeholder="09:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['open'] ?? ''); ?>">
-                            <span>—</span>
-                            <input type="text" name="hours[<?php echo $key; ?>][close]" class="hours-close" placeholder="18:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['close'] ?? ''); ?>">
-                        </div>
-                        <div class="hours-flags">
-                            <label class="hours-flag-btn <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'active' : ''; ?>" title="Круглосуточно">
-                                <input type="checkbox" class="hours-24h-checkbox" onchange="toggle24h(this)" <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'checked' : ''; ?>>
-                                <span>24ч</span>
-                            </label>
-                            <label class="hours-closed">
-                                <input type="checkbox" class="hours-closed-checkbox" onchange="toggleHoursRow(this)" <?php echo empty($dayHours['open'])&&empty($dayHours['close']) ? 'checked' : ''; ?>>
-                                Вых.
-                            </label>
-                        </div>
-                    </div>
-                    <?php if (!empty($dayHours['break_start'])): ?>
-                    <div class="hours-break-row" style="display:flex;">
-                    <?php else: ?>
-                    <div class="hours-break-row" style="display:none;">
-                    <?php endif; ?>
-                        <span class="hours-break-label">Перерыв:</span>
-                        <div class="hours-time">
-                            <input type="text" name="hours[<?php echo $key; ?>][break_start]" class="hours-break-start" placeholder="13:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_start'] ?? ''); ?>">
-                            <span>—</span>
-                            <input type="text" name="hours[<?php echo $key; ?>][break_end]" class="hours-break-end" placeholder="14:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_end'] ?? ''); ?>">
-                        </div>
-                        <button type="button" class="hours-break-remove" onclick="removeBreak(this)" title="Убрать перерыв">✕</button>
-                    </div>
-                    <button type="button" class="btn-add-break" onclick="addBreak(this)" <?php echo !empty($dayHours['break_start']) ? 'style="display:none;"' : ''; ?>>+ перерыв</button>
-                </div>
-                <?php endforeach; ?>
-                </div>
-                <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-                    <button type="button" class="btn-copy-hours" onclick="copyHoursToAll()">📋 Скопировать на все дни</button>
-                    <button type="button" class="btn-copy-hours" onclick="setAll24h()" style="background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8;">🕐 Все круглосуточно</button>
-                </div>
-            </div>
-        </div>
-        <!-- Фото -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header"><div class="panel-title">📷 Фотографии</div></div>
-            <div style="padding:16px;">
-                <input type="file" id="photoInput" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handlePhotoUpload(event)">
-                <div id="photoUploadZone" onclick="document.getElementById('photoInput').click()"
-                     style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;transition:all .15s;"
-                     onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
-                    <svg style="width:36px;height:36px;margin:0 auto 10px;display:block;stroke:var(--text-light);fill:none;stroke-width:2;" viewBox="0 0 24 24">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    <div style="font-size:14px;color:var(--text-secondary);margin-bottom:4px;">Нажмите для загрузки фото</div>
-                    <div style="font-size:12px;color:var(--text-light);">До 5 фото · JPG/PNG/WebP · макс. 5MB каждое</div>
-                </div>
-                <div id="photoPreview" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px;"></div>
-            </div>
-        </div>
-
-        <!-- Созвон при создании -->
-        <div class="panel" style="margin-bottom:16px;" id="callBlockCreate">
-            <div class="panel-header"><div class="panel-title">📞 Созвон с сервисом <span style="color:#EF4444;">*</span></div></div>
-            <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
-                <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;">
-                    ⚠️ <b>Обязательное поле.</b> Если оставить статус «Не звонили» — сервис не будет учитываться в общей статистике созвонов.
-                </div>
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Статус созвона <span style="color:#EF4444;">*</span></label>
-                    <select name="call_status" id="createCallStatus" class="form-control form-select" onchange="onCreateCallChange()">
-                        <option value="not_called">— Не звонили —</option>
-                        <option value="no_answer">Не дозвонились</option>
-                        <option value="reached">✅ Дозвонились</option>
-                        <option value="no_number">Нет номера</option>
-                        <option value="other">Другое...</option>
-                    </select>
-                </div>
-                <div id="createCallNoteBlock" style="display:none;">
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Заметка о созвоне</label>
-                    <textarea name="call_note" class="form-control" rows="2" placeholder="Комментарий..."></textarea>
-                </div>
-            </div>
-        </div>
-
-        <!-- Услуги -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header">
-                <div class="panel-title">💰 Услуги и цены</div>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="addService()">+ Добавить</button>
-            </div>
-            <div style="padding:16px;">
-                <div id="servicesList">
-                    <div class="service-row" style="display:flex;gap:8px;margin-bottom:8px;">
-                        <input type="text" name="services[0][name]" class="form-control" placeholder="Название услуги" style="flex:1;">
-                        <input type="number" name="services[0][price]" class="form-control" placeholder="Цена €" style="width:100px;" min="0">
-                        <button type="button" onclick="removeService(this)" class="btn btn-danger btn-sm">✕</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Языки -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header"><div class="panel-title">🗣 Языки</div></div>
-            <div style="padding:16px;display:flex;flex-wrap:wrap;gap:10px;">
-                <?php foreach (['ru'=>'🇷🇺 Русский','fr'=>'🇫🇷 Français','en'=>'🇬🇧 English','de'=>'🇩🇪 Deutsch','es'=>'🇪🇸 Español','it'=>'🇮🇹 Italiano'] as $code => $label): ?>
-                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);">
-                    <input type="checkbox" name="languages[]" value="<?php echo $code; ?>" <?php echo $code==='ru'?'checked':''; ?> style="accent-color:var(--primary);">
-                    <?php echo $label; ?>
-                </label>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Правая колонка -->
-    <div>
-
-        <!-- Страна и город -->
-        <div class="panel" style="margin-bottom:16px;">
-            <div class="panel-header"><div class="panel-title">📍 Страна и город</div></div>
-            <div style="padding:16px;display:flex;flex-direction:column;gap:14px;">
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Страна *</label>
-                    <select name="country" id="countrySelect" class="form-control form-select" onchange="loadCities(this.value)" required>
-                        <option value="">Выберите страну</option>
-                        <?php foreach ($countryNames as $code => $name): ?>
-                        <option value="<?php echo $code; ?>"><?php echo $name; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Город <span style="color:#EF4444;">*</span></label>
-                    <select name="city_id" id="citySelect" class="form-control form-select" disabled>
-                        <option value="">Сначала выберите страну</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Инфо об аккаунте -->
-        <div style="background:var(--primary-light);border:1px solid #BFDBFE;border-radius:var(--radius);padding:16px;margin-bottom:16px;">
-            <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:10px;">👑 Сервис администратора</div>
-            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-                Сервис будет привязан к аккаунту:<br>
-                <strong style="color:var(--text);"><?php echo ADMIN_USER_EMAIL; ?></strong><br><br>
-                Для каждого сервиса генерируется уникальный пароль. Сохраните его после создания — он отображается только один раз.
-            </div>
-        </div>
-
-        <!-- Кнопка -->
-        <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Создать и опубликовать
-        </button>
-
-    </div>
-</div>
 <style>
+/* ===== АККОРДЕОН ===== */
+.accordion-panel { border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 12px; overflow: hidden; }
+.accordion-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px; cursor: pointer; user-select: none;
+    background: var(--bg-secondary); border-bottom: 1px solid transparent;
+    transition: background .15s;
+}
+.accordion-header:hover { background: var(--bg); }
+.accordion-header.open { border-bottom-color: var(--border); }
+.accordion-title { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.accordion-arrow { font-size: 12px; color: var(--text-secondary); transition: transform .2s; }
+.accordion-header.open .accordion-arrow { transform: rotate(180deg); }
+.accordion-body { display: none; padding: 16px; }
+.accordion-body.open { display: block; }
+
+/* ===== ЧАСЫ ===== */
 .hours-row{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;padding:10px 0;border-bottom:1px solid var(--border-light);}
 .hours-row:last-child{border-bottom:none;margin-bottom:0;}
 .hours-day{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
@@ -464,8 +241,308 @@ ob_start();
 .hours-row.is-24h .hours-main-row .hours-time input{opacity:0.4;pointer-events:none;}
 .hours-closed{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;}
 .btn-copy-hours{font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;color:var(--text-secondary);}
+
+/* ===== ФОТО ===== */
+.photo-btn-compact {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 14px; border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm); cursor: pointer;
+    font-size: 13px; color: var(--text-secondary);
+    background: var(--bg-secondary); transition: all .15s;
+}
+.photo-btn-compact:hover { border-color: var(--primary); color: var(--primary); background: #F5F0FF; }
+.photo-preview-strip { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.photo-item-thumb { position: relative; width: 52px; height: 52px; border-radius: 6px; overflow: hidden; border: 2px solid var(--border); background: var(--bg); flex-shrink: 0; }
+.photo-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-item-thumb:first-child { border-color: var(--primary); }
+.photo-item-thumb:first-child::after { content:"★"; position:absolute; top:1px; left:2px; color:var(--primary); font-size:9px; font-weight:700; }
+.photo-item-remove { position:absolute; top:1px; right:1px; width:16px; height:16px; border-radius:50%; background:rgba(0,0,0,.55); color:white; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:9px; line-height:1; }
+.photo-item-remove:hover { background: var(--danger); }
+
+/* ===== ЯЗЫКИ компактные ===== */
+.lang-check-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; padding: 4px 9px;
+    border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; color: var(--text-secondary);
+    transition: all .12s; white-space: nowrap;
+}
+.lang-check-label input { display: none; }
+.lang-check-label:has(input:checked) { border-color: var(--primary); background: #EFF6FF; color: var(--primary); font-weight: 600; }
+
+/* Пудровые фоны блоков */
+.panel-lavender { background: #F5F0FF !important; }
+.panel-blue     { background: #F0F7FF !important; }
+.panel-pink     { background: #FFF0F5 !important; }
+.panel-white    { background: var(--bg-white) !important; }
+
+/* Тёмная тема */
+body.dark-theme .panel-lavender { background: #2D2040 !important; }
+body.dark-theme .panel-blue     { background: #1A2535 !important; }
+body.dark-theme .panel-pink     { background: #2D1A20 !important; }
 </style>
+
+<form method="POST" id="createForm" enctype="multipart/form-data">
+<div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;">
+
+    <!-- ===== ЛЕВАЯ КОЛОНКА ===== -->
+    <div>
+
+        <!-- Категория -->
+        <div class="panel panel-lavender" style="margin-bottom:12px;">
+            <div class="panel-header" style="background:transparent;border-bottom-color:#E8E0FF;">
+                <div class="panel-title">📋 Категория</div>
+            </div>
+            <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Категория *</label>
+                    <select name="category" id="categorySelect" class="form-control form-select" onchange="updateSubcategories()" required>
+                        <option value="">Выберите категорию</option>
+                        <?php foreach ($categories as $key => $cat): ?>
+                        <option value="<?php echo $key; ?>"><?php echo $cat['name']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Подкатегория</label>
+                    <select name="subcategory" id="subcategorySelect" class="form-control form-select" disabled>
+                        <option value="">Сначала выберите категорию</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Основная информация -->
+        <div class="panel panel-blue" style="margin-bottom:12px;">
+            <div class="panel-header" style="background:transparent;border-bottom-color:#DBEAFE;">
+                <div class="panel-title">ℹ️ Основная информация</div>
+            </div>
+            <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Название сервиса *</label>
+                    <input type="text" name="name" class="form-control" placeholder="Например: Доктор Петрова Анна" required maxlength="255">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Описание</label>
+                    <textarea name="description" class="form-control" rows="4" placeholder="Описание сервиса..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Контакты -->
+        <div class="panel" style="margin-bottom:12px;">
+            <div class="panel-header"><div class="panel-title">📞 Контакты</div></div>
+            <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Телефон</label>
+                    <input type="tel" name="phone" class="form-control" placeholder="+33 6 12 34 56 78">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">WhatsApp</label>
+                    <input type="tel" name="whatsapp" class="form-control" placeholder="+33 6 12 34 56 78">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="contact@example.com">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Сайт</label>
+                    <input type="url" name="website" class="form-control" placeholder="https://example.com">
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Адрес</label>
+                    <input type="text" name="address" class="form-control" placeholder="Улица, дом, город">
+                </div>
+            </div>
+        </div>
+
+        <!-- Созвон при создании -->
+        <div class="panel panel-pink" style="margin-bottom:12px;" id="callBlockCreate">
+            <div class="panel-header" style="background:transparent;border-bottom-color:#FECDD3;">
+                <div class="panel-title">📞 Созвон с сервисом <span style="color:#EF4444;">*</span></div>
+            </div>
+            <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+                <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;">
+                    ⚠️ <b>Обязательное поле.</b> Если оставить «Не звонили» — сервис не учитывается в статистике созвонов.
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Статус созвона <span style="color:#EF4444;">*</span></label>
+                    <select name="call_status" id="createCallStatus" class="form-control form-select" onchange="onCreateCallChange()">
+                        <option value="not_called">— Не звонили —</option>
+                        <option value="no_answer">Не дозвонились</option>
+                        <option value="reached">✅ Дозвонились</option>
+                        <option value="no_number">Нет номера</option>
+                        <option value="other">Другое...</option>
+                    </select>
+                </div>
+                <div id="createCallNoteBlock" style="display:none;">
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Заметка о созвоне</label>
+                    <textarea name="call_note" class="form-control" rows="2" placeholder="Комментарий..."></textarea>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /левая колонка -->
+
+    <!-- ===== ПРАВАЯ КОЛОНКА ===== -->
+    <div>
+
+        <!-- Страна и город -->
+        <div class="panel panel-lavender" style="margin-bottom:12px;">
+            <div class="panel-header" style="background:transparent;border-bottom-color:#E8E0FF;">
+                <div class="panel-title">📍 Страна и город</div>
+            </div>
+            <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Страна *</label>
+                    <select name="country" id="countrySelect" class="form-control form-select" onchange="loadCities(this.value)" required>
+                        <option value="">Выберите страну</option>
+                        <?php foreach ($countryNames as $code => $name): ?>
+                        <option value="<?php echo $code; ?>"><?php echo $name; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Город <span style="color:#EF4444;">*</span></label>
+                    <select name="city_id" id="citySelect" class="form-control form-select" disabled>
+                        <option value="">Сначала выберите страну</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Инфо об аккаунте -->
+        <div style="background:var(--primary-light);border:1px solid #BFDBFE;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;font-size:12px;">
+            <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">👑 Сервис администратора</div>
+            <div style="color:var(--text-secondary);line-height:1.55;">
+                Привязан к: <strong style="color:var(--text);"><?php echo ADMIN_USER_EMAIL; ?></strong><br>
+                Уникальный пароль генерируется при создании. Сохраните его — показывается один раз.
+            </div>
+        </div>
+
+        <!-- Фото (компактно) -->
+        <div class="panel" style="margin-bottom:12px;">
+            <div class="panel-header"><div class="panel-title">📷 Фото</div></div>
+            <div style="padding:12px 14px;">
+                <input type="file" id="photoInput" name="photos[]" multiple accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handlePhotoUpload(event)">
+                <label class="photo-btn-compact" onclick="document.getElementById('photoInput').click()">
+                    📷 Добавить фото <span style="font-size:11px;opacity:.7;">(до 5 шт.)</span>
+                </label>
+                <div id="photoPreview" class="photo-preview-strip"></div>
+            </div>
+        </div>
+
+        <!-- Языки (компактно) -->
+        <div class="panel" style="margin-bottom:12px;">
+            <div class="panel-header"><div class="panel-title">🗣 Языки</div></div>
+            <div style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px;">
+                <?php foreach (['ru'=>'🇷🇺 Рус','fr'=>'🇫🇷 FR','en'=>'🇬🇧 EN','de'=>'🇩🇪 DE','es'=>'🇪🇸 ES','it'=>'🇮🇹 IT'] as $code => $label): ?>
+                <label class="lang-check-label">
+                    <input type="checkbox" name="languages[]" value="<?php echo $code; ?>" <?php echo $code==='ru'?'checked':''; ?>>
+                    <?php echo $label; ?>
+                </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Кнопка создать -->
+        <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Создать и опубликовать
+        </button>
+
+    </div><!-- /правая колонка -->
+
+</div><!-- /grid -->
+
+<!-- ===== АККОРДЕОНЫ: на всю ширину ===== -->
+
+<!-- Часы работы -->
+<div class="accordion-panel" style="margin-top:4px;">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span class="accordion-title">🕐 Часы работы</span>
+        <span class="accordion-arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+        <div id="hoursContainer">
+        <?php
+        $days = ['mon'=>'Понедельник','tue'=>'Вторник','wed'=>'Среда','thu'=>'Четверг','fri'=>'Пятница','sat'=>'Суббота','sun'=>'Воскресенье'];
+        $hoursData = $hoursData ?? [];
+        foreach ($days as $key => $dayName):
+            $dayHours = $hoursData[$key] ?? [];
+        ?>
+        <div class="hours-row" data-day="<?php echo $key; ?>">
+            <div class="hours-day"><?php echo $dayName; ?></div>
+            <div class="hours-main-row">
+                <div class="hours-time">
+                    <input type="text" name="hours[<?php echo $key; ?>][open]" class="hours-open" placeholder="09:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['open'] ?? ''); ?>">
+                    <span>—</span>
+                    <input type="text" name="hours[<?php echo $key; ?>][close]" class="hours-close" placeholder="18:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['close'] ?? ''); ?>">
+                </div>
+                <div class="hours-flags">
+                    <label class="hours-flag-btn <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'active' : ''; ?>" title="Круглосуточно">
+                        <input type="checkbox" class="hours-24h-checkbox" onchange="toggle24h(this)" <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'checked' : ''; ?>>
+                        <span>24ч</span>
+                    </label>
+                    <label class="hours-closed">
+                        <input type="checkbox" class="hours-closed-checkbox" onchange="toggleHoursRow(this)" <?php echo empty($dayHours['open'])&&empty($dayHours['close']) ? 'checked' : ''; ?>>
+                        Вых.
+                    </label>
+                </div>
+            </div>
+            <?php if (!empty($dayHours['break_start'])): ?>
+            <div class="hours-break-row" style="display:flex;">
+            <?php else: ?>
+            <div class="hours-break-row" style="display:none;">
+            <?php endif; ?>
+                <span class="hours-break-label">Перерыв:</span>
+                <div class="hours-time">
+                    <input type="text" name="hours[<?php echo $key; ?>][break_start]" class="hours-break-start" placeholder="13:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_start'] ?? ''); ?>">
+                    <span>—</span>
+                    <input type="text" name="hours[<?php echo $key; ?>][break_end]" class="hours-break-end" placeholder="14:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_end'] ?? ''); ?>">
+                </div>
+                <button type="button" class="hours-break-remove" onclick="removeBreak(this)" title="Убрать перерыв">✕</button>
+            </div>
+            <button type="button" class="btn-add-break" onclick="addBreak(this)" <?php echo !empty($dayHours['break_start']) ? 'style="display:none;"' : ''; ?>>+ перерыв</button>
+        </div>
+        <?php endforeach; ?>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+            <button type="button" class="btn-copy-hours" onclick="copyHoursToAll()">📋 Скопировать на все дни</button>
+            <button type="button" class="btn-copy-hours" onclick="setAll24h()" style="background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8;">🕐 Все круглосуточно</button>
+        </div>
+    </div>
+</div>
+
+<!-- Услуги и цены -->
+<div class="accordion-panel">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span class="accordion-title">💰 Услуги и цены</span>
+        <span class="accordion-arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+        <div id="servicesList">
+            <div class="service-row" style="display:flex;gap:8px;margin-bottom:8px;">
+                <input type="text" name="services[0][name]" class="form-control" placeholder="Название услуги" style="flex:1;">
+                <input type="number" name="services[0][price]" class="form-control" placeholder="Цена €" style="width:100px;" min="0">
+                <button type="button" onclick="removeService(this)" class="btn btn-danger btn-sm">✕</button>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addService()" style="margin-top:4px;">+ Добавить услугу</button>
+    </div>
+</div>
+
+</form>
+
 <script>
+/* ===== Аккордеон ===== */
+function toggleAccordion(header) {
+    header.classList.toggle('open');
+    var body = header.nextElementSibling;
+    body.classList.toggle('open');
+}
+
+/* ===== Часы ===== */
 document.addEventListener('input', function(e) {
     if (!e.target.matches('.hours-open,.hours-close,.hours-break-start,.hours-break-end')) return;
     var v = e.target.value.replace(/[^0-9]/g, '');
@@ -537,18 +614,8 @@ document.querySelectorAll('.hours-row').forEach(function(row) {
     if (cc&&cc.checked) { row.classList.add('is-closed'); row.querySelector('.hours-open').disabled=true; row.querySelector('.hours-close').disabled=true; }
     if (cb&&cb.checked) { row.classList.add('is-24h'); cb.closest('.hours-flag-btn').classList.add('active'); row.querySelector('.hours-open').disabled=true; row.querySelector('.hours-close').disabled=true; }
 });
-</script>
-</form>
 
-<style>
-.photo-item-thumb{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;border:2px solid var(--border);background:var(--bg);}
-.photo-item-thumb img{width:100%;height:100%;object-fit:cover;}
-.photo-item-thumb:first-child{border-color:var(--primary);}
-.photo-item-thumb:first-child::after{content:"Главное";position:absolute;top:3px;left:3px;background:var(--primary);color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;}
-.photo-item-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;}
-.photo-item-remove:hover{background:var(--danger);}
-</style>
-<script>
+/* ===== Категории / города ===== */
 const categoriesData = <?php echo json_encode(array_map(fn($c) => $c['subs'], $categories)); ?>;
 const categoriesKeys = <?php echo json_encode(array_keys($categories)); ?>;
 
@@ -605,6 +672,7 @@ document.addEventListener('change', function(e) {
     }
 });
 
+/* ===== Фото ===== */
 let photoCount = 0;
 const maxPhotos = 5;
 
@@ -633,16 +701,18 @@ function removePhotoThumb(btn) {
     photoCount--;
 }
 
+/* ===== Созвон ===== */
 function onCreateCallChange() {
     const val = document.getElementById('createCallStatus').value;
     document.getElementById('createCallNoteBlock').style.display = val === 'other' ? '' : 'none';
     const block = document.getElementById('callBlockCreate');
     block.style.background = val === 'reached'   ? '#ECFDF5' :
-                              val === 'no_answer' ? '#FFFBEB' : '';
+                              val === 'no_answer' ? '#FFFBEB' : '#FFF0F5';
     block.style.borderColor = val === 'reached'   ? '#6EE7B7' :
                                val === 'no_answer' ? '#FDE68A' : '';
 }
 
+/* ===== Услуги ===== */
 let svcCount = 1;
 function addService() {
     if (svcCount >= 20) return;
