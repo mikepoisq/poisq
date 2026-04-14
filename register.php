@@ -442,17 +442,30 @@ body {
         <label class="field-label" for="email">Email</label>
         <input type="email" class="field-input" id="email" name="email"
                placeholder="example@mail.com" required
-               value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+               value="<?php echo htmlspecialchars($_POST['email'] ?? ''); 
+?>">
       </div>
       <div class="field-group">
         <label class="field-label" for="password">Пароль</label>
-        <input type="password" class="field-input" id="password" name="password"
-               placeholder="Минимум 6 символов" required minlength="6">
+        <div style="position:relative;">
+            <input type="password" class="field-input" id="password" name="password"
+                   placeholder="Минимум 6 символов" required minlength="6" style="padding-right:44px;">
+            <button type="button" onclick="togglePass('password','eye1')"
+                    style="position:absolute;right:0;top:0;height:100%;width:48px;background:none;border:none;cursor:pointer;padding:0;color:#9CA3AF;display:flex;align-items:center;justify-content:center;">
+                <svg id="eye1" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
       </div>
       <div class="field-group">
         <label class="field-label" for="password_confirm">Повторить пароль</label>
-        <input type="password" class="field-input" id="password_confirm" name="password_confirm"
-               placeholder="Повторите пароль" required minlength="6">
+        <div style="position:relative;">
+            <input type="password" class="field-input" id="password_confirm" name="password_confirm"
+                   placeholder="Повторите пароль" required minlength="6" style="padding-right:44px;">
+            <button type="button" onclick="togglePass('password_confirm','eye2')"
+                    style="position:absolute;right:0;top:0;height:100%;width:48px;background:none;border:none;cursor:pointer;padding:0;color:#9CA3AF;display:flex;align-items:center;justify-content:center;">
+                <svg id="eye2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
       </div>
       <button type="submit" class="btn-submit">Зарегистрироваться</button>
       <div id="cookie-warning" class="cookie-warning">
@@ -486,6 +499,22 @@ body {
     document.cookie = 'cookietest=1; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }
 
+</script>
+
+<script>
+function togglePass(inputId, eyeId) {
+    var inp = document.getElementById(inputId);
+    var eye = document.getElementById(eyeId);
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        eye.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+        eye.parentElement.style.color = '#2E73D8';
+    } else {
+        inp.type = 'password';
+        eye.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        eye.parentElement.style.color = '#9CA3AF';
+    }
+}
 </script>
 </body>
 </html>
