@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $allowedCallStatuses = ['not_called','reached','no_answer','no_number','other'];
     if (!in_array($callStatus, $allowedCallStatuses)) $callStatus = 'not_called';
 
-    if (empty($name) || empty($category) || empty($country)) {
-        $error = 'Заполните обязательные поля: название, категория, страна';
+    if (empty($name) || empty($category) || empty($country) || empty($cityId)) {
+        $error = 'Заполните обязательные поля: название, категория, страна, город';
     } else {
         $password = generatePassword(8);
         $passHash = password_hash($password, PASSWORD_DEFAULT);
@@ -433,7 +433,7 @@ ob_start();
                     </select>
                 </div>
                 <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Город</label>
+                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Город <span style="color:#EF4444;">*</span></label>
                     <select name="city_id" id="citySelect" class="form-control form-select" disabled>
                         <option value="">Сначала выберите страну</option>
                     </select>
@@ -643,13 +643,18 @@ function updateSubcategories() {
 
 async function loadCities(country) {
     const sel = document.getElementById('citySelect');
-    if (!country) { sel.disabled = true; sel.innerHTML = '<option value="">Сначала выберите страну</option>'; return; }
+    if (!country) {
+        sel.disabled = true;
+        sel.innerHTML = '<option value="">Сначала выберите страну</option>';
+        sel.style.borderColor = '';
+        return;
+    }
     sel.disabled = true;
     sel.innerHTML = '<option value="">Загрузка...</option>';
     try {
         const res = await fetch(`/api/get-cities.php?country=${country}`);
         const cities = await res.json();
-        sel.innerHTML = '<option value="">Выберите город</option>';
+        sel.innerHTML = '<option value="">Выберите город *</option>';
         cities.forEach(c => {
             const o = document.createElement('option');
             o.value = c.id;
@@ -657,10 +662,18 @@ async function loadCities(country) {
             sel.appendChild(o);
         });
         sel.disabled = false;
+        sel.style.borderColor = '#EF4444';
+        sel.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.15)';
     } catch(e) {
         sel.innerHTML = '<option value="">Ошибка загрузки</option>';
     }
 }
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'citySelect' && e.target.value) {
+        e.target.style.borderColor = '#10B981';
+        e.target.style.boxShadow = '0 0 0 2px rgba(16,185,129,0.15)';
+    }
+});
 
 // ── Фото ──
 let photoCount = 0;
