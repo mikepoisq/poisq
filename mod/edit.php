@@ -252,10 +252,13 @@ ob_start();
                      : ($callStatus === 'no_answer' ? 'background:#FFFBEB;border-color:#FDE68A;' : '');
         ?>
         <div class="panel" style="margin-bottom:16px;border:1px solid var(--border);<?php echo $callBg; ?>" id="callBlock">
-            <div class="panel-header"><div class="panel-title">📞 Созвон с сервисом</div></div>
+            <div class="panel-header"><div class="panel-title">📞 Созвон с сервисом <span style="color:#EF4444;">*</span></div></div>
             <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+                <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;">
+                    ⚠️ <b>Обязательное поле.</b> Если оставить статус «Не звонили» — сервис не будет учитываться в общей статистике созвонов.
+                </div>
                 <div>
-                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Статус созвона</label>
+                    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Статус созвона <span style="color:#EF4444;">*</span></label>
                     <select id="callStatusSelect" class="form-control form-select" onchange="onCallStatusChange()">
                         <option value="not_called" <?php echo $callStatus==='not_called'?'selected':''; ?>>— Не звонили —</option>
                         <option value="no_answer"  <?php echo $callStatus==='no_answer'?'selected':''; ?>>Не дозвонились</option>
@@ -574,7 +577,7 @@ async function saveCallStatus(serviceId) {
         fd.append('service_id', serviceId);
         fd.append('call_status', status);
         fd.append('call_note', note);
-        const res = await fetch('/panel-5588/api-call-status.php', {method:'POST', body:fd});
+        const res = await fetch('/mod/api-call-status.php', {method:'POST', body:fd});
         const data = await res.json();
         if (data.success) {
             const msg = document.getElementById('callSaveMsg');
