@@ -80,14 +80,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $photoJson = json_encode(array_values($currentPhotos), JSON_UNESCAPED_UNICODE);
 
+        // Обработка часов работы
+        $hoursRaw = $_POST['hours'] ?? [];
+        $hoursData = [];
+        foreach (['mon','tue','wed','thu','fri','sat','sun'] as $d) {
+            $hoursData[$d] = ['open'=>$hoursRaw[$d]['open']??'','close'=>$hoursRaw[$d]['close']??'','break_start'=>$hoursRaw[$d]['break_start']??'','break_end'=>$hoursRaw[$d]['break_end']??''];
+        }
+        $hoursJson = json_encode($hoursData, JSON_UNESCAPED_UNICODE);
         $pdo->prepare("
             UPDATE services SET
                 name=?, description=?, phone=?, whatsapp=?, email=?,
                 website=?, address=?, status=?, is_visible=?,
-                moderation_comment=?, photo=?, updated_at=NOW()
+                moderation_comment=?, photo=?, hours=?, updated_at=NOW()
             WHERE id=?
         ")->execute([$name, $description, $phone, $whatsapp, $email,
-                     $website, $address, $newStatus, $is_visible, $mod_comment, $photoJson, $serviceId]);
+                     $website, $address, $newStatus, $is_visible, $mod_comment, $photoJson, $hoursJson, $serviceId]);
 
         if (file_exists(__DIR__ . '/../config/meilisearch.php')) {
             require_once __DIR__ . '/../config/meilisearch.php';
@@ -308,6 +315,59 @@ ob_start();
                 <?php endif; ?>
             </div>
         </div>
+        <!-- Часы работы -->
+        <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-header"><div class="panel-title">🕐 Часы работы</div></div>
+            <div style="padding:16px;">
+                <div id="hoursContainer">
+                <?php
+                $days = ['mon'=>'Понедельник','tue'=>'Вторник','wed'=>'Среда','thu'=>'Четверг','fri'=>'Пятница','sat'=>'Суббота','sun'=>'Воскресенье'];
+                $hoursData = json_decode($service['hours'] ?? '{}', true) ?: [];
+                foreach ($days as $key => $dayName):
+                    $dayHours = $hoursData[$key] ?? [];
+                ?>
+                <div class="hours-row" data-day="<?php echo $key; ?>">
+                    <div class="hours-day"><?php echo $dayName; ?></div>
+                    <div class="hours-main-row">
+                        <div class="hours-time">
+                            <input type="text" name="hours[<?php echo $key; ?>][open]" class="hours-open" placeholder="09:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['open'] ?? ''); ?>">
+                            <span>—</span>
+                            <input type="text" name="hours[<?php echo $key; ?>][close]" class="hours-close" placeholder="18:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['close'] ?? ''); ?>">
+                        </div>
+                        <div class="hours-flags">
+                            <label class="hours-flag-btn <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'active' : ''; ?>" title="Круглосуточно">
+                                <input type="checkbox" class="hours-24h-checkbox" onchange="toggle24h(this)" <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'checked' : ''; ?>>
+                                <span>24ч</span>
+                            </label>
+                            <label class="hours-closed">
+                                <input type="checkbox" class="hours-closed-checkbox" onchange="toggleHoursRow(this)" <?php echo empty($dayHours['open'])&&empty($dayHours['close']) ? 'checked' : ''; ?>>
+                                Вых.
+                            </label>
+                        </div>
+                    </div>
+                    <?php if (!empty($dayHours['break_start'])): ?>
+                    <div class="hours-break-row" style="display:flex;">
+                    <?php else: ?>
+                    <div class="hours-break-row" style="display:none;">
+                    <?php endif; ?>
+                        <span class="hours-break-label">Перерыв:</span>
+                        <div class="hours-time">
+                            <input type="text" name="hours[<?php echo $key; ?>][break_start]" class="hours-break-start" placeholder="13:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_start'] ?? ''); ?>">
+                            <span>—</span>
+                            <input type="text" name="hours[<?php echo $key; ?>][break_end]" class="hours-break-end" placeholder="14:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_end'] ?? ''); ?>">
+                        </div>
+                        <button type="button" class="hours-break-remove" onclick="removeBreak(this)" title="Убрать перерыв">✕</button>
+                    </div>
+                    <button type="button" class="btn-add-break" onclick="addBreak(this)" <?php echo !empty($dayHours['break_start']) ? 'style="display:none;"' : ''; ?>>+ перерыв</button>
+                </div>
+                <?php endforeach; ?>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                    <button type="button" class="btn-copy-hours" onclick="copyHoursToAll()">📋 Скопировать на все дни</button>
+                    <button type="button" class="btn-copy-hours" onclick="setAll24h()" style="background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8;">🕐 Все круглосуточно</button>
+                </div>
+            </div>
+        </div>
         <!-- Прогресс загрузки -->
         <div id="uploadProgress" style="display:none;margin-bottom:12px;">
             <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">📤 Загрузка фото...</div>
@@ -431,6 +491,99 @@ ob_start();
     </div>
 </div>
 
+<style>
+.hours-row{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;padding:10px 0;border-bottom:1px solid var(--border-light);}
+.hours-row:last-child{border-bottom:none;margin-bottom:0;}
+.hours-day{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.hours-main-row{display:flex;align-items:center;gap:8px;}
+.hours-time{flex:1;display:flex;gap:6px;align-items:center;}
+.hours-time input{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;min-width:0;background:var(--bg-white);color:var(--text);width:60px;text-align:center;}
+.hours-flags{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.hours-flag-btn{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--primary);cursor:pointer;padding:5px 8px;border:1px solid var(--primary);border-radius:6px;background:#EFF6FF;user-select:none;}
+.hours-flag-btn input{display:none;}
+.hours-flag-btn.active{background:var(--primary);color:white;}
+.hours-break-row{display:flex;align-items:center;gap:6px;margin-top:4px;padding:6px 8px;background:#FFFBEB;border-radius:8px;border:1px solid #FDE68A;}
+.hours-break-label{font-size:12px;color:#F59E0B;font-weight:600;white-space:nowrap;flex-shrink:0;}
+.hours-break-remove{font-size:12px;background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 4px;}
+.btn-add-break{font-size:12px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:2px 0;text-decoration:underline;align-self:flex-start;}
+.hours-row.is-closed .hours-main-row .hours-time input,.hours-row.is-closed .btn-add-break{opacity:0.4;pointer-events:none;}
+.hours-row.is-24h .hours-main-row .hours-time input{opacity:0.4;pointer-events:none;}
+.hours-closed{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;}
+.btn-copy-hours{font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;color:var(--text-secondary);}
+</style>
+<script>
+document.addEventListener('input', function(e) {
+    if (!e.target.matches('.hours-open,.hours-close,.hours-break-start,.hours-break-end')) return;
+    var v = e.target.value.replace(/[^0-9]/g, '');
+    if (v.length >= 3) v = v.substring(0,2) + ':' + v.substring(2,4);
+    e.target.value = v;
+});
+function toggleHoursRow(checkbox) {
+    var row = checkbox.closest('.hours-row');
+    var o = row.querySelector('.hours-open'), c = row.querySelector('.hours-close');
+    var b = row.querySelector('.hours-24h-checkbox');
+    if (checkbox.checked) {
+        row.classList.add('is-closed'); o.disabled=true; c.disabled=true; o.value=''; c.value='';
+        if (b) { b.checked=false; row.classList.remove('is-24h'); b.closest('.hours-flag-btn').classList.remove('active'); }
+    } else { row.classList.remove('is-closed'); o.disabled=false; c.disabled=false; }
+}
+function toggle24h(checkbox) {
+    var row = checkbox.closest('.hours-row');
+    var o = row.querySelector('.hours-open'), c = row.querySelector('.hours-close');
+    var cc = row.querySelector('.hours-closed-checkbox');
+    if (checkbox.checked) {
+        row.classList.add('is-24h'); checkbox.closest('.hours-flag-btn').classList.add('active');
+        o.value='00:00'; c.value='23:59'; o.disabled=true; c.disabled=true;
+        if (cc) { cc.checked=false; row.classList.remove('is-closed'); }
+    } else {
+        row.classList.remove('is-24h'); checkbox.closest('.hours-flag-btn').classList.remove('active');
+        o.disabled=false; c.disabled=false; o.value=''; c.value='';
+    }
+}
+function addBreak(btn) {
+    btn.closest('.hours-row').querySelector('.hours-break-row').style.display='flex';
+    btn.style.display='none';
+}
+function removeBreak(btn) {
+    var row = btn.closest('.hours-row');
+    var br = row.querySelector('.hours-break-row');
+    br.style.display='none';
+    br.querySelector('.hours-break-start').value='';
+    br.querySelector('.hours-break-end').value='';
+    row.querySelector('.btn-add-break').style.display='';
+}
+function setAll24h() {
+    document.querySelectorAll('.hours-row').forEach(function(row) {
+        var cb = row.querySelector('.hours-24h-checkbox');
+        if (cb) { cb.checked=true; toggle24h(cb); }
+    });
+}
+function copyHoursToAll() {
+    var first = document.querySelector('.hours-row');
+    var ot=first.querySelector('.hours-open').value, ct=first.querySelector('.hours-close').value;
+    var isCl=first.querySelector('.hours-closed-checkbox').checked, is24=first.querySelector('.hours-24h-checkbox').checked;
+    var br=first.querySelector('.hours-break-row'), hasBr=br.style.display!=='none';
+    var bs=first.querySelector('.hours-break-start').value, be=first.querySelector('.hours-break-end').value;
+    document.querySelectorAll('.hours-row').forEach(function(row) {
+        var o=row.querySelector('.hours-open'), c=row.querySelector('.hours-close');
+        var cc=row.querySelector('.hours-closed-checkbox'), cb=row.querySelector('.hours-24h-checkbox');
+        var brr=row.querySelector('.hours-break-row'), abb=row.querySelector('.btn-add-break');
+        if (is24) { cb.checked=true; toggle24h(cb); }
+        else if (isCl) { cc.checked=true; toggleHoursRow(cc); }
+        else {
+            cc.checked=false; cb.checked=false; row.classList.remove('is-closed','is-24h');
+            cb.closest('.hours-flag-btn').classList.remove('active');
+            o.disabled=false; c.disabled=false; o.value=ot; c.value=ct;
+            if (hasBr) { brr.style.display='flex'; brr.querySelector('.hours-break-start').value=bs; brr.querySelector('.hours-break-end').value=be; if(abb) abb.style.display='none'; }
+        }
+    });
+}
+document.querySelectorAll('.hours-row').forEach(function(row) {
+    var cc=row.querySelector('.hours-closed-checkbox'), cb=row.querySelector('.hours-24h-checkbox');
+    if (cc&&cc.checked) { row.classList.add('is-closed'); row.querySelector('.hours-open').disabled=true; row.querySelector('.hours-close').disabled=true; }
+    if (cb&&cb.checked) { row.classList.add('is-24h'); cb.closest('.hours-flag-btn').classList.add('active'); row.querySelector('.hours-open').disabled=true; row.querySelector('.hours-close').disabled=true; }
+});
+</script>
 <style>
 .photo-edit-item{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;border:2px solid var(--border);background:var(--bg);}
 .photo-edit-item img{width:100%;height:100%;object-fit:cover;}

@@ -52,6 +52,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Обновляем пароль технического аккаунта
         $pdo->prepare("UPDATE users SET password_hash=? WHERE id=?")->execute([$passHash, ADMIN_USER_ID]);
 
+        // Обработка часов работы
+        $hoursRaw = $_POST['hours'] ?? [];
+        $hoursData = [];
+        $days = ['mon','tue','wed','thu','fri','sat','sun'];
+        foreach ($days as $d) {
+            $hoursData[$d] = [
+                'open'        => $hoursRaw[$d]['open']        ?? '',
+                'close'       => $hoursRaw[$d]['close']       ?? '',
+                'break_start' => $hoursRaw[$d]['break_start'] ?? '',
+                'break_end'   => $hoursRaw[$d]['break_end']   ?? '',
+            ];
+        }
+        $hoursJson = json_encode($hoursData, JSON_UNESCAPED_UNICODE);
         $languagesJson = json_encode($languages, JSON_UNESCAPED_UNICODE);
         $servicesJson  = json_encode(array_values(array_filter($services, fn($s) => !empty($s['name']))), JSON_UNESCAPED_UNICODE);
 
@@ -94,15 +107,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO services
                 (user_id, name, category, subcategory, country_code, city_id,
                  description, photo, phone, whatsapp, email, website, address,
-                 languages, services, status, is_visible, admin_password,
+                 hours, languages, services, status, is_visible, admin_password,
                  call_status, call_note,
                  created_by_admin, created_by_moderator, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'approved',1,?,?,?,?,?,NOW(),NOW())
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'approved',1,?,?,?,?,?,NOW(),NOW())
         ");
         $stmt->execute([
             ADMIN_USER_ID, $name, $category, $subcategory, $country,
             $cityId ?: null, $description, $photoJson, $phone, $whatsapp, $email,
-            $website, $address, $languagesJson, $servicesJson, $password,
+            $website, $address, $hoursJson, $languagesJson, $servicesJson, $password,
             $callStatus, $callNote ?: null,
             $createdByAdmin, $createdByMod
         ]);
@@ -279,6 +292,59 @@ ob_start();
             </div>
         </div>
 
+        <!-- Часы работы -->
+        <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-header"><div class="panel-title">🕐 Часы работы</div></div>
+            <div style="padding:16px;">
+                <div id="hoursContainer">
+                <?php
+                $days = ['mon'=>'Понедельник','tue'=>'Вторник','wed'=>'Среда','thu'=>'Четверг','fri'=>'Пятница','sat'=>'Суббота','sun'=>'Воскресенье'];
+                $existingHours = $hoursData ?? [];
+                foreach ($days as $key => $dayName):
+                    $dayHours = $existingHours[$key] ?? [];
+                ?>
+                <div class="hours-row" data-day="<?php echo $key; ?>">
+                    <div class="hours-day"><?php echo $dayName; ?></div>
+                    <div class="hours-main-row">
+                        <div class="hours-time">
+                            <input type="text" name="hours[<?php echo $key; ?>][open]" class="hours-open" placeholder="09:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['open'] ?? ''); ?>">
+                            <span>—</span>
+                            <input type="text" name="hours[<?php echo $key; ?>][close]" class="hours-close" placeholder="18:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['close'] ?? ''); ?>">
+                        </div>
+                        <div class="hours-flags">
+                            <label class="hours-flag-btn <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'active' : ''; ?>" title="Круглосуточно">
+                                <input type="checkbox" class="hours-24h-checkbox" onchange="toggle24h(this)" <?php echo ($dayHours['open']??'')==='00:00'&&($dayHours['close']??'')==='23:59' ? 'checked' : ''; ?>>
+                                <span>24ч</span>
+                            </label>
+                            <label class="hours-closed">
+                                <input type="checkbox" class="hours-closed-checkbox" onchange="toggleHoursRow(this)" <?php echo empty($dayHours['open'])&&empty($dayHours['close']) ? 'checked' : ''; ?>>
+                                Вых.
+                            </label>
+                        </div>
+                    </div>
+                    <?php if (!empty($dayHours['break_start'])): ?>
+                    <div class="hours-break-row" style="display:flex;">
+                    <?php else: ?>
+                    <div class="hours-break-row" style="display:none;">
+                    <?php endif; ?>
+                        <span class="hours-break-label">Перерыв:</span>
+                        <div class="hours-time">
+                            <input type="text" name="hours[<?php echo $key; ?>][break_start]" class="hours-break-start" placeholder="13:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_start'] ?? ''); ?>">
+                            <span>—</span>
+                            <input type="text" name="hours[<?php echo $key; ?>][break_end]" class="hours-break-end" placeholder="14:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_end'] ?? ''); ?>">
+                        </div>
+                        <button type="button" class="hours-break-remove" onclick="removeBreak(this)" title="Убрать перерыв">✕</button>
+                    </div>
+                    <button type="button" class="btn-add-break" onclick="addBreak(this)" <?php echo !empty($dayHours['break_start']) ? 'style="display:none;"' : ''; ?>>+ перерыв</button>
+                </div>
+                <?php endforeach; ?>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                    <button type="button" class="btn-copy-hours" onclick="copyHoursToAll()">📋 Скопировать на все дни</button>
+                    <button type="button" class="btn-copy-hours" onclick="setAll24h()" style="background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8;">🕐 Все круглосуточно</button>
+                </div>
+            </div>
+        </div>
         <!-- Фото -->
         <div class="panel" style="margin-bottom:16px;">
             <div class="panel-header"><div class="panel-title">📷 Фотографии</div></div>
@@ -393,6 +459,155 @@ ob_start();
 
     </div>
 </div>
+<style>
+.hours-row{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;padding:10px 0;border-bottom:1px solid var(--border-light);}
+.hours-row:last-child{border-bottom:none;margin-bottom:0;}
+.hours-day{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.hours-main-row{display:flex;align-items:center;gap:8px;}
+.hours-time{flex:1;display:flex;gap:6px;align-items:center;}
+.hours-time input{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;min-width:0;background:var(--bg-white);color:var(--text);}
+.hours-flags{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.hours-flag-btn{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--primary);cursor:pointer;padding:5px 8px;border:1px solid var(--primary);border-radius:6px;background:#EFF6FF;user-select:none;}
+.hours-flag-btn input{display:none;}
+.hours-flag-btn.active{background:var(--primary);color:white;}
+.hours-break-row{display:flex;align-items:center;gap:6px;margin-top:4px;padding:6px 8px;background:#FFFBEB;border-radius:8px;border:1px solid #FDE68A;}
+.hours-break-label{font-size:12px;color:var(--warning);font-weight:600;white-space:nowrap;flex-shrink:0;}
+.hours-break-remove{font-size:12px;background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:2px 4px;flex-shrink:0;}
+.btn-add-break{font-size:12px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:2px 0;text-decoration:underline;align-self:flex-start;}
+.hours-row.is-closed .hours-main-row .hours-time input,.hours-row.is-closed .btn-add-break{opacity:0.4;pointer-events:none;}
+.hours-row.is-24h .hours-main-row .hours-time input{opacity:0.4;pointer-events:none;}
+.hours-closed{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;}
+.btn-copy-hours{font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);cursor:pointer;color:var(--text-secondary);}
+</style>
+<script>
+function toggleHoursRow(checkbox) {
+    var row = checkbox.closest('.hours-row');
+    var openInput = row.querySelector('.hours-open');
+    var closeInput = row.querySelector('.hours-close');
+    var btn24h = row.querySelector('.hours-24h-checkbox');
+    if (checkbox.checked) {
+        row.classList.add('is-closed');
+        openInput.disabled = true; closeInput.disabled = true;
+        openInput.value = ''; closeInput.value = '';
+        if (btn24h) { btn24h.checked = false; row.classList.remove('is-24h'); btn24h.closest('.hours-flag-btn').classList.remove('active'); }
+    } else {
+        row.classList.remove('is-closed');
+        openInput.disabled = false; closeInput.disabled = false;
+    }
+}
+function toggle24h(checkbox) {
+    var row = checkbox.closest('.hours-row');
+    var openInput = row.querySelector('.hours-open');
+    var closeInput = row.querySelector('.hours-close');
+    var closedCheckbox = row.querySelector('.hours-closed-checkbox');
+    if (checkbox.checked) {
+        row.classList.add('is-24h');
+        checkbox.closest('.hours-flag-btn').classList.add('active');
+        openInput.value = '00:00'; closeInput.value = '23:59';
+        openInput.disabled = true; closeInput.disabled = true;
+        if (closedCheckbox) { closedCheckbox.checked = false; row.classList.remove('is-closed'); }
+    } else {
+        row.classList.remove('is-24h');
+        checkbox.closest('.hours-flag-btn').classList.remove('active');
+        openInput.disabled = false; closeInput.disabled = false;
+        openInput.value = ''; closeInput.value = '';
+    }
+}
+function addBreak(btn) {
+    var row = btn.closest('.hours-row');
+    var breakRow = row.querySelector('.hours-break-row');
+    breakRow.style.display = 'flex';
+    btn.style.display = 'none';
+}
+function removeBreak(btn) {
+    var row = btn.closest('.hours-row');
+    var breakRow = row.querySelector('.hours-break-row');
+    breakRow.style.display = 'none';
+    breakRow.querySelector('.hours-break-start').value = '';
+    breakRow.querySelector('.hours-break-end').value = '';
+    row.querySelector('.btn-add-break').style.display = '';
+}
+function setAll24h() {
+    // Автоформат времени HH:MM при вводе
+document.addEventListener('input', function(e) {
+    if (!e.target.matches('.hours-open,.hours-close,.hours-break-start,.hours-break-end')) return;
+    var v = e.target.value.replace(/[^0-9]/g, '');
+    if (v.length >= 3) v = v.substring(0,2) + ':' + v.substring(2,4);
+    e.target.value = v;
+});
+function validateHoursFormat() { return true; }
+document.querySelectorAll('.hours-row').forEach(function(row) {
+        var cb = row.querySelector('.hours-24h-checkbox');
+        if (cb) { cb.checked = true; toggle24h(cb); }
+    });
+}
+function copyHoursToAll() {
+    var firstRow = document.querySelector('.hours-row');
+    var openTime = firstRow.querySelector('.hours-open').value;
+    var closeTime = firstRow.querySelector('.hours-close').value;
+    var isClosed = firstRow.querySelector('.hours-closed-checkbox').checked;
+    var is24h = firstRow.querySelector('.hours-24h-checkbox').checked;
+    var breakRow = firstRow.querySelector('.hours-break-row');
+    var hasBreak = breakRow.style.display !== 'none';
+    var breakStart = firstRow.querySelector('.hours-break-start').value;
+    var breakEnd = firstRow.querySelector('.hours-break-end').value;
+    // Автоформат времени HH:MM при вводе
+document.addEventListener('input', function(e) {
+    if (!e.target.matches('.hours-open,.hours-close,.hours-break-start,.hours-break-end')) return;
+    var v = e.target.value.replace(/[^0-9]/g, '');
+    if (v.length >= 3) v = v.substring(0,2) + ':' + v.substring(2,4);
+    e.target.value = v;
+});
+function validateHoursFormat() { return true; }
+document.querySelectorAll('.hours-row').forEach(function(row) {
+        var openInput = row.querySelector('.hours-open');
+        var closeInput = row.querySelector('.hours-close');
+        var closedCb = row.querySelector('.hours-closed-checkbox');
+        var cb24h = row.querySelector('.hours-24h-checkbox');
+        var br = row.querySelector('.hours-break-row');
+        var addBreakBtn = row.querySelector('.btn-add-break');
+        if (is24h) { cb24h.checked = true; toggle24h(cb24h); }
+        else if (isClosed) { closedCb.checked = true; toggleHoursRow(closedCb); }
+        else {
+            closedCb.checked = false; cb24h.checked = false;
+            row.classList.remove('is-closed','is-24h');
+            cb24h.closest('.hours-flag-btn').classList.remove('active');
+            openInput.disabled = false; closeInput.disabled = false;
+            openInput.value = openTime; closeInput.value = closeTime;
+            if (hasBreak) {
+                br.style.display = 'flex';
+                br.querySelector('.hours-break-start').value = breakStart;
+                br.querySelector('.hours-break-end').value = breakEnd;
+                if (addBreakBtn) addBreakBtn.style.display = 'none';
+            }
+        }
+    });
+}
+// Инициализация состояния при загрузке
+// Автоформат времени HH:MM при вводе
+document.addEventListener('input', function(e) {
+    if (!e.target.matches('.hours-open,.hours-close,.hours-break-start,.hours-break-end')) return;
+    var v = e.target.value.replace(/[^0-9]/g, '');
+    if (v.length >= 3) v = v.substring(0,2) + ':' + v.substring(2,4);
+    e.target.value = v;
+});
+function validateHoursFormat() { return true; }
+document.querySelectorAll('.hours-row').forEach(function(row) {
+    var closedCb = row.querySelector('.hours-closed-checkbox');
+    var cb24h = row.querySelector('.hours-24h-checkbox');
+    if (closedCb && closedCb.checked) {
+        row.classList.add('is-closed');
+        row.querySelector('.hours-open').disabled = true;
+        row.querySelector('.hours-close').disabled = true;
+    }
+    if (cb24h && cb24h.checked) {
+        row.classList.add('is-24h');
+        cb24h.closest('.hours-flag-btn').classList.add('active');
+        row.querySelector('.hours-open').disabled = true;
+        row.querySelector('.hours-close').disabled = true;
+    }
+});
+</script>
 </form>
 
 <style>
