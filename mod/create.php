@@ -681,7 +681,7 @@ function handlePhotoUpload(e) {
     for (const file of e.target.files) {
         if (photoCount >= maxPhotos) { alert('Максимум 5 фотографий'); break; }
         if (!file.type.match(/^image\/(jpeg|png|webp)$/)) { alert('Только JPG, PNG или WebP'); continue; }
-        if (file.size > 5 * 1024 * 1024) { alert('Файл ' + file.name + ' превышает 5MB'); continue; }
+        if (file.size > 10 * 1024 * 1024) { alert('Файл ' + file.name + ' превышает 10MB'); continue; }
         const reader = new FileReader();
         reader.onload = function(ev) {
             const item = document.createElement('div');
