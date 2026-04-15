@@ -675,6 +675,7 @@ document.addEventListener('change', function(e) {
 /* ===== Фото ===== */
 let photoCount = 0;
 const maxPhotos = 5;
+let storedFiles = [];
 
 function handlePhotoUpload(e) {
     const preview = document.getElementById('photoPreview');
@@ -682,10 +683,13 @@ function handlePhotoUpload(e) {
         if (photoCount >= maxPhotos) { alert('Максимум 5 фотографий'); break; }
         if (!file.type.match(/^image\/(jpeg|png|webp)$/)) { alert('Только JPG, PNG или WebP'); continue; }
         if (file.size > 10 * 1024 * 1024) { alert('Файл ' + file.name + ' превышает 10MB'); continue; }
+        storedFiles.push(file);
+        const fileIndex = storedFiles.length - 1;
         const reader = new FileReader();
         reader.onload = function(ev) {
             const item = document.createElement('div');
             item.className = 'photo-item-thumb';
+            item.dataset.fileIndex = fileIndex;
             item.innerHTML = `<img src="${ev.target.result}" alt="">
                 <button type="button" class="photo-item-remove" onclick="removePhotoThumb(this)">✕</button>`;
             preview.appendChild(item);
@@ -697,9 +701,21 @@ function handlePhotoUpload(e) {
 }
 
 function removePhotoThumb(btn) {
-    btn.closest('.photo-item-thumb').remove();
+    const item = btn.closest('.photo-item-thumb');
+    const fileIndex = parseInt(item.dataset.fileIndex);
+    if (!isNaN(fileIndex)) storedFiles[fileIndex] = null;
+    item.remove();
     photoCount--;
 }
+
+document.getElementById('createForm').addEventListener('submit', function() {
+    const dt = new DataTransfer();
+    storedFiles.forEach(function(file) {
+        if (file !== null) dt.items.add(file);
+    });
+    document.getElementById('photoInput').files = dt.files;
+});
+
 
 /* ===== Созвон ===== */
 function onCreateCallChange() {
