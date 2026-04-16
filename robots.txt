@@ -1,5 +1,15 @@
 User-agent: *
-Disallow: /results.php
-Disallow: /*?*
+Disallow: /panel-5588/
+Disallow: /api/
+Disallow: /login.php
+Disallow: /register.php
+Disallow: /profile.php
+Disallow: /my-services.php
+Disallow: /add-service.php
+Disallow: /edit-service.php
+Disallow: /forgot-password.php
+Disallow: /reset-password.php
+
 Allow: /
+
 Sitemap: https://poisq.com/sitemap.php
