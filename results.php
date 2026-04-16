@@ -264,6 +264,22 @@ try {
     // Если в своей стране 0 результатов — основной список пустой, похожее в своём блоке
     if ($meiliOk && count($meiliIds) === 0) {
         $totalCount = 0;
+        // Глобальный поиск без фильтра по стране — если есть текстовый запрос
+        // Показываем как основные результаты (юзер ввёл точное название)
+        if (!empty($cleanQuery)) {
+            $rGlobal = meiliSearch($cleanQuery, [
+                'limit' => $perPage,
+                'sort'  => ['verified:desc','rating:desc','views:desc'],
+            ]);
+            $globalHits = array_column($rGlobal['hits'] ?? [], 'id');
+            if (!empty($globalHits)) {
+                $meiliIds   = $globalHits;
+                $totalCount = $rGlobal['estimatedTotalHits'] ?? count($globalHits);
+                $meiliIds2  = [];
+                $meiliIds3  = [];
+                $isGlobalSearch = true;
+            }
+        }
     }
 } catch (Exception $e) {
     error_log('Meilisearch error: ' . $e->getMessage());

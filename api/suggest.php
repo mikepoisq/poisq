@@ -45,19 +45,39 @@ function formatHit(array $hit): array {
 $results = [];
 $hits = [];
 
-if ($userCityId > 0) {
-    $r = meiliSearch($q, ['filter' => "city_id = $userCityId", 'limit' => 5]);
-    $hits = $r['hits'] ?? [];
+// Парсим город из текста запроса
+$detectedCityId = $userCityId;
+$cleanQ = $q;
+require_once __DIR__ . '/../config/database.php';
+$pdo = getDbConnection();
+$qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w) >= 3);
+foreach ($qwords as $qw) {
+    try {
+        $cs = $pdo->prepare("SELECT id, name, name_lat, country_code FROM cities WHERE LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ? LIMIT 1");
+        $cs->execute(['%'.$qw.'%', '%'.$qw.'%']);
+        $fc = $cs->fetch(PDO::FETCH_ASSOC);
+        if ($fc) {
+            $detectedCityId = (int)$fc['id'];
+            $country = $fc['country_code'];
+            $cleanQ = trim(preg_replace('/'.preg_quote($fc['name'], '/').'/iu', '', $cleanQ));
+            $cleanQ = trim(preg_replace('/'.preg_quote($fc['name_lat'], '/').'/iu', '', $cleanQ));
+            $cleanQ = trim(preg_replace('/\s+/', ' ', $cleanQ));
+            if (empty($cleanQ)) $cleanQ = $q;
+            break;
+        }
+    } catch (Exception $e) {}
 }
 
-$cityEx = $userCityId > 0 ? " AND city_id != $userCityId" : "";
-$r2 = meiliSearch($q, ['filter' => "country_code = '$country'$cityEx", 'limit' => 8]);
-$countryHits = $r2['hits'] ?? [];
-$hits = array_merge($hits, $countryHits);
-
-if (count($hits) < 3) {
-    $r3 = meiliSearch($q, ['filter' => "country_code != '$country'", 'limit' => 5, 'sort' => ['verified:desc', 'rating:desc', 'views:desc']]);
-    $hits = array_merge($hits, $r3['hits'] ?? []);
+if ($detectedCityId > 0) {
+    $r = meiliSearch($cleanQ, ['filter' => "city_id = $detectedCityId", 'limit' => 8]);
+    $hits = $r['hits'] ?? [];
+} else {
+    $r2 = meiliSearch($cleanQ, ['filter' => "country_code = '$country'", 'limit' => 8]);
+    $hits = $r2['hits'] ?? [];
+    if (count($hits) < 3) {
+        $r3 = meiliSearch($cleanQ, ['filter' => "country_code != '$country'", 'limit' => 5, 'sort' => ['verified:desc', 'rating:desc', 'views:desc']]);
+        $hits = array_merge($hits, $r3['hits'] ?? []);
+    }
 }
 
 if (empty($hits) && empty($r2)) {
