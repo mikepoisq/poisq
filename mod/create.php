@@ -744,6 +744,10 @@ function removePhotoThumb(btn) {
 }
 
 document.getElementById('createForm').addEventListener('submit', function() {
+    // Снимаем disabled с полей часов чтобы они отправились в POST
+    document.querySelectorAll('.hours-open, .hours-close, .hours-break-start, .hours-break-end').forEach(function(el) {
+        el.disabled = false;
+    });
     const dt = new DataTransfer();
     storedFiles.forEach(function(file) {
         if (file !== null) dt.items.add(file);

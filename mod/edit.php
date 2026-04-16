@@ -599,6 +599,10 @@ document.querySelectorAll('.hours-row').forEach(function(row) {
 <script>
 // Прогресс бар при загрузке
 document.getElementById('mainEditForm').addEventListener('submit', function(e) {
+    // Снимаем disabled с полей часов чтобы они отправились в POST
+    document.querySelectorAll('.hours-open, .hours-close, .hours-break-start, .hours-break-end').forEach(function(el) {
+        el.disabled = false;
+    });
     var fileInput = document.getElementById('newPhotoInput');
     if (!fileInput || !fileInput.files.length) return;
     e.preventDefault();
