@@ -613,10 +613,12 @@ document.querySelectorAll('.hours-row').forEach(function(row) {
 <style>
 .photo-item-thumb{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;border:2px solid var(--border);background:var(--bg);}
 .photo-item-thumb img{width:100%;height:100%;object-fit:cover;}
-.photo-item-thumb:first-child{border-color:var(--primary);}
-.photo-item-thumb:first-child::after{content:"Главное";position:absolute;top:3px;left:3px;background:var(--primary);color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;}
+.photo-item-thumb.is-main{border-color:var(--primary);}
+.photo-item-badge{position:absolute;top:3px;left:3px;background:var(--primary);color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;pointer-events:none;}
 .photo-item-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;}
 .photo-item-remove:hover{background:var(--danger);}
+.photo-item-setmain{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(0,0,0,.55);color:white;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;border:none;cursor:pointer;}
+.photo-item-setmain:hover{background:var(--primary);}
 </style>
 <script>
 const categoriesData = <?php echo json_encode(array_map(fn($c) => $c['subs'], $categories)); ?>;
@@ -680,6 +682,38 @@ let photoCount = 0;
 const maxPhotos = 5;
 let storedFiles = [];
 
+function updatePhotoOrder() {
+    const items = document.querySelectorAll('#photoPreview .photo-item-thumb');
+    items.forEach((it, idx) => {
+        it.classList.toggle('is-main', idx === 0);
+        const badge = it.querySelector('.photo-item-badge');
+        const setMain = it.querySelector('.photo-item-setmain');
+        if (idx === 0) {
+            if (!badge) { const b = document.createElement('span'); b.className = 'photo-item-badge'; b.textContent = 'Главное'; it.appendChild(b); }
+            if (setMain) setMain.remove();
+        } else {
+            if (badge) badge.remove();
+            if (!setMain) { const s = document.createElement('button'); s.type = 'button'; s.className = 'photo-item-setmain'; s.textContent = 'Сделать главной'; s.onclick = function(){ setMainPhoto(this); }; it.appendChild(s); }
+        }
+    });
+}
+
+function setMainPhoto(btn) {
+    const preview = document.getElementById('photoPreview');
+    const item = btn.closest('.photo-item-thumb');
+    preview.insertBefore(item, preview.firstChild);
+    const items = document.querySelectorAll('#photoPreview .photo-item-thumb');
+    const newFiles = [];
+    items.forEach(it => {
+        const idx = parseInt(it.dataset.fileIndex);
+        if (!isNaN(idx) && storedFiles[idx] !== null) newFiles.push(storedFiles[idx]);
+        else newFiles.push(null);
+    });
+    storedFiles = newFiles;
+    items.forEach((it, i) => { it.dataset.fileIndex = i; });
+    updatePhotoOrder();
+}
+
 function handlePhotoUpload(e) {
     const preview = document.getElementById('photoPreview');
     for (const file of e.target.files) {
@@ -693,10 +727,10 @@ function handlePhotoUpload(e) {
             const item = document.createElement('div');
             item.className = 'photo-item-thumb';
             item.dataset.fileIndex = fileIndex;
-            item.innerHTML = `<img src="${ev.target.result}" alt="">
-                <button type="button" class="photo-item-remove" onclick="removePhotoThumb(this)">✕</button>`;
+            item.innerHTML = `<img src="${ev.target.result}" alt=""><button type="button" class="photo-item-remove" onclick="removePhotoThumb(this)">✕</button>`;
             preview.appendChild(item);
             photoCount++;
+            updatePhotoOrder();
         };
         reader.readAsDataURL(file);
     }
@@ -709,10 +743,7 @@ function removePhotoThumb(btn) {
     if (!isNaN(fileIndex)) storedFiles[fileIndex] = null;
     item.remove();
     photoCount--;
-    const items = document.querySelectorAll('#photoPreview .photo-item-thumb');
-    items.forEach((it, idx) => {
-        it.classList.toggle('photo-item-main', idx === 0);
-    });
+    updatePhotoOrder();
 }
 
 document.getElementById('createForm').addEventListener('submit', function() {
@@ -722,7 +753,6 @@ document.getElementById('createForm').addEventListener('submit', function() {
     });
     document.getElementById('photoInput').files = dt.files;
 });
-
 // ── Созвон при создании ──
 function onCreateCallChange() {
     const val = document.getElementById('createCallStatus').value;
