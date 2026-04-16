@@ -710,6 +710,7 @@ body {
   padding: 14px 18px; font-size: 13px; font-weight: 600;
   color: var(--danger); cursor: pointer; border-top: 1px solid var(--border-light);
 }
+.so-clear-history svg { width: 14px; height: 14px; stroke: var(--danger); fill: none; stroke-width: 2; flex-shrink: 0; }
 .so-popular { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 18px 12px; }
 .so-tag {
   display: flex; align-items: center; gap: 6px;

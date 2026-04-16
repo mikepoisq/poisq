@@ -922,7 +922,7 @@ body {
         <div class="search-icon">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
         </div>
-        <input type="search" class="search-input" id="searchInput"
+        <input type="text" class="search-input" id="searchInput"
                placeholder="Найти сервис…"
                autocomplete="off" autocorrect="off" autocapitalize="off"
                spellcheck="false" inputmode="search">
