@@ -1305,7 +1305,7 @@ body {
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg>
               </span>
             <?php endif; ?>
-            <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
+
           </div>
           <div class="card-breadcrumb">
             poisq.com › <?php echo htmlspecialchars($crumbCat); ?><?php if ($crumbCity): ?> › <?php echo htmlspecialchars($crumbCity); ?><?php endif; ?>
@@ -1317,15 +1317,16 @@ body {
       <div class="card-title"><?php echo $cardTitle; ?></div>
 
       <!-- Строка 3: рейтинг -->
-      <?php if ($rating > 0): ?>
       <div class="card-rating-row">
+        <?php if ($rating > 0): ?>
         <span class="card-rating-num"><?php echo number_format($rating, 1); ?></span>
         <div class="card-stars"><?php echo $starsHtml; ?></div>
         <?php if ($svc['reviews_count'] > 0): ?>
           <span class="card-reviews-cnt">(<?php echo $svc['reviews_count']; ?> <?php echo $svc['reviews_count'] === 1 ? 'отзыв' : ($svc['reviews_count'] < 5 ? 'отзыва' : 'отзывов'); ?>)</span>
         <?php endif; ?>
+        <?php endif; ?>
+        <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
       </div>
-      <?php endif; ?>
 
       <!-- Строка 4: сниппет -->
       <?php if ($svc['description']): ?>
@@ -1493,7 +1494,7 @@ body {
           <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
             <span class="verified-dot"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg></span>
           <?php endif; ?>
-          <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
+
         </div>
         <div class="card-breadcrumb">
           poisq.com › <?php echo htmlspecialchars($crumbCat); ?><?php if ($crumbCity): ?> › <?php echo htmlspecialchars($crumbCity); ?><?php endif; ?>
@@ -1501,15 +1502,16 @@ body {
       </div>
     </div>
     <div class="card-title"><?php echo $cardTitle; ?></div>
-    <?php if ($rating > 0): ?>
     <div class="card-rating-row">
+      <?php if ($rating > 0): ?>
       <span class="card-rating-num"><?php echo number_format($rating, 1); ?></span>
       <div class="card-stars"><?php echo $starsHtml; ?></div>
       <?php if ($svc['reviews_count'] > 0): ?>
         <span class="card-reviews-cnt">(<?php echo $svc['reviews_count']; ?> <?php echo $svc['reviews_count'] === 1 ? 'отзыв' : ($svc['reviews_count'] < 5 ? 'отзыва' : 'отзывов'); ?>)</span>
       <?php endif; ?>
+      <?php endif; ?>
+      <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
     </div>
-    <?php endif; ?>
     <?php if ($svc['description']): ?>
     <div class="card-snippet"><?php echo htmlspecialchars($svc['description']); ?></div>
     <?php endif; ?>
@@ -1620,7 +1622,7 @@ body {
           <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
             <span class="verified-dot"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg></span>
           <?php endif; ?>
-          <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
+
         </div>
         <div class="card-breadcrumb">
           poisq.com › <?php echo htmlspecialchars($crumbCat); ?><?php if ($crumbCity): ?> › <?php echo htmlspecialchars($crumbCity); ?><?php endif; ?>
@@ -1628,15 +1630,16 @@ body {
       </div>
     </div>
     <div class="card-title"><?php echo $cardTitle; ?></div>
-    <?php if ($rating > 0): ?>
     <div class="card-rating-row">
+      <?php if ($rating > 0): ?>
       <span class="card-rating-num"><?php echo number_format($rating, 1); ?></span>
       <div class="card-stars"><?php echo $starsHtml; ?></div>
       <?php if ($svc['reviews_count'] > 0): ?>
         <span class="card-reviews-cnt">(<?php echo $svc['reviews_count']; ?> <?php echo $svc['reviews_count'] === 1 ? 'отзыв' : ($svc['reviews_count'] < 5 ? 'отзыва' : 'отзывов'); ?>)</span>
       <?php endif; ?>
+      <?php endif; ?>
+      <?php if ($isNew): ?><span class="badge-new">НОВОЕ</span><?php endif; ?>
     </div>
-    <?php endif; ?>
     <?php if ($svc['description']): ?>
     <div class="card-snippet"><?php echo htmlspecialchars($svc['description']); ?></div>
     <?php endif; ?>
