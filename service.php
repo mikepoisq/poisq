@@ -453,6 +453,8 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         
         /* 🔧 ЧАСЫ РАБОТЫ */
         .hours-table { width: 100%; margin-top: 8px; }
+        details summary { list-style: none; }
+        details summary::-webkit-details-marker { display: none; }
         .hours-table tr { border-bottom: 1px solid var(--border-light); }
         .hours-table tr:last-child { border-bottom: none; }
         .hours-table td { padding: 10px 0; font-size: 14px; }
@@ -1000,9 +1002,28 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             <?php endif; ?>
 
             <!-- 🔧 ЧАСЫ РАБОТЫ — скрыто для мессенджеров -->
-            <?php if (!$isMessengerSvc && $service['hours']): ?>
+            <?php if (!$isMessengerSvc && $service['hours']):
+                $allEmpty = !array_filter($service['hours'], fn($v) => $v !== '—');
+            ?>
             <div class="settings-section">
                 <div class="settings-section-title">Режим работы</div>
+                <?php if ($allEmpty): ?>
+                <details style="margin:0;">
+                    <summary style="display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer;list-style:none;outline:none;">
+                        <div class="settings-item-icon orange" style="flex-shrink:0;">
+                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:14px;font-weight:500;color:var(--text);">Часы работы</div>
+                            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">Сервис не указал часы работы</div>
+                        </div>
+                        <svg style="width:16px;height:16px;stroke:var(--text-light);fill:none;stroke-width:2;flex-shrink:0;" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                    </summary>
+                    <div style="padding:8px 0 4px 50px;font-size:13px;color:var(--text-secondary);">
+                        Владелец сервиса не добавил информацию о часах работы.
+                    </div>
+                </details>
+                <?php else: ?>
                 <div class="settings-item">
                     <div class="settings-item-icon orange">
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -1023,6 +1044,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                         </table>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
 
