@@ -125,7 +125,7 @@ $detectedCountry = getCountryByIP();
 <meta name="description" content="Poisq — каталог русскоязычных сервисов за рубежом. Найдите врача, юриста, репетитора во Франции, Германии, Испании и 40 странах. Владельцы бизнеса — разместите свой сервис бесплатно и найдите русскоязычных клиентов.">
 <meta property="og:title" content="Poisq — русскоязычные сервисы за рубежом">
 <meta property="og:description" content="Найдите русскоязычных специалистов рядом с вами — врачей, юристов, репетиторов и других профессионалов в вашем городе">
-<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
+<meta property="og:image" content="https://poisq.com/og-image.png">
 <meta property="og:url" content="https://poisq.com/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">

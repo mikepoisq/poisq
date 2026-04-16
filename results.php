@@ -523,7 +523,7 @@ if (!empty($extraParams)) $canonicalUrl .= '?' . implode('&', $extraParams);
 <meta property="og:description" content="<?php echo htmlspecialchars($seoDesc); ?>">
 <meta property="og:url" content="<?php echo htmlspecialchars($canonicalUrl); ?>">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
+<meta property="og:image" content="https://poisq.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
