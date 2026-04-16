@@ -89,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Новый пароль — Poisq</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
@@ -239,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
                 </div>
                 <h1 class="auth-title">Пароль изменён!</h1>
                 <p class="auth-subtitle"><?php echo htmlspecialchars($success); ?></p>
-                <a href="login.php" class="btn-submit" style="display: inline-block; text-decoration: none; max-width: 280px;">Войти с новым паролем</a>
+                <a href="login.php" class="btn-submit" style="display: flex; text-decoration: none; justify-content: center; align-items: center;">Войти с новым паролем</a>
             <?php elseif ($error && !$validToken): ?>
                 <div class="auth-icon" style="background: #FEE2E2;">
                     <svg viewBox="0 0 24 24" style="stroke: var(--danger);"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
