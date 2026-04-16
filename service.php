@@ -385,6 +385,8 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         .btn-action:active { transform: scale(0.98); background: var(--border); }
         .btn-action.primary { background: var(--primary); color: white; }
         .btn-action.primary:active { background: var(--primary-dark); }
+        .btn-action.whatsapp { background: #25D366; color: white; }
+        .btn-action.whatsapp:active { background: #1ebe5d; }
         .btn-action svg { width: 16px; height: 16px; flex-shrink: 0; }
         
         /* 🔧 СЕКЦИИ TELEGRAM STYLE */
@@ -975,7 +977,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                 </a>
                 <?php endif; ?>
                 <?php if ($service['whatsapp']): ?>
-                <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $service['name'] . '».'); ?>" target="_blank" class="btn-action">
+                <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $service['name'] . '».'); ?>" target="_blank" class="btn-action whatsapp">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                     </svg>
@@ -1360,7 +1362,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         </a>
         <?php endif; ?>
         <?php if ($service['whatsapp']): ?>
-        <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $service['name'] . '».'); ?>" target="_blank" class="btn-action">
+        <a href="https://wa.me/<?php echo str_replace('+', '', $service['whatsapp']); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $service['name'] . '».'); ?>" target="_blank" class="btn-action whatsapp">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
             </svg>

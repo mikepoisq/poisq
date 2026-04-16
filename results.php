@@ -868,6 +868,8 @@ body {
 }
 .btn-icon svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
 .btn-icon:active { background: #F1F3F4; }
+.btn-icon.whatsapp { background: #25D366; border-color: #25D366; color: white; }
+.btn-icon.whatsapp:active { background: #1ebe5d; }
 .card-no-phone {
   display: flex; align-items: center; gap: 6px;
   padding: 8px 18px; font-size: 13px; font-weight: 600;
@@ -1374,7 +1376,7 @@ body {
 
         <?php if (!$isMessengerCard && $whatsapp): ?>
           <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
-            target="_blank" class="btn-icon" aria-label="WhatsApp" title="WhatsApp">
+            target="_blank" class="btn-icon whatsapp" aria-label="WhatsApp" title="WhatsApp">
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
           </a>
         <?php endif; ?>
@@ -1545,7 +1547,7 @@ body {
       <?php endif; ?>
       <?php if (!$isMessengerCard && $whatsapp): ?>
       <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
-        target="_blank" class="btn-icon" aria-label="WhatsApp">
+        target="_blank" class="btn-icon whatsapp" aria-label="WhatsApp">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
       </a>
       <?php endif; ?>
@@ -1673,7 +1675,7 @@ body {
       <?php endif; ?>
       <?php if (!$isMessengerCard && $whatsapp): ?>
       <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp); ?>?text=<?php echo urlencode('Здравствуйте! Нашёл вас на Poisq.com. Меня интересует ваш сервис «' . $svc['name'] . '».'); ?>"
-        target="_blank" class="btn-icon" aria-label="WhatsApp">
+        target="_blank" class="btn-icon whatsapp" aria-label="WhatsApp">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
       </a>
       <?php endif; ?>
