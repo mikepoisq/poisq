@@ -121,6 +121,7 @@ $detectedCountry = getCountryByIP();
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Poisq — русскоязычные сервисы за рубежом</title>
 <meta name="robots" content="index, follow">
+<link rel="canonical" href="https://poisq.com/">
 <meta name="description" content="Poisq — каталог русскоязычных сервисов за рубежом. Найдите врача, юриста, репетитора во Франции, Германии, Испании и 40 странах. Владельцы бизнеса — разместите свой сервис бесплатно и найдите русскоязычных клиентов.">
 <meta property="og:title" content="Poisq — русскоязычные сервисы за рубежом">
 <meta property="og:description" content="Найдите русскоязычных специалистов рядом с вами — врачей, юристов, репетиторов и других профессионалов в вашем городе">
