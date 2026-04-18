@@ -73,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category    = trim($_POST['category']    ?? '');
     $country_code= trim($_POST['country_code']?? 'all');
     $read_time   = trim($_POST['read_time']   ?? '5 мин');
+    $author      = trim($_POST['author']       ?? '');
     $sort_order  = (int)($_POST['sort_order'] ?? 0);
     $status      = in_array($_POST['status'] ?? '', ['published','draft']) ? $_POST['status'] : 'draft';
     $slug        = trim($_POST['slug']        ?? '');
@@ -106,10 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         if ($id > 0) {
             $pdo->prepare("UPDATE articles SET title=?, excerpt=?, content=?, category=?, country_code=?,
-                           read_time=?, sort_order=?, status=?, slug=?, photo=?, updated_at=NOW()
+                           read_time=?, author=?, sort_order=?, status=?, slug=?, photo=?, updated_at=NOW()
                            WHERE id=?")
                 ->execute([$title, $excerpt, $content, $category, $country_code,
-                           $read_time, $sort_order, $status, $slug, $photoPath, $id]);
+                           $read_time, $author, $sort_order, $status, $slug, $photoPath, $id]);
             // Rename photo if it had 'new' in name
             if (!empty($photoPath) && strpos($photoPath, '_new_') !== false) {
                 $newPath = str_replace('_new_', '_' . $id . '_', $photoPath);
@@ -119,10 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $msg = 'updated';
         } else {
-            $pdo->prepare("INSERT INTO articles (title, excerpt, content, category, country_code, read_time, sort_order, status, slug, photo, created_at, updated_at)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,NOW(),NOW())")
+            $pdo->prepare("INSERT INTO articles (title, excerpt, content, category, country_code, read_time, author, sort_order, status, slug, photo, created_at, updated_at)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())")
                 ->execute([$title, $excerpt, $content, $category, $country_code,
-                           $read_time, $sort_order, $status, $slug, $photoPath]);
+                           $read_time, $author, $sort_order, $status, $slug, $photoPath]);
             $newId = (int)$pdo->lastInsertId();
             // Rename photo from _new_ to _id_
             if (!empty($photoPath) && strpos($photoPath, '_new_') !== false) {
@@ -149,6 +150,7 @@ $a['status']       ??= 'draft';
 $a['country_code'] ??= 'all';
 $a['sort_order']   ??= 0;
 $a['read_time']    ??= '5 мин';
+$a['author']       ??= '';
 $a['category']     ??= '';
 
 ob_start();
@@ -293,6 +295,11 @@ ob_start();
                     placeholder="5 мин">
             </div>
             <div>
+                <label style="font-size:12px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px">Автор</label>
+                <input type="text" name="author" class="form-control"
+                    value="<?php echo htmlspecialchars($a['author'] ?? ''); ?>"
+                    placeholder="Например: Анна Комарова">
+                <div style="margin-bottom:16px"></div>
                 <label style="font-size:12px;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px">Порядок сортировки</label>
                 <input type="number" name="sort_order" class="form-control"
                     value="<?php echo $a['sort_order'] ?? 0; ?>" min="0" step="10">

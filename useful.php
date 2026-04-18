@@ -1,5 +1,5 @@
 <?php
-// useful.php — Полезное: список статей
+// useful.php — Полезное: список статей (редизайн Claude Design, апрель 2026)
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.cookie_secure', '0');
 ini_set('session.cookie_path', '/');
@@ -7,7 +7,6 @@ ini_set('session.cookie_httponly', '1');
 ini_set('session.use_strict_mode', '1');
 session_start();
 $isLoggedIn  = isset($_SESSION['user_id']);
-// Обновляем last_visit когда юзер открыл страницу Полезное (сбрасывает счётчик новых статей)
 if ($isLoggedIn) {
     try {
         require_once __DIR__ . '/config/database.php';
@@ -17,32 +16,18 @@ if ($isLoggedIn) {
 }
 $userName    = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
 $userAvatar  = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
-$userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
+$userInitial = $userName ? strtoupper(mb_substr($userName, 0, 1, 'UTF-8')) : '';
 
-require_once __DIR__ . '/config/database.php';
-$_jsCountries = [];
-try {
-    $_pdo = getDbConnection();
-    foreach ($_pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1 ORDER BY name_ru")->fetchAll(PDO::FETCH_ASSOC) as $_r) {
-        $_jsCountries[] = ['code' => $_r['code'], 'name' => $_r['name_ru']];
-    }
-} catch (Exception $_e) { error_log('Countries DB: ' . $_e->getMessage()); }
-if (empty($_jsCountries)) {
-    $_jsCountries = [
-        ['code'=>'ae','name'=>'ОАЭ'],['code'=>'ar','name'=>'Аргентина'],['code'=>'au','name'=>'Австралия'],
-        ['code'=>'at','name'=>'Австрия'],['code'=>'be','name'=>'Бельгия'],['code'=>'br','name'=>'Бразилия'],
-        ['code'=>'by','name'=>'Беларусь'],['code'=>'ca','name'=>'Канада'],['code'=>'ch','name'=>'Швейцария'],
-        ['code'=>'cl','name'=>'Чили'],['code'=>'co','name'=>'Колумбия'],['code'=>'cz','name'=>'Чехия'],
-        ['code'=>'de','name'=>'Германия'],['code'=>'dk','name'=>'Дания'],['code'=>'es','name'=>'Испания'],
-        ['code'=>'fi','name'=>'Финляндия'],['code'=>'fr','name'=>'Франция'],['code'=>'gb','name'=>'Великобритания'],
-        ['code'=>'gr','name'=>'Греция'],['code'=>'hk','name'=>'Гонконг'],['code'=>'ie','name'=>'Ирландия'],
-        ['code'=>'il','name'=>'Израиль'],['code'=>'it','name'=>'Италия'],['code'=>'jp','name'=>'Япония'],
-        ['code'=>'kr','name'=>'Южная Корея'],['code'=>'kz','name'=>'Казахстан'],['code'=>'mx','name'=>'Мексика'],
-        ['code'=>'nl','name'=>'Нидерланды'],['code'=>'no','name'=>'Норвегия'],['code'=>'nz','name'=>'Новая Зеландия'],
-        ['code'=>'pl','name'=>'Польша'],['code'=>'pt','name'=>'Португалия'],['code'=>'ru','name'=>'Россия'],
-        ['code'=>'se','name'=>'Швеция'],['code'=>'sg','name'=>'Сингапур'],['code'=>'th','name'=>'Таиланд'],
-        ['code'=>'tr','name'=>'Турция'],['code'=>'ua','name'=>'Украина'],['code'=>'us','name'=>'США'],['code'=>'za','name'=>'ЮАР'],
-    ];
+// Проверка слотов
+$slotsLeft = 3;
+if ($isLoggedIn) {
+    try {
+        require_once __DIR__ . '/config/database.php';
+        $pdo = getDbConnection();
+        $st = $pdo->prepare("SELECT COUNT(*) FROM services WHERE user_id = ? AND status = 'approved'");
+        $st->execute([$_SESSION['user_id']]);
+        $slotsLeft = max(0, 3 - (int)$st->fetchColumn());
+    } catch (Exception $e) { $slotsLeft = 3; }
 }
 ?>
 <!DOCTYPE html>
@@ -64,264 +49,196 @@ if (empty($_jsCountries)) {
 <meta name="apple-mobile-web-app-title" content="Poisq">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root {
-  --primary:       #3B6CF4;
+  --primary: #3B6CF4;
   --primary-light: #EEF2FF;
-  --primary-dark:  #2952D9;
-  --text:          #0F172A;
-  --text-secondary:#64748B;
-  --text-light:    #94A3B8;
-  --bg:            #FFFFFF;
-  --bg-secondary:  #F8FAFC;
-  --border:        #E2E8F0;
-  --border-light:  #F1F5F9;
-  --success:       #10B981;
-  --warning:       #F59E0B;
-  --danger:        #EF4444;
-  --radius:        16px;
-  --radius-sm:     12px;
-  --radius-xs:     10px;
-  --shadow-sm:     0 1px 4px rgba(0,0,0,0.07);
+  --primary-dark: #2952D9;
+  --text: #0F172A;
+  --text-secondary: #64748B;
+  --text-light: #94A3B8;
+  --bg: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --border: #E2E8F0;
+  --border-light: #F1F5F9;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --radius-sm: 12px;
+  --radius-xs: 10px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --serif: 'Playfair Display', Georgia, serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* редакционные токены */
+  --ink:   #0F172A;
+  --muted: #64748B;
+  --body:  #334155;
+  --hair:  rgba(0,0,0,0.07);
+  --accent: #3B6CF4;
 }
 html, body { min-height: 100%; overflow-x: hidden; }
-body {
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-secondary);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-}
-.app-container {
-  max-width: 430px; margin: 0 auto;
-  background: var(--bg);
-  min-height: 100vh; display: flex; flex-direction: column;
-}
+body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg-secondary); color: var(--text); -webkit-font-smoothing: antialiased; }
+.app-container { max-width: 430px; margin: 0 auto; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
 
-/* ── HEADER ── */
-.page-header {
-  position: sticky; top: 0; z-index: 100;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border-light);
-}
-.header-top {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 14px; height: 56px;
-}
-.header-left { display: flex; align-items: center; }
-.header-center { display: flex; justify-content: center; }
-.header-center img { height: 36px; width: auto; object-fit: contain; }
-.header-right { display: flex; align-items: center; gap: 8px; }
-
-.btn-grid {
-  width: 38px; height: 38px; border-radius: var(--radius-xs); border: none;
-  background: var(--bg-secondary);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: background 0.15s, transform 0.1s; flex-shrink: 0;
-}
-.btn-grid svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+/* ── HEADER (из help.php) ── */
+.page-header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border-light); }
+.header-top { display: flex; align-items: center; padding: 10px 14px; height: 56px; gap: 10px; }
+.header-logo { flex: 1; display: flex; justify-content: center; }
+.header-logo img { height: 36px; width: auto; object-fit: contain; }
+.header-actions { width: 84px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.btn-grid { width: 38px; height: 38px; border-radius: var(--radius-xs); border: none; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.15s, transform 0.1s; }
+.btn-grid svg { width: 18px; height: 18px; fill: var(--text-secondary); }
 .btn-grid:active { transform: scale(0.92); background: var(--primary); }
 .btn-grid:active svg { fill: white; }
-
-.btn-burger {
-  width: 38px; height: 38px; display: flex; flex-direction: column;
-  justify-content: center; align-items: center; gap: 5px;
-  padding: 8px; cursor: pointer; background: none; border: none;
-  border-radius: var(--radius-xs); flex-shrink: 0;
-}
+.btn-add { width: 38px; height: 38px; border-radius: var(--radius-xs); border: none; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s, transform 0.1s; text-decoration: none; flex-shrink: 0; }
+.btn-add svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+.btn-add:active { transform: scale(0.92); background: var(--primary); color: white; }
+.btn-burger { width: 38px; height: 38px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; padding: 8px; cursor: pointer; background: none; border: none; border-radius: var(--radius-xs); flex-shrink: 0; }
 .btn-burger span { display: block; width: 20px; height: 2px; background: var(--text-light); border-radius: 2px; transition: all 0.2s; }
 .btn-burger:active { background: var(--primary-light); }
-.btn-burger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); background: var(--text); }
+.btn-burger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .btn-burger.active span:nth-child(2) { opacity: 0; }
-.btn-burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--text); }
+.btn-burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-/* ── HERO ── */
-.page-hero { padding: 18px 16px 0; background: var(--bg); }
-.hero-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 4px; }
-.hero-sub { font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.5; margin-bottom: 14px; }
+/* ── MASTHEAD редакционный ── */
+.masthead { padding: 28px 20px 20px; background: var(--bg); }
+.masthead-overline { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-light); margin-bottom: 10px; }
+.masthead h1 { font-size: 28px; font-weight: 800; line-height: 1.1; letter-spacing: -0.5px; color: var(--text); margin-bottom: 10px; }
+.masthead-sub { font-size: 14px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 16px; }
+.country-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding: 6px 0; }
+.country-inline-label { color: var(--text-light); }
+.country-inline-value { color: var(--text); font-weight: 600; border-bottom: 1px solid var(--text); padding-bottom: 1px; }
+.country-inline:active .country-inline-value { opacity: 0.6; }
 
-/* ── ВЫБОР СТРАНЫ ── */
-.country-bar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px;
-  background: var(--bg);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  margin: 0 16px 14px;
-  cursor: pointer; transition: background 0.15s;
-  box-shadow: var(--shadow-sm);
-}
-.country-bar:active { background: var(--bg-secondary); }
-.country-bar-flag { width: 26px; height: 19px; border-radius: 3px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.15); flex-shrink: 0; }
-.country-bar-flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.country-bar-text { flex: 1; }
-.country-bar-name { font-size: 14px; font-weight: 700; color: var(--text); }
-.country-bar-hint { font-size: 11px; color: var(--text-light); font-weight: 500; margin-top: 1px; }
-.country-bar-chevron svg { width: 18px; height: 18px; stroke: var(--text-light); fill: none; stroke-width: 2.5; }
+/* ── TABS ── */
+.tabs-row { display: flex; gap: 0; padding: 0 16px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; border-bottom: 1px solid var(--border-light); touch-action: pan-x; }
+.tabs-row::-webkit-scrollbar { display: none; }
+.tab-item { flex-shrink: 0; padding: 12px 14px; position: relative; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; background: none; border: none; transition: color 0.15s; }
+.tab-item.active { font-weight: 700; color: var(--primary); }
+.tab-item.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--primary); }
 
-/* ── ФИЛЬТР ── */
-.filter-row {
-  display: flex; gap: 8px; overflow-x: auto;
-  padding: 0 16px 14px; scrollbar-width: none;
-  background: var(--bg); border-bottom: 1px solid var(--border-light);
-}
-.filter-row::-webkit-scrollbar { display: none; }
-.filter-chip {
-  flex-shrink: 0; padding: 6px 14px; border-radius: 99px;
-  border: 1.5px solid var(--border); background: var(--bg); color: var(--text-secondary);
-  font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: inherit;
-}
-.filter-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-.filter-chip:active { transform: scale(0.94); }
+/* ── SECTION DIVIDER ── */
+.section-divider { display: flex; align-items: center; gap: 14px; padding: 24px 20px 8px; }
+.divider-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); white-space: nowrap; }
+.divider-line { flex: 1; height: 1px; background: var(--border); }
 
-/* ── СПИСОК СТАТЕЙ ── */
-.articles-list { flex: 1; padding: 12px 14px 24px; display: flex; flex-direction: column; gap: 10px; }
+/* ── LEAD STORY ── */
+.lead-story { padding: 20px 16px; cursor: pointer; text-decoration: none; color: inherit; display: block; transition: opacity 0.12s; }
+.lead-story:active { opacity: 0.8; }
+.lead-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); margin-bottom: 12px; }
+.lead-cover { width: 100%; height: 200px; object-fit: cover; display: block; border-radius: var(--radius-sm); }
+.lead-cover-placeholder { width: 100%; height: 200px; background: var(--bg-secondary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text-light); font-size: 13px; }
+.lead-meta { display: flex; align-items: center; gap: 8px; margin: 14px 0 8px; }
+.lead-category { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--primary); }
+.lead-read-time { font-size: 11px; color: var(--text-light); }
+.lead-title { font-size: 20px; font-weight: 800; line-height: 1.2; letter-spacing: -0.3px; color: var(--text); margin-bottom: 10px; }
+.lead-excerpt { font-size: 14px; line-height: 1.55; color: var(--text-secondary); margin-bottom: 12px; }
+.lead-author { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); }
+.author-avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0; overflow: hidden; }
+.author-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ── СКЕЛЕТОН ЗАГРУЗКИ ── */
-.skeleton-card {
-  background: var(--bg); border: 1px solid var(--border-light);
-  border-radius: var(--radius); overflow: hidden; display: flex; height: 110px;
-}
-.skeleton-thumb { width: 110px; height: 110px; background: var(--border-light); flex-shrink: 0; animation: shimmer 1.4s infinite; }
-.skeleton-body { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.skeleton-line { background: var(--border-light); border-radius: 6px; animation: shimmer 1.4s infinite; }
-@keyframes shimmer {
-  0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
-}
+/* ── STORY ROW ── */
+.story-row { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border-top: 1px solid var(--border-light); cursor: pointer; text-decoration: none; color: inherit; transition: background 0.12s; }
+.story-row:active { background: var(--bg-secondary); }
+.story-text { flex: 1; min-width: 0; }
+.story-category { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--primary); margin-bottom: 4px; display: block; }
+.story-title { font-size: 15px; font-weight: 700; line-height: 1.3; color: var(--text); margin-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.story-excerpt { font-size: 12px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.story-meta-row { font-size: 11px; color: var(--text-light); display: flex; align-items: center; gap: 5px; }
+.story-thumb { width: 80px; height: 80px; flex-shrink: 0; object-fit: cover; display: block; border-radius: var(--radius-xs); background: var(--bg-secondary); }
+.story-thumb-placeholder { width: 80px; height: 80px; flex-shrink: 0; border-radius: var(--radius-xs); background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; }
 
-/* ── КАРТОЧКА СТАТЬИ ── */
-.article-card {
-  background: var(--bg); border: 1px solid var(--border-light);
-  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm);
-  text-decoration: none; color: inherit; display: flex;
-  transition: transform 0.12s, box-shadow 0.12s; cursor: pointer;
-}
-.article-card:active { transform: scale(0.98); box-shadow: none; }
-.article-thumb { width: 110px; height: 110px; flex-shrink: 0; background: var(--bg-secondary); overflow: hidden; }
-.article-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.article-body { flex: 1; padding: 11px 12px 10px; display: flex; flex-direction: column; min-width: 0; }
-.article-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-.article-category { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
-.article-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-light); flex-shrink: 0; }
-.article-read-time { font-size: 11px; color: var(--text-light); font-weight: 600; white-space: nowrap; }
-.article-title {
-  font-size: 14.5px; font-weight: 800; color: var(--text); line-height: 1.35;
-  letter-spacing: -0.2px; margin-bottom: 4px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.article-excerpt {
-  font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; font-weight: 500;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1;
-}
-.article-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; }
-.article-date { font-size: 11px; color: var(--text-light); font-weight: 600; }
-.article-more { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--primary); font-weight: 700; }
-.article-more svg { width: 13px; height: 13px; stroke: var(--primary); fill: none; stroke-width: 2.5; }
+/* ── СКЕЛЕТОН ── */
+.skel-block { background: var(--border-light); border-radius: 6px; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.skeleton-lead { padding: 20px 16px; }
+.skeleton-row { padding: 16px; border-top: 1px solid var(--border-light); display: flex; gap: 12px; }
+
+/* ── ПОИСК найдено ── */
+.search-found { padding: 12px 16px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-light); }
 
 /* ── ПУСТОЕ СОСТОЯНИЕ ── */
-.empty-state {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 60px 20px; text-align: center; gap: 10px;
-}
-.empty-state-icon { font-size: 48px; }
-.empty-state-title { font-size: 17px; font-weight: 800; color: var(--text); }
-.empty-state-sub { font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.5; }
+.empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; gap: 10px; }
+.empty-icon { font-size: 40px; margin-bottom: 4px; }
+.empty-title { font-size: 18px; font-weight: 800; color: var(--text); }
+.empty-sub { font-size: 14px; color: var(--text-secondary); line-height: 1.5; max-width: 260px; }
+.empty-reset { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--primary); border: none; background: none; cursor: pointer; text-decoration: underline; }
 
 /* ── FOOTER ── */
-.page-footer {
-  background: var(--bg); border-top: 1px solid var(--border-light);
-  padding: 14px 16px;
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px;
-}
-.footer-link { font-size: 12px; color: var(--text-secondary); text-decoration: none; font-weight: 500; }
-.footer-link.active { color: var(--primary); font-weight: 700; }
+.page-footer { padding: 16px 16px 32px; border-top: 1px solid var(--border-light); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; }
+.footer-link { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-decoration: none; }
 .footer-link:active { color: var(--primary); }
+.footer-link.active { color: var(--primary); font-weight: 700; }
 
 /* ── МОДАЛКА СТРАНЫ ── */
-.country-modal {
-  position: fixed; inset: 0;
-  background: rgba(15,23,42,0.4);
-  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-  z-index: 600; display: none;
-  align-items: flex-start; justify-content: center;
-}
+.country-modal { position: fixed; inset: 0; background: rgba(15,23,42,0.4); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 600; display: none; align-items: flex-start; justify-content: center; }
 .country-modal.active { display: flex; }
-.country-modal-sheet {
-  background: var(--bg);
-  width: 100%; max-width: 430px;
-  max-height: 90vh;
-  border-radius: 0 0 var(--radius) var(--radius);
-  overflow: hidden; display: flex; flex-direction: column;
-  animation: slideDown 0.25s cubic-bezier(.4,0,.2,1);
-}
+.country-sheet { width: 100%; max-width: 430px; background: var(--bg); border-radius: 0 0 16px 16px; padding: 0; max-height: 90vh; display: flex; flex-direction: column; animation: slideDown 0.25s cubic-bezier(.4,0,.2,1); }
 @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-.cm-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
-.cm-title { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
-.cm-close { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--bg-secondary); color: var(--text-secondary); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.cm-close:active { background: var(--border); }
-.cm-search { padding: 12px 16px; flex-shrink: 0; }
-.cm-search-input { width: 100%; padding: 10px 14px; border-radius: var(--radius-xs); border: 1.5px solid var(--border); background: var(--bg-secondary); font-size: 15px; color: var(--text); outline: none; font-family: inherit; transition: border-color 0.15s; }
-.cm-search-input:focus { border-color: var(--primary); }
-.cm-list { flex: 1; overflow-y: auto; }
-.cm-item { display: flex; align-items: center; gap: 13px; padding: 10px 20px; cursor: pointer; transition: background 0.12s; }
-.cm-item:active { background: var(--bg-secondary); }
-.cm-item-flag { width: 30px; height: 22px; border-radius: 3px; overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
-.cm-item-flag img { width: 100%; height: 100%; object-fit: cover; }
-.cm-item-name { font-size: 14.5px; font-weight: 600; color: var(--text); }
-.cm-item.selected .cm-item-name { color: var(--primary); }
-.cm-item-check { margin-left: auto; width: 18px; height: 18px; color: var(--primary); display: none; }
-.cm-item.selected .cm-item-check { display: block; }
+.sheet-handle { display: none; }
+.sheet-title { font-size: 17px; font-weight: 800; color: var(--text); padding: 16px 20px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+.sheet-search-wrap { padding: 0 16px 12px; flex-shrink: 0; }
+.sheet-search-inner { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 14px; background: var(--bg-secondary); }
+.sheet-search-inner:focus-within { border-color: var(--primary); }
+.sheet-search-inner input { flex: 1; border: none; background: none; outline: none; font-size: 14px; color: var(--text); }
+.sheet-search-inner input::placeholder { color: var(--text-light); }
+.country-list { overflow-y: auto; flex: 1; padding: 0 0 20px; }
+.country-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: background 0.1s; }
+.country-item:active { background: var(--bg-secondary); }
+.country-item.selected .country-item-name { font-weight: 700; color: var(--primary); }
+.country-flag-sm { width: 28px; height: 20px; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.country-flag-sm img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.country-item-name { font-size: 15px; color: var(--text); flex: 1; }
+.country-item-check { color: var(--primary); flex-shrink: 0; }
 
-/* ── МОДАЛКА РУПОР ── */
-.ann-modal { position: fixed; inset: 0; background: var(--bg-secondary); z-index: 500; display: none; flex-direction: column; }
-.ann-modal.active { display: flex; animation: slideUp 0.3s cubic-bezier(.4,0,.2,1); }
-@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.ann-header { display: flex; align-items: center; gap: 10px; padding: 0 16px; height: 58px; background: var(--bg); border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+/* ── ANN MODAL (из help.php) ── */
+.ann-modal { position: fixed; inset: 0; z-index: 500; background: var(--bg); transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; }
+.ann-modal.active { transform: translateY(0); }
+.ann-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
 .ann-header-icon { font-size: 20px; }
-.ann-title { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; flex: 1; }
-.ann-close { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; }
-.ann-close:active { background: var(--border); }
-.ann-close svg { width: 16px; height: 16px; stroke: var(--text-secondary); fill: none; stroke-width: 2.5; }
-.ann-city { padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
-.city-select { width: 100%; padding: 9px 36px 9px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-xs); font-size: 14px; font-weight: 600; color: var(--text); background: var(--bg-secondary); outline: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; font-family: 'Manrope', sans-serif; transition: border-color 0.15s; }
-.city-select:focus { border-color: var(--primary); }
-.ann-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px; }
-.ann-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 14px; }
-.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+.ann-title { flex: 1; font-size: 17px; font-weight: 800; color: var(--text); }
+.ann-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ann-close svg { width: 16px; height: 16px; stroke: var(--text); stroke-width: 2.5; fill: none; }
+.ann-city { padding: 12px 16px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+.city-select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--border); font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; font-weight: 600; background: var(--bg-secondary); color: var(--text); outline: none; appearance: none; }
+.ann-content { flex: 1; overflow-y: auto; padding: 16px; }
+.ann-loading { display: flex; flex-direction: column; align-items: center; padding: 48px 0; gap: 12px; }
+.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.ann-loading p { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+.ann-loading p { font-size: 14px; color: var(--text-light); font-weight: 500; }
+.ann-empty { display: flex; flex-direction: column; align-items: center; padding: 48px 20px; text-align: center; gap: 10px; }
+.ann-empty-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; }
+.ann-empty-icon svg { width: 26px; height: 26px; stroke: var(--text-light); fill: none; stroke-width: 1.8; }
+.ann-empty h3 { font-size: 17px; font-weight: 800; color: var(--text); }
+.ann-empty p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 .ann-category { margin-bottom: 20px; }
-.ann-cat-title { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; margin-bottom: 10px; padding-left: 2px; }
-.ann-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
-.ann-item { background: var(--bg); border-radius: var(--radius-xs); overflow: hidden; cursor: pointer; transition: transform 0.15s; border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); position: relative; }
-.ann-item:active { transform: scale(0.94); }
-.ann-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--bg-secondary); }
-.ann-date { position: absolute; top: 5px; right: 5px; background: rgba(59,108,244,0.9); color: white; padding: 3px 7px; border-radius: 6px; font-size: 9.5px; font-weight: 700; }
-.ann-item-name { font-size: 11.5px; font-weight: 600; color: var(--text); padding: 7px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-.ann-add-card { background: var(--bg-secondary); border: 2px dashed var(--border); border-radius: var(--radius-xs); display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 1; cursor: pointer; transition: all 0.15s; gap: 5px; padding: 8px; }
-.ann-add-card:active { border-color: var(--primary); background: var(--primary-light); transform: scale(0.95); }
-.ann-add-card svg { width: 22px; height: 22px; stroke: var(--primary); fill: none; stroke-width: 2.5; }
-.ann-add-card span { font-size: 9.5px; color: var(--text-secondary); text-align: center; line-height: 1.3; font-weight: 600; }
-.ann-empty { display: flex; flex-direction: column; align-items: center; padding: 50px 20px; text-align: center; gap: 10px; }
-.ann-empty-icon { width: 64px; height: 64px; border-radius: 18px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
-.ann-empty-icon svg { width: 30px; height: 30px; stroke: var(--text-light); fill: none; stroke-width: 1.5; }
-.ann-empty h3 { font-size: 16px; font-weight: 700; color: var(--text); }
-.ann-empty p { font-size: 13.5px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; }
+.ann-cat-title { font-size: 12px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+.ann-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.ann-item { border-radius: 12px; overflow: hidden; background: var(--bg-secondary); cursor: pointer; }
+.ann-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.ann-date { font-size: 10px; color: var(--text-light); font-weight: 600; padding: 6px 8px 2px; }
+.ann-item-name { font-size: 12px; font-weight: 700; color: var(--text); padding: 0 8px 8px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-::-webkit-scrollbar { display: none; }
+@media (min-width: 1024px) {
+  .app-container { max-width: 720px; padding-top: 64px; }
+  .page-header { display: none; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
 <div class="app-container">
 
-  <!-- ШАПКА -->
-  <header class="page-header">
+  <!-- HEADER (точно как help.php) -->
+  <div class="page-header">
     <div class="header-top">
-      <div class="header-left">
+      <div style="width:84px;display:flex;align-items:center;">
         <button class="btn-grid" onclick="openAnnModal()" aria-label="Свежие сервисы">
           <svg viewBox="0 0 24 24">
             <circle cx="5"  cy="5"  r="2"/><circle cx="12" cy="5"  r="2"/><circle cx="19" cy="5"  r="2"/>
@@ -330,56 +247,87 @@ body {
           </svg>
         </button>
       </div>
-      <div class="header-center">
-        <a href="/index.php"><img src="/logo.png" alt="Poisq"></a>
+      <div class="header-logo">
+        <a href="/"><img src="/logo.png" alt="Poisq" onerror="this.style.display='none'"></a>
       </div>
-      <div class="header-right">
+      <div style="width:84px;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+        <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
+        <button class="btn-add" onclick="openSlotsModal()" aria-label="Добавить сервис">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <?php else: ?>
+        <a href="<?php echo $isLoggedIn ? '/add-service.php' : '/register.php'; ?>" class="btn-add" aria-label="Добавить сервис">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </a>
+        <?php endif; ?>
         <button class="btn-burger" id="menuToggle" aria-label="Меню">
           <span></span><span></span><span></span>
         </button>
       </div>
     </div>
-  </header>
-
-  <!-- HERO -->
-  <div class="page-hero">
-    <div class="hero-title">Полезное</div>
-    <div class="hero-sub">Гайды, советы и инструкции для жизни за рубежом</div>
   </div>
 
-  <!-- ВЫБОР СТРАНЫ -->
-  <div class="country-bar" id="countrySelector" onclick="openCountryModal()">
-    <div class="country-bar-flag">
-      <img src="https://flagcdn.com/w80/fr.png" alt="Франция" id="currentFlag" loading="lazy" data-code="fr">
-    </div>
-    <div class="country-bar-text">
-      <div class="country-bar-name" id="currentCountryName">Франция</div>
-      <div class="country-bar-hint">Нажмите чтобы сменить страну</div>
-    </div>
-    <div class="country-bar-chevron">
-      <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  <!-- MASTHEAD -->
+  <div class="masthead">
+    <div class="masthead-overline">Раздел · Полезное</div>
+    <h1>Полезное</h1>
+    <p class="masthead-sub">Гайды, советы и наблюдения для русскоязычных по всему миру</p>
+    <div class="country-inline" onclick="openCountryModal()">
+      <span class="country-inline-label">Страна:</span>
+      <span class="country-inline-value" id="inlineCountryName">Франция</span>
+      <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+        <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </div>
   </div>
 
-  <!-- ФИЛЬТР (чипы рубрик — заполняются из API) -->
-  <div class="filter-row" id="filterRow">
-    <button class="filter-chip active" onclick="filterByCategory('all', this)">Все</button>
+  <!-- TABS -->
+  <div class="tabs-row" id="tabsRow">
+    <button class="tab-item active" data-cat="all">Все</button>
+    <?php
+    try {
+        if (!isset($pdo)) { require_once __DIR__ . '/config/database.php'; $pdo = getDbConnection(); }
+        $cats = $pdo->query("SELECT DISTINCT category FROM articles WHERE status='published' AND category IS NOT NULL AND category != '' ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($cats as $cat) {
+            echo '<button class="tab-item" data-cat="'.htmlspecialchars($cat).'">'
+                .htmlspecialchars($cat).'</button>';
+        }
+    } catch (Exception $e) {}
+    ?>
   </div>
 
-  <!-- СПИСОК -->
-  <div class="articles-list" id="articlesList">
-    <!-- Скелетон при загрузке -->
-    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line" style="height:12px;width:60%"></div><div class="skeleton-line" style="height:16px;width:90%"></div><div class="skeleton-line" style="height:12px;width:80%"></div></div></div>
-    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line" style="height:12px;width:50%"></div><div class="skeleton-line" style="height:16px;width:95%"></div><div class="skeleton-line" style="height:12px;width:70%"></div></div></div>
-    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line" style="height:12px;width:55%"></div><div class="skeleton-line" style="height:16px;width:85%"></div><div class="skeleton-line" style="height:12px;width:75%"></div></div></div>
+  <!-- КОНТЕНТ -->
+  <div id="mainContent" style="flex:1">
+    <div id="skeletonWrap">
+      <div class="skeleton-lead">
+        <div class="skel-block" style="width:100px;height:10px;margin-bottom:12px"></div>
+        <div class="skel-block" style="width:100%;height:200px;border-radius:12px;margin-bottom:14px"></div>
+        <div class="skel-block" style="width:60%;height:12px;margin-bottom:8px"></div>
+        <div class="skel-block" style="width:85%;height:26px;margin-bottom:8px"></div>
+        <div class="skel-block" style="width:100%;height:14px;margin-bottom:6px"></div>
+        <div class="skel-block" style="width:80%;height:14px"></div>
+      </div>
+      <?php for($i=0;$i<3;$i++): ?>
+      <div class="skeleton-row">
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <div class="skel-block" style="width:60px;height:10px"></div>
+          <div class="skel-block" style="width:90%;height:16px"></div>
+          <div class="skel-block" style="width:100%;height:12px"></div>
+          <div class="skel-block" style="width:70%;height:12px"></div>
+        </div>
+        <div class="skel-block" style="width:80px;height:80px;border-radius:10px;flex-shrink:0"></div>
+      </div>
+      <?php endfor; ?>
+    </div>
+    <div id="articlesWrap" style="display:none"></div>
   </div>
 
   <!-- FOOTER -->
   <div class="page-footer">
-    <a href="/useful.php"  class="footer-link active">Полезное</a>
-    <a href="/help.php"    class="footer-link">Помощь</a>
-    <a href="/terms.php"   class="footer-link">Условия</a>
-    <a href="/about.php"   class="footer-link">О нас</a>
+    <a href="/useful.php" class="footer-link active">Полезное</a>
+    <a href="/help.php" class="footer-link">Помощь</a>
+    <a href="/terms.php" class="footer-link">Условия</a>
+    <a href="/about.php" class="footer-link">О нас</a>
     <a href="/contact.php" class="footer-link">Контакт</a>
   </div>
 
@@ -387,21 +335,25 @@ body {
 
 <?php include __DIR__ . '/includes/menu.php'; ?>
 
-<!-- МОДАЛКА СТРАНЫ -->
-<div class="country-modal" id="countryModal" onclick="onCountryOverlay(event)">
-  <div class="country-modal-sheet">
-    <div class="cm-header">
-      <span class="cm-title">Выберите страну</span>
-      <button class="cm-close" onclick="closeCountryModal()">✕</button>
+<!-- COUNTRY MODAL -->
+<div class="country-modal" id="countryModal" onclick="onModalOverlay(event)">
+  <div class="country-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Выберите страну</div>
+    <div class="sheet-search-wrap">
+      <div class="sheet-search-inner">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="#94A3B8" stroke-width="1.3"/>
+          <path d="M9.5 9.5l3 3" stroke="#94A3B8" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="countrySearch" placeholder="Поиск страны" autocomplete="off">
+      </div>
     </div>
-    <div class="cm-search">
-      <input type="text" class="cm-search-input" id="cmSearch" placeholder="Поиск страны…">
-    </div>
-    <div class="cm-list" id="cmList"></div>
+    <div class="country-list" id="countryList"></div>
   </div>
 </div>
 
-<!-- МОДАЛКА РУПОР -->
+<!-- ANN MODAL (точно как help.php) -->
 <div class="ann-modal" id="annModal">
   <div class="ann-header">
     <span class="ann-header-icon">📢</span>
@@ -411,7 +363,7 @@ body {
     </button>
   </div>
   <div class="ann-city">
-    <select id="citySelect" class="city-select" onchange="filterByCity()">
+    <select id="annCitySelect" class="city-select" onchange="filterByCity()">
       <option>Загрузка...</option>
     </select>
   </div>
@@ -421,214 +373,169 @@ body {
 </div>
 
 <script>
-// ════════════════════════════════════════
-// СТРАНЫ — из БД через PHP
-// ════════════════════════════════════════
-const countries = <?php echo json_encode($_jsCountries, JSON_UNESCAPED_UNICODE); ?>;
+// ── ДАННЫЕ ──
+const COUNTRIES_LIST = <?php
+$_cl = [];
+try {
+    if (!isset($pdo)) { require_once __DIR__ . '/config/database.php'; $pdo = getDbConnection(); }
+    foreach ($pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1 ORDER BY name_ru")->fetchAll(PDO::FETCH_ASSOC) as $_r) {
+        $_cl[] = ['code' => $_r['code'], 'name' => $_r['name_ru']];
+    }
+} catch (Exception $_e) {}
+if (empty($_cl)) {
+    $_cl = [
+        ['code'=>'ae','name'=>'ОАЭ'],['code'=>'ar','name'=>'Аргентина'],['code'=>'au','name'=>'Австралия'],
+        ['code'=>'at','name'=>'Австрия'],['code'=>'be','name'=>'Бельгия'],['code'=>'br','name'=>'Бразилия'],
+        ['code'=>'by','name'=>'Беларусь'],['code'=>'ca','name'=>'Канада'],['code'=>'ch','name'=>'Швейцария'],
+        ['code'=>'cl','name'=>'Чили'],['code'=>'co','name'=>'Колумбия'],['code'=>'cz','name'=>'Чехия'],
+        ['code'=>'de','name'=>'Германия'],['code'=>'dk','name'=>'Дания'],['code'=>'es','name'=>'Испания'],
+        ['code'=>'fi','name'=>'Финляндия'],['code'=>'fr','name'=>'Франция'],['code'=>'gb','name'=>'Великобритания'],
+        ['code'=>'gr','name'=>'Греция'],['code'=>'hk','name'=>'Гонконг'],['code'=>'ie','name'=>'Ирландия'],
+        ['code'=>'il','name'=>'Израиль'],['code'=>'it','name'=>'Италия'],['code'=>'jp','name'=>'Япония'],
+        ['code'=>'kr','name'=>'Южная Корея'],['code'=>'kz','name'=>'Казахстан'],['code'=>'mx','name'=>'Мексика'],
+        ['code'=>'nl','name'=>'Нидерланды'],['code'=>'no','name'=>'Норвегия'],['code'=>'nz','name'=>'Новая Зеландия'],
+        ['code'=>'pl','name'=>'Польша'],['code'=>'pt','name'=>'Португалия'],['code'=>'ru','name'=>'Россия'],
+        ['code'=>'se','name'=>'Швеция'],['code'=>'sg','name'=>'Сингапур'],['code'=>'th','name'=>'Таиланд'],
+        ['code'=>'tr','name'=>'Турция'],['code'=>'ua','name'=>'Украина'],['code'=>'us','name'=>'США'],['code'=>'za','name'=>'ЮАР'],
+    ];
+}
+echo json_encode($_cl, JSON_UNESCAPED_UNICODE);
+?>;
 
-// Читаем сохранённую страну из localStorage
+const CAT_LABELS = {all:'Все',health:'Здоровье',finance:'Финансы',housing:'Жильё',bureaucracy:'Бюрократия',culture:'Культура',education:'Образование',work:'Работа',children:'Дети'};
+
 let currentCode = localStorage.getItem('poisq_country') || 'fr';
 let currentName = localStorage.getItem('poisq_country_name') || 'Франция';
-let currentCategory = 'all'; // активный фильтр категории
+let currentCat  = 'all';
+let allArticles = [];
+let searchTimer = null;
 
-// Применяем флаг при загрузке
-document.getElementById('currentFlag').src = 'https://flagcdn.com/w80/' + currentCode + '.png';
-document.getElementById('currentFlag').dataset.code = currentCode;
-document.getElementById('currentCountryName').textContent = currentName;
+document.getElementById('inlineCountryName').textContent = currentName;
 
-// ════════════════════════════════════════
-// ЗАГРУЗКА СТАТЕЙ ИЗ API
-// ════════════════════════════════════════
-// categoryStyle заполняется динамически из API
-let categoryStyle = {
-  'Финансы':   'background:#EEF2FF;color:#3B6CF4',
-  'Документы': 'background:#FEF3C7;color:#D97706',
-  'Семья':     'background:#FCE7F3;color:#DB2777',
-  'Здоровье':  'background:#ECFDF5;color:#059669',
-};
+// ── ТАБЫ ──
+document.getElementById('tabsRow').addEventListener('click', function(e) {
+  const btn = e.target.closest('.tab-item');
+  if (!btn) return;
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  currentCat = btn.dataset.cat;
+  renderArticles(allArticles, currentCat);
+  btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+});
 
-// ════════════════════════════════════════
-// ЗАГРУЗКА РУБРИК ИЗ API
-// ════════════════════════════════════════
-async function loadCategories() {
-  try {
-    const resp = await fetch('/api/get-articles.php?action=categories');
-    const data = await resp.json();
-    const cats = data.categories || [];
-    if (!cats.length) return;
-
-    // Перестраиваем categoryStyle из БД
-    const newStyle = {};
-    cats.forEach(c => {
-      newStyle[c.name] = `background:${c.bg_color};color:${c.color}`;
-    });
-    categoryStyle = newStyle;
-
-    // Перестраиваем чипы фильтра
-    const row = document.getElementById('filterRow');
-    // Оставляем первый чип "Все", удаляем остальные
-    while (row.children.length > 1) row.removeChild(row.lastChild);
-    cats.forEach(c => {
-      const btn = document.createElement('button');
-      btn.className = 'filter-chip';
-      btn.textContent = c.name;
-      btn.onclick = function() { filterByCategory(c.name, this); };
-      row.appendChild(btn);
-    });
-  } catch(e) {
-    // Оставляем дефолтные чипы если API недоступен
-  }
-}
-
+// ── ЗАГРУЗКА СТАТЕЙ ──
 async function loadArticles(countryCode) {
-  const list = document.getElementById('articlesList');
-
-  // Показываем скелетон
-  list.innerHTML = `
-    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line" style="height:12px;width:60%;margin-bottom:8px"></div><div class="skeleton-line" style="height:16px;width:90%;margin-bottom:8px"></div><div class="skeleton-line" style="height:12px;width:80%"></div></div></div>
-    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line" style="height:12px;width:50%;margin-bottom:8px"></div><div class="skeleton-line" style="height:16px;width:95%;margin-bottom:8px"></div><div class="skeleton-line" style="height:12px;width:70%"></div></div></div>
-    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line" style="height:12px;width:55%;margin-bottom:8px"></div><div class="skeleton-line" style="height:16px;width:85%;margin-bottom:8px"></div><div class="skeleton-line" style="height:12px;width:75%"></div></div></div>`;
-
+  document.getElementById('skeletonWrap').style.display = 'block';
+  document.getElementById('articlesWrap').style.display = 'none';
   try {
     const resp = await fetch('/api/get-articles.php?country=' + encodeURIComponent(countryCode));
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-    const articles = data.articles || [];
+    allArticles = Array.isArray(data) ? data : (data.articles || data || []);
+  } catch(e) { allArticles = []; }
+  document.getElementById('skeletonWrap').style.display = 'none';
+  document.getElementById('articlesWrap').style.display = 'block';
+  renderArticles(allArticles, currentCat);
+}
 
-    if (!articles.length) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">📭</div>
-          <div class="empty-state-title">Статей пока нет</div>
-          <div class="empty-state-sub">Для этой страны статьи ещё не добавлены.<br>Скоро появятся!</div>
-        </div>`;
-      return;
-    }
-
-    // Сохраняем все статьи глобально для фильтрации по категории
-    window._allArticles = articles;
-    renderArticles(articles, currentCategory);
-
-  } catch(e) {
-    list.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">⚠️</div>
-        <div class="empty-state-title">Ошибка загрузки</div>
-        <div class="empty-state-sub">Проверьте соединение и попробуйте снова.</div>
-      </div>`;
+// ── РЕНДЕР ──
+function renderArticles(articles, cat) {
+  const filtered = cat === 'all' ? articles : articles.filter(a => (a.category||'') === cat);
+  const wrap = document.getElementById('articlesWrap');
+  if (!filtered.length) { wrap.innerHTML = renderEmpty(cat); return; }
+  const lead = filtered[0];
+  const rest  = filtered.slice(1);
+  let html = renderLead(lead);
+  if (rest.length) {
+    html += '<div class="section-divider"><span class="divider-label">Читают сейчас</span><div class="divider-line"></div></div>';
+    html += rest.map((a,i) => renderRow(a, i===0)).join('');
   }
+  wrap.innerHTML = html;
 }
 
-function renderArticles(articles, category) {
-  const list = document.getElementById('articlesList');
-  const filtered = category === 'all' ? articles : articles.filter(a => a.category === category);
-
-  if (!filtered.length) {
-    list.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🔍</div>
-        <div class="empty-state-title">Нет статей в этой категории</div>
-        <div class="empty-state-sub">Попробуйте выбрать другую категорию.</div>
-      </div>`;
-    return;
-  }
-
-  list.innerHTML = filtered.map(a => {
-    const style = categoryStyle[a.category] || 'background:#F1F5F9;color:#64748B';
-    const photo = a.photo || 'https://via.placeholder.com/110x110?text=P';
-    return `
-      <a class="article-card" href="/article/${a.country_code === 'all' ? 'all' : a.country_code}/${a.slug}" data-category="${escHtml(a.category)}">
-        <div class="article-thumb">
-          <img src="${escHtml(photo)}" alt="${escHtml(a.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/110x110?text=P'">
-        </div>
-        <div class="article-body">
-          <div class="article-meta">
-            <span class="article-category" style="${style}">${escHtml(a.category)}</span>
-            <span class="article-dot"></span>
-            <span class="article-read-time">${escHtml(a.read_time)}</span>
-          </div>
-          <div class="article-title">${escHtml(a.title)}</div>
-          <div class="article-excerpt">${escHtml(a.excerpt)}</div>
-          <div class="article-footer">
-            <span class="article-date">${escHtml(a.date)}</span>
-            <span class="article-more">Читать <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
-          </div>
-        </div>
-      </a>`;
-  }).join('');
+function renderLead(a) {
+  const url  = '/article/' + (currentCode||'all') + '/' + (a.slug||a.id);
+  const cat  = CAT_LABELS[a.category] || a.category || '';
+  const time = a.read_time || '5 мин';
+  const date = a.date || formatDate(a.created_at);
+  const cover = a.photo
+    ? '<img class="lead-cover" src="'+esc(a.photo)+'" alt="'+esc(a.title)+'" loading="eager">'
+    : '<div class="lead-cover-placeholder">📰</div>';
+  return '<a class="lead-story" href="'+url+'">'+
+    '<div class="lead-badge">◆ Материал раздела</div>'+
+    cover+
+    '<div class="lead-meta"><span class="lead-category">'+esc(cat)+'</span><span class="lead-read-time">· '+esc(time)+' чтения</span></div>'+
+    '<h2 class="lead-title">'+esc(a.title)+'</h2>'+
+    (a.excerpt ? '<p class="lead-excerpt">'+esc(a.excerpt)+'</p>' : '')+
+    '<div class="lead-author">'+(a.author ? '<div class="author-avatar">'+esc(a.author.charAt(0).toUpperCase())+'</div><span>'+esc(a.author)+'</span><span>·</span>' : '')+'<span>'+date+'</span></div>'+
+    '</a>';
 }
 
-function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function renderRow(a, first) {
+  const url  = '/article/' + (currentCode||'all') + '/' + (a.slug||a.id);
+  const cat  = CAT_LABELS[a.category] || a.category || '';
+  const time = a.read_time || '5 мин';
+  const date = a.date || formatDate(a.created_at);
+  const thumb = a.photo
+    ? '<img class="story-thumb" src="'+esc(a.photo)+'" alt="'+esc(a.title)+'" loading="lazy">'
+    : '<div class="story-thumb-placeholder">📰</div>';
+  return '<a class="story-row" href="'+url+'"'+(first?' style="border-top:none"':'')+ '>'+
+    '<div class="story-text">'+
+    '<span class="story-category">'+esc(cat)+'</span>'+
+    '<div class="story-title">'+esc(a.title)+'</div>'+
+    (a.excerpt ? '<div class="story-excerpt">'+esc(a.excerpt)+'</div>' : '')+
+    '<div class="story-meta-row">'+(a.author?'<span>'+esc(a.author)+'</span><span>·</span>':'')+' <span>'+date+'</span><span>·</span><span>'+esc(time)+' чтения</span></div>'+
+    '</div>'+thumb+'</a>';
 }
 
-// ════════════════════════════════════════
-// ФИЛЬТР КАТЕГОРИЙ
-// ════════════════════════════════════════
-function filterByCategory(category, btn) {
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  btn.classList.add('active');
-  currentCategory = category;
-  if (window._allArticles) renderArticles(window._allArticles, category);
+function renderEmpty(cat) {
+  const label = cat==='all' ? 'в этой стране' : 'в рубрике «'+(CAT_LABELS[cat]||cat)+'»';
+  return '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-title">Пока пусто</div><div class="empty-sub">Статей '+label+' ещё нет. Скоро появятся!</div></div>';
 }
 
-// ════════════════════════════════════════
-// ВЫБОР СТРАНЫ
-// ════════════════════════════════════════
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}); } catch(e) { return d; }
+}
+
+// ── МОДАЛКА СТРАНЫ ──
+function openCountryModal() {
+  renderCountryList(COUNTRIES_LIST);
+  document.getElementById('countryModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('countrySearch').focus(), 300);
+}
+function closeCountryModal() { document.getElementById('countryModal').classList.remove('active'); document.body.style.overflow=''; }
+function onModalOverlay(e) { if (e.target===document.getElementById('countryModal')) closeCountryModal(); }
+document.getElementById('countrySearch').addEventListener('input', function() {
+  renderCountryList(COUNTRIES_LIST.filter(c => c.name.toLowerCase().includes(this.value.toLowerCase())));
+});
 function renderCountryList(list) {
-  const cmList = document.getElementById('cmList');
-  if (!list.length) {
-    cmList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light);font-size:14px">Страны не найдены</div>';
-    return;
-  }
-  cmList.innerHTML = list.map(c => `
-    <div class="cm-item ${c.code === currentCode ? 'selected' : ''}" data-code="${c.code}" data-name="${c.name}">
-      <div class="cm-item-flag"><img src="https://flagcdn.com/w80/${c.code}.png" alt="${c.name}" loading="lazy"></div>
-      <span class="cm-item-name">${c.name}</span>
-      <svg class="cm-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>`).join('');
-  cmList.querySelectorAll('.cm-item').forEach(el => {
-    el.addEventListener('click', () => selectCountry(el.dataset.code, el.dataset.name));
-  });
+  const el = document.getElementById('countryList');
+  if (!list.length) { el.innerHTML='<div style="padding:20px;text-align:center;font-size:14px;color:var(--text-light)">Не найдено</div>'; return; }
+  el.innerHTML = list.map(c =>
+    '<button class="country-item'+(c.code===currentCode?' selected':'')+'" onclick="selectCountry(\''+ c.code +'\',\''+ c.name.replace(/\'/g,'\\\'')+'\')">'+
+    '<div class="country-flag-sm"><img src="https://flagcdn.com/w80/'+c.code+'.png" alt="'+esc(c.name)+'" loading="lazy"></div>'+
+    '<span class="country-item-name">'+esc(c.name)+'</span>'+
+    (c.code===currentCode ? '<svg class="country-item-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : '')+
+    '</button>'
+  ).join('');
 }
-
 function selectCountry(code, name) {
-  currentCode = code;
-  currentName = name;
+  currentCode = code; currentName = name;
   localStorage.setItem('poisq_country', code);
   localStorage.setItem('poisq_country_name', name);
   localStorage.setItem('poisq_country_manual', '1');
-  document.getElementById('currentFlag').src = 'https://flagcdn.com/w80/' + code + '.png';
-  document.getElementById('currentFlag').dataset.code = code;
-  document.getElementById('currentCountryName').textContent = name;
+  document.getElementById('inlineCountryName').textContent = name;
   closeCountryModal();
-  // Сбрасываем фильтр категории и загружаем статьи для новой страны
-  currentCategory = 'all';
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  document.querySelector('.filter-chip').classList.add('active');
   loadArticles(code);
 }
 
-function openCountryModal() {
-  document.getElementById('countryModal').classList.add('active');
-  document.body.style.overflow = 'hidden';
-  document.getElementById('cmSearch').value = '';
-  renderCountryList(countries);
-  setTimeout(() => document.getElementById('cmSearch').focus(), 300);
-}
-function closeCountryModal() {
-  document.getElementById('countryModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-function onCountryOverlay(e) {
-  if (e.target === document.getElementById('countryModal')) closeCountryModal();
-}
-document.getElementById('cmSearch').addEventListener('input', function() {
-  renderCountryList(countries.filter(c => c.name.toLowerCase().includes(this.value.toLowerCase())));
-});
-
-// ════════════════════════════════════════
-// РУПОР — СВЕЖИЕ СЕРВИСЫ
-// ════════════════════════════════════════
+// ── ANN MODAL (из help.php) ──
 let annCityId = null;
 async function openAnnModal() {
   const modal   = document.getElementById('annModal');
@@ -637,40 +544,38 @@ async function openAnnModal() {
   document.body.style.overflow = 'hidden';
   content.innerHTML = '<div class="ann-loading"><div class="spinner"></div><p>Загрузка...</p></div>';
   try {
-    const cc  = currentCode || 'fr';
+    const cr  = await fetch('/api/get-user-country.php');
+    const cd  = await cr.json();
+    const cc  = cd.country_code || 'fr';
     const cir = await fetch('/api/get-cities.php?country=' + cc);
     const cities = await cir.json();
-    const sel = document.getElementById('citySelect');
+    const sel = document.getElementById('annCitySelect');
     sel.innerHTML = '';
-    annCityId = null;
     cities.forEach(c => {
       const o = document.createElement('option');
       o.value = c.id;
-      o.textContent = c.name + (c.is_capital == 1 ? ' (столица)' : '');
+      o.textContent = c.name_lat ? c.name_lat + ' (' + c.name + ')' : c.name;
       sel.appendChild(o);
       if (c.is_capital == 1 && !annCityId) annCityId = c.id;
     });
     if (!annCityId && cities.length) annCityId = cities[0].id;
     if (annCityId) sel.value = annCityId;
     await loadAnnServices(annCityId);
-  } catch {
+  } catch(e) {
     document.getElementById('annContent').innerHTML = annErr('Ошибка загрузки', 'Проверьте соединение.');
   }
 }
-function closeAnnModal() {
-  document.getElementById('annModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
+function closeAnnModal() { document.getElementById('annModal').classList.remove('active'); document.body.style.overflow=''; }
 async function filterByCity() {
-  annCityId = document.getElementById('citySelect').value;
+  annCityId = document.getElementById('annCitySelect').value;
   await loadAnnServices(annCityId);
 }
 async function loadAnnServices(cityId) {
   const content = document.getElementById('annContent');
   content.innerHTML = '<div class="ann-loading"><div class="spinner"></div><p>Загрузка...</p></div>';
   try {
-    const r  = await fetch('/api/get-services.php?city_id=' + cityId + '&days=5');
-    const d  = await r.json();
+    const r = await fetch('/api/get-services.php?city_id=' + cityId + '&days=5');
+    const d = await r.json();
     const sv = d.services || [];
     if (!sv.length) {
       content.innerHTML = '<div class="ann-empty"><div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><h3>Пока нет сервисов</h3><p>В этом городе нет новых сервисов за последние 5 дней</p></div>';
@@ -686,28 +591,19 @@ async function loadAnnServices(cityId) {
         if (s.photo) { try { const p = JSON.parse(s.photo); photo = Array.isArray(p) ? p[0] : s.photo; } catch(e) { photo = s.photo; } }
         const now = new Date(), d2 = new Date(s.created_at);
         const diff = Math.floor((now - d2) / 86400000);
-        const dateStr = diff === 0 ? 'Сегодня' : diff === 1 ? 'Вчера' : diff + ' дн.';
-        html += '<div class="ann-item" onclick="location.href=\'/service/' + s.id + '\'">' +
-          '<img src="' + photo + '" alt="' + s.name + '" loading="lazy" onerror="this.src=\'https://via.placeholder.com/200?text=P\'">' +
-          '<div class="ann-date">' + dateStr + '</div>' +
-          '<div class="ann-item-name">' + s.name + '</div></div>';
+        const dateStr = diff === 0 ? 'Сегодня' : diff === 1 ? 'Вчера' : diff < 5 ? diff + ' дн.' : d2.toLocaleDateString('ru-RU', {day:'numeric',month:'short'});
+        html += '<div class="ann-item" onclick="location.href=\''+ '/service/' + s.id +'\'"><img src="' + photo + '" alt="' + s.name + '" loading="lazy" onerror="this.src=\'https://via.placeholder.com/200?text=Poisq\'"><div class="ann-date">' + dateStr + '</div><div class="ann-item-name">' + s.name + '</div></div>';
       });
-      html += '<div class="ann-add-card" onclick="location.href=\'/add-service.php\'"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Добавить сервис</span></div>';
       html += '</div></div>';
     }
     content.innerHTML = html;
-  } catch(e) {
-    content.innerHTML = annErr('Ошибка', 'Не удалось загрузить данные.');
-  }
+  } catch(e) { content.innerHTML = annErr('Ошибка', 'Не удалось загрузить данные.'); }
 }
 function annErr(t, p) {
-  return '<div class="ann-empty"><div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>' + t + '</h3><p>' + p + '</p></div>';
+  return '<div class="ann-empty"><div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>'+t+'</h3><p>'+p+'</p></div>';
 }
 
-// ════════════════════════════════════════
-// СТАРТ — загружаем рубрики и статьи
-// ════════════════════════════════════════
-loadCategories();   // загружает чипы из БД
+// ── СТАРТ ──
 loadArticles(currentCode);
 </script>
 </body>

@@ -25,8 +25,8 @@ try {
 
     // ── Основной запрос — список статей ────────────────────────
     $stmt = $pdo->prepare("
-        SELECT id, title, excerpt, category, country_code, slug, photo, read_time,
-               DATE_FORMAT(created_at, '%d.%m.%Y') as date
+        SELECT id, title, excerpt, category, country_code, slug, photo, read_time, author,
+               DATE_FORMAT(created_at, '%d.%m.%Y') as date, created_at
         FROM articles
         WHERE status = 'published'
           AND (country_code = ? OR country_code = 'all')
