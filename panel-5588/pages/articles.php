@@ -33,7 +33,7 @@ $total      = (int)$totalStmt->fetchColumn();
 $totalPages = max(1, ceil($total / $perPage));
 $offset     = ($page - 1) * $perPage;
 
-$stmt = $pdo->prepare("SELECT id, title, category, country_code, status, photo, sort_order, created_at, updated_at FROM articles $whereSQL ORDER BY sort_order ASC, created_at DESC LIMIT $perPage OFFSET $offset");
+$stmt = $pdo->prepare("SELECT id, title, category, country_code, status, photo, sort_order, created_at, updated_at, author FROM articles $whereSQL ORDER BY sort_order ASC, created_at DESC LIMIT $perPage OFFSET $offset");
 $stmt->execute($params);
 $articles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -129,6 +129,7 @@ ob_start();
                 <?php if ($a['slug'] ?? ''): ?>
                 <div style="font-size:11px;color:var(--text-light)">/<?php echo htmlspecialchars($a['country_code']); ?>/<?php echo htmlspecialchars($a['slug'] ?? ''); ?></div>
                 <?php endif; ?>
+                <?php if (!empty($a['author'])): ?><span style="display:inline-block;margin-top:3px;font-size:10px;font-weight:600;background:#FFF7ED;color:#EA580C;border:1px solid #FED7AA;padding:1px 6px;border-radius:4px">✍️ <?php echo htmlspecialchars($a['author']); ?></span><?php endif; ?>
             </td>
             <td style="font-size:12px;color:var(--text-secondary)"><?php echo htmlspecialchars($a['category'] ?? '—'); ?></td>
             <td><span style="font-size:12px;font-weight:700;color:var(--text-secondary)"><?php echo strtoupper($a['country_code']); ?></span></td>

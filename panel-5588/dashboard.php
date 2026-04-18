@@ -17,6 +17,10 @@ $pendingReviewCount = 0;
 try {
     $pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
 } catch (Exception $e) { $pendingReviewCount = 0; }
+$pendingArticlesCount = 0;
+try {
+    $pendingArticlesCount = (int)$pdo->query("SELECT COUNT(*) FROM article_submissions WHERE status='pending'")->fetchColumn();
+} catch (Exception $e) { $pendingArticlesCount = 0; }
 $approvedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='approved'")->fetchColumn();
 $rejectedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='rejected'")->fetchColumn();
 $draftCount     = $pdo->query("SELECT COUNT(*) FROM services WHERE status='draft'")->fetchColumn();
@@ -80,6 +84,19 @@ ob_start();
 <?php endif; ?>
 
 <!-- Значок Проверено -->
+<?php if ($pendingArticlesCount > 0): ?>
+<a href="/panel-5588/pages/article-submissions.php" style="display:block;text-decoration:none;margin-bottom:16px;">
+  <div class="stat-card" style="background:#FFF7ED;border:1.5px solid #FED7AA;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px;">📝</span>
+      <div>
+        <div class="stat-card-label">Статьи от пользователей</div>
+        <div class="stat-card-value" style="font-size:22px;color:#EA580C;"><?php echo $pendingArticlesCount; ?> <span style="font-size:13px;font-weight:500">ожидают</span></div>
+      </div>
+    </div>
+  </div>
+</a>
+<?php endif; ?>
 <?php if ($pendingVerifCount > 0): ?>
 <a href="/panel-5588/verifications.php?status=pending" style="display:block;text-decoration:none;margin-bottom:16px;">
     <div class="stat-card yellow" style="display:flex;align-items:center;gap:14px;padding:14px 18px;">

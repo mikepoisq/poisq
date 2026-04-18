@@ -13,9 +13,15 @@ $navItems = [
     'analytics'     => ['icon' => 'M18 20V10M12 20V4M6 20v-6', 'label' => 'Аналитика'],
     'verifications' => ['icon' => 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', 'label' => 'Проверки'],
     'reviews'       => ['icon' => 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z', 'label' => 'Комментарии'],
+
 ];
 
-function renderLayout(string $pageTitle, string $content, int $pendingCount = 0, int $pendingVerifCount = 0, int $pendingReviewCount = 0): void {
+function renderLayout(string $pageTitle, string $content, int $pendingCount = 0, int $pendingVerifCount = 0, int $pendingReviewCount = 0, int $pendingArticlesCount = 0): void {
+    // Всегда считаем свежо из БД
+    try {
+        $_db = getDbConnection();
+        $pendingArticlesCount = (int)$_db->query("SELECT COUNT(*) FROM article_submissions WHERE status='pending'")->fetchColumn();
+    } catch (Exception $_e) { $pendingArticlesCount = 0; }
     global $currentPage, $navItems;
     $isAdmin    = function_exists('isAdminLoggedIn') && isAdminLoggedIn();
     $isModerator = !$isAdmin && function_exists('isModeratorLoggedIn') && isModeratorLoggedIn();
@@ -588,6 +594,14 @@ body.dark-theme [style*="color:var(--warning)"] {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
             Статьи (Полезное)
         </a>
+        <a href="/panel-5588/pages/article-submissions.php"
+           class="nav-item <?php echo $currentPage === 'article-submissions' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            Статьи от юзеров
+            <?php if ($pendingArticlesCount > 0): ?>
+            <span class="nav-badge" style="background:#EA580C"><?php echo $pendingArticlesCount; ?></span>
+            <?php endif; ?>
+        </a>
         <a href="/panel-5588/pages/faq.php"
            class="nav-item <?php echo $currentPage === 'faq' ? 'active' : ''; ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-linecap="round" stroke-width="3"/></svg>
@@ -661,6 +675,14 @@ body.dark-theme [style*="color:var(--warning)"] {
         </a>
         <?php endif; ?>
         <?php if (in_array('faq', $modPerms)): ?>
+        <a href="/panel-5588/pages/article-submissions.php"
+           class="nav-item <?php echo $currentPage === 'article-submissions' ? 'active' : ''; ?>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            Статьи от юзеров
+            <?php if ($pendingArticlesCount > 0): ?>
+            <span class="nav-badge" style="background:#EA580C"><?php echo $pendingArticlesCount; ?></span>
+            <?php endif; ?>
+        </a>
         <a href="/panel-5588/pages/faq.php"
            class="nav-item <?php echo $currentPage === 'faq' ? 'active' : ''; ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-linecap="round" stroke-width="3"/></svg>

@@ -114,6 +114,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .country-inline:active .country-inline-value { opacity: 0.6; }
 
 /* ── TABS ── */
+.search-bar { display: flex; align-items: center; gap: 10px; margin: 0 16px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; background: var(--bg-secondary); transition: border-color 0.15s; }
+.search-bar:focus-within { border-color: var(--primary); background: var(--bg); }
+.search-bar input { flex: 1; border: none; background: none; outline: none; font-size: 14px; color: var(--text); }
+.search-bar input::placeholder { color: var(--text-light); }
 .tabs-row { display: flex; gap: 0; padding: 0 16px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; border-bottom: 1px solid var(--border-light); touch-action: pan-x; }
 .tabs-row::-webkit-scrollbar { display: none; }
 .tab-item { flex-shrink: 0; padding: 12px 14px; position: relative; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; background: none; border: none; transition: color 0.15s; }
@@ -282,6 +286,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
   </div>
 
   <!-- TABS -->
+  <div class="search-bar">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="6" cy="6" r="4.5" stroke="#94A3B8" stroke-width="1.3"/>
+      <path d="M9.5 9.5l3 3" stroke="#94A3B8" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Поиск по статьям" autocomplete="off">
+  </div>
   <div class="tabs-row" id="tabsRow">
     <button class="tab-item active" data-cat="all">Все</button>
     <?php
@@ -410,6 +421,20 @@ let currentCat  = 'all';
 let allArticles = [];
 let searchTimer = null;
 
+// ── ПОИСК ──
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  const q = this.value.trim().toLowerCase();
+  searchTimer = setTimeout(() => {
+    if (!q) { renderArticles(allArticles, currentCat); return; }
+    const filtered = allArticles.filter(a =>
+      (a.title||'').toLowerCase().includes(q) ||
+      (a.excerpt||'').toLowerCase().includes(q)
+    );
+    renderSearchResults(filtered, q);
+  }, 200);
+});
+
 document.getElementById('inlineCountryName').textContent = currentName;
 
 // ── ТАБЫ ──
@@ -439,6 +464,15 @@ async function loadArticles(countryCode) {
 }
 
 // ── РЕНДЕР ──
+function renderSearchResults(articles, q) {
+  const wrap = document.getElementById('articlesWrap');
+  if (!articles.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Ничего не найдено</div><div class="empty-sub">Попробуйте другой запрос</div></div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="search-found">Найдено: ' + articles.length + '</div>' + articles.map((a,i) => renderRow(a, i===0)).join('');
+}
+
 function renderArticles(articles, cat) {
   const filtered = cat === 'all' ? articles : articles.filter(a => (a.category||'') === cat);
   const wrap = document.getElementById('articlesWrap');
