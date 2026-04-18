@@ -585,7 +585,7 @@ body {
   color: var(--primary);
   transform: scale(0.96);
 }
-.tag-emoji { font-size: 14px; }
+.tag-icon { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
 /* ── НИЖНЯЯ ПАНЕЛЬ ──────────────────────────────── */
 .bottom-bar {
@@ -868,9 +868,87 @@ body {
 }
 
 ::-webkit-scrollbar { display: none; }
+
+/* ── Десктоп: index.php специфичные стили (1024px+) ─────────── */
+@media (min-width: 1024px) {
+  /* Главная: центрируем контент вертикально с отступом от шапки */
+  .main {
+    padding: 60px 32px 20px;
+    gap: 28px;
+  }
+
+  /* Логотип крупнее */
+  .logo {
+    height: 100px;
+  }
+
+  .logo-tagline {
+    font-size: 14px;
+    margin-top: 10px;
+  }
+
+  /* Строка поиска шире и крупнее */
+  .search-box {
+    padding: 13px 20px;
+  }
+  .search-input {
+    font-size: 17px;
+  }
+  .search-icon svg {
+    width: 20px; height: 20px;
+  }
+
+  /* Автодополнение — чуть шире */
+  .search-results {
+    border-radius: var(--radius);
+  }
+
+  /* Теги немного крупнее */
+  .tag {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+
+  /* Нижняя панель: убираем жёсткий border-top, даём отступы */
+  .bottom-bar {
+    padding: 0 8px;
+  }
+
+  /* Селектор страны — скруглённый блок */
+  .country-selector {
+    margin: 8px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .country-selector:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Ссылки подвала: больше отступ */
+  .footer-links {
+    padding: 12px 16px 24px;
+    gap: 8px 20px;
+  }
+  .footer-link {
+    font-size: 13px;
+  }
+}
+
+/* ── Планшет: index.php ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .main {
+    padding: 24px 28px;
+    gap: 22px;
+  }
+  .logo { height: 90px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">
+<link rel="stylesheet" href="/assets/css/desktop.css">
 </head>
 <body>
 <div class="app-container">
@@ -941,12 +1019,12 @@ body {
 
     <!-- Быстрые теги -->
     <div class="quick-tags" id="quickTags">
-      <div class="tag" onclick="setSearch('Врач')"><span class="tag-emoji">🩺</span>Врач</div>
-      <div class="tag" onclick="setSearch('Юрист')"><span class="tag-emoji">⚖️</span>Юрист</div>
-      <div class="tag" onclick="setSearch('Репетитор')"><span class="tag-emoji">📚</span>Репетитор</div>
-      <div class="tag" onclick="setSearch('Переводчик')"><span class="tag-emoji">🌐</span>Переводчик</div>
-      <div class="tag" onclick="setSearch('Психолог')"><span class="tag-emoji">🧠</span>Психолог</div>
-      <div class="tag" onclick="setSearch('Красота')"><span class="tag-emoji">💅</span>Красота</div>
+      <div class="tag" onclick="setSearch('Врач')"><svg class="tag-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Врач</div>
+      <div class="tag" onclick="setSearch('Юрист')"><svg class="tag-icon" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>Юрист</div>
+      <div class="tag" onclick="setSearch('Репетитор')"><svg class="tag-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Репетитор</div>
+      <div class="tag" onclick="setSearch('Переводчик')"><svg class="tag-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Переводчик</div>
+      <div class="tag" onclick="setSearch('Психолог')"><svg class="tag-icon" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>Психолог</div>
+      <div class="tag" onclick="setSearch('Красота')"><svg class="tag-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>Красота</div>
     </div>
 
   </main>
@@ -1056,16 +1134,16 @@ mainSearchBox.querySelector('.search-input').addEventListener('focus', openSearc
 
 const HISTORY_KEY = 'poisq_search_history';
 const POPULAR = [
-  { emoji: '🩺', text: 'Врач' },
-  { emoji: '⚖️', text: 'Юрист' },
-  { emoji: '📚', text: 'Репетитор' },
-  { emoji: '🌐', text: 'Переводчик' },
-  { emoji: '🧠', text: 'Психолог' },
-  { emoji: '💅', text: 'Красота' },
-  { emoji: '🦷', text: 'Стоматолог' },
-  { emoji: '📸', text: 'Фотограф' },
-  { emoji: '💆', text: 'Массаж' },
-  { emoji: '📊', text: 'Бухгалтер' },
+  { svg: '<circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>', text: 'Врач' },
+  { svg: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>', text: 'Юрист' },
+  { svg: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>', text: 'Репетитор' },
+  { svg: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', text: 'Переводчик' },
+  { svg: '<path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>', text: 'Психолог' },
+  { svg: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>', text: 'Красота' },
+  { svg: '<path d="M12 2a5 5 0 0 1 5 5c0 3-2.5 5.5-5 8.5C9.5 12.5 7 10 7 7a5 5 0 0 1 5-5z"/><circle cx="12" cy="7" r="1.5" fill="currentColor" stroke="none"/>', text: 'Стоматолог' },
+  { svg: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>', text: 'Фотограф' },
+  { svg: '<path d="M18 11a4 4 0 0 0-4-4H6a4 4 0 0 0 0 8h1"/><path d="M15 16a4 4 0 0 0 4-4"/><path d="M22 20a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4"/>', text: 'Массаж' },
+  { svg: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h2m2 0h2m2 0h2M7 12h4"/>', text: 'Бухгалтер' },
 ];
 
 function getHistory() {
@@ -1437,7 +1515,7 @@ document.getElementById('cmSearch').addEventListener('input', function() {
 // ════════════════════════════════════════
 (async function initGeo() {
   const GEO_KEY    = 'poisq_geo_ts';    // timestamp последнего обновления
-  const TTL        = 86400 * 1000;      // 24 часа в мс
+  const TTL        = 7200 * 1000;       // 2 часа в мс
   const lastUpdate = parseInt(localStorage.getItem(GEO_KEY) || '0', 10);
 
   // Если данные свежие — ничего не делаем
