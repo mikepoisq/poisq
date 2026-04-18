@@ -49,6 +49,14 @@ try {
         $favCount = $stmtFav->fetch()['count'];
     } catch (Exception $e) { $favCount = 0; }
 
+    // Сервисы пользователя для модалки удаления аккаунта
+    $userServicesForDelete = [];
+    try {
+        $stmtDel = $pdo->prepare("SELECT id, name FROM services WHERE user_id = ? ORDER BY created_at DESC");
+        $stmtDel->execute([$_SESSION['user_id']]);
+        $userServicesForDelete = $stmtDel->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) { $userServicesForDelete = []; }
+
     // Номер WhatsApp поддержки из настроек
     $supportWhatsapp = '';
     try {
@@ -111,6 +119,7 @@ try {
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Профиль — Poisq</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
@@ -379,6 +388,59 @@ body {
 }
 .logout-btn:active { transform: scale(0.98); opacity: 0.8; }
 .logout-btn svg { width: 18px; height: 18px; stroke: var(--danger); fill: none; stroke-width: 2.2; }
+
+/* ── КНОПКА УДАЛЕНИЯ АККАУНТА ── */
+.delete-account-btn {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  width: calc(100% - 28px);
+  margin: 0 14px 14px;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s, background 0.15s;
+  letter-spacing: -0.1px;
+  font-family: inherit;
+  opacity: 0.7;
+}
+.delete-account-btn:hover { background: var(--danger-bg); opacity: 1; }
+.delete-account-btn:active { transform: scale(0.98); opacity: 0.8; }
+.delete-account-btn svg { width: 16px; height: 16px; stroke: var(--danger); fill: none; stroke-width: 2; flex-shrink: 0; }
+
+/* ── МОДАЛКА УДАЛЕНИЯ АККАУНТА ── */
+.da-svc-list {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.da-svc-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px; color: var(--text); font-weight: 500;
+}
+.da-svc-item:last-child { border-bottom: none; }
+.da-svc-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--danger); flex-shrink: 0;
+}
+.da-warn {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+  margin-bottom: 14px;
+}
+.da-btn-confirm {
+  width: 100%; padding: 14px;
+  background: var(--danger); color: white;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: opacity 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+.da-btn-confirm:active { transform: scale(0.98); opacity: 0.85; }
+.da-btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── ФУТЕР ── */
 .profile-footer {
@@ -1055,8 +1117,51 @@ body {
   transition: border-color 0.15s; cursor: pointer;
 }
 .notif-select:focus { border-color: var(--primary); }
+
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 760px;
+    padding-top: 64px;
+  }
+  .header { display: none; }
+
+  /* Профиль шапка — горизонтальная */
+  .profile-hero {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 32px;
+    text-align: left;
+  }
+  .avatar-wrap { flex-shrink: 0; }
+
+  /* Секции — без боковых отступов */
+  .section {
+    margin: 0 0 12px;
+    border-radius: 0;
+    box-shadow: none;
+    border-left: none;
+    border-right: none;
+  }
+  .profile-container {
+    padding: 16px 0 40px;
+  }
+  .section-title { padding: 16px 20px 8px; }
+  .s-item { padding: 13px 20px; }
+
+  /* Кнопка выхода */
+  .logout-btn {
+    width: calc(100% - 40px);
+    margin: 4px 20px 14px;
+    border-radius: 12px;
+  }
+
+  /* Футер */
+  .profile-footer { padding: 14px 32px 24px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
@@ -1282,6 +1387,12 @@ body {
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Выйти из аккаунта
     </a>
+
+    <!-- УДАЛИТЬ АККАУНТ -->
+    <button class="delete-account-btn" onclick="openDeleteAccountSheet()">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      Удалить аккаунт
+    </button>
   </main>
 
   <!-- ФУТЕР -->
@@ -2553,6 +2664,104 @@ function closeSlotsModal() {
 }
 document.getElementById('slotsModal').addEventListener('click', function(e) {
   if (e.target === this) closeSlotsModal();
+});
+</script>
+
+<!-- МОДАЛКА УДАЛЕНИЯ АККАУНТА -->
+<div class="sheet-overlay" id="sheetDeleteAccount" onclick="onSheetOverlayClick(event,'sheetDeleteAccount')">
+  <div class="sheet">
+    <div class="sheet-header">
+      <span class="sheet-title" style="color:var(--danger);">Удалить аккаунт</span>
+      <button class="sheet-close" onclick="closeSheet('sheetDeleteAccount')">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <?php if (!empty($userServicesForDelete)): ?>
+      <p style="font-size:13px;color:var(--text-secondary);font-weight:500;margin-bottom:8px;">
+        Будут удалены <?php echo count($userServicesForDelete); ?> сервис(а/ов):
+      </p>
+      <ul class="da-svc-list">
+        <?php foreach ($userServicesForDelete as $svc): ?>
+        <li class="da-svc-item">
+          <span class="da-svc-dot"></span>
+          <?php echo htmlspecialchars($svc['name']); ?>
+        </li>
+        <?php endforeach; ?>
+      </ul>
+      <?php else: ?>
+      <p style="font-size:13px;color:var(--text-secondary);font-weight:500;margin-bottom:16px;">
+        У вас нет активных сервисов.
+      </p>
+      <?php endif; ?>
+
+      <p class="da-warn">
+        Это действие необратимо. Аккаунт, все сервисы и фотографии будут удалены навсегда.
+      </p>
+
+      <div class="field-group">
+        <label class="field-label">Подтвердите паролем</label>
+        <input type="password" class="field-input" id="daPasswordInput"
+          placeholder="Введите пароль" autocomplete="current-password">
+        <div class="field-error" id="daPasswordError"></div>
+      </div>
+
+      <button class="da-btn-confirm" id="daConfirmBtn" onclick="deleteAccountConfirm()">
+        Удалить навсегда
+      </button>
+      <button class="sheet-btn danger" onclick="closeSheet('sheetDeleteAccount')">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openDeleteAccountSheet() {
+  document.getElementById('daPasswordInput').value = '';
+  document.getElementById('daPasswordError').textContent = '';
+  document.getElementById('daConfirmBtn').disabled = false;
+  openSheet('sheetDeleteAccount');
+}
+
+async function deleteAccountConfirm() {
+  const passInput = document.getElementById('daPasswordInput');
+  const errEl = document.getElementById('daPasswordError');
+  const btn = document.getElementById('daConfirmBtn');
+
+  const password = passInput.value.trim();
+  errEl.textContent = '';
+
+  if (!password) {
+    errEl.textContent = 'Введите пароль';
+    passInput.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Удаление...';
+
+  try {
+    const fd = new FormData();
+    fd.append('password', password);
+    const res = await fetch('/api/delete-account.php', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (data.success) {
+      window.location.href = '/';
+    } else {
+      errEl.textContent = data.error || 'Ошибка. Попробуйте снова.';
+      btn.disabled = false;
+      btn.textContent = 'Удалить навсегда';
+      passInput.focus();
+    }
+  } catch (e) {
+    errEl.textContent = 'Ошибка сети. Попробуйте снова.';
+    btn.disabled = false;
+    btn.textContent = 'Удалить навсегда';
+  }
+}
+
+document.getElementById('daPasswordInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') deleteAccountConfirm();
 });
 </script>
 </body>
