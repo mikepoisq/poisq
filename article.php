@@ -355,7 +355,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
     <button class="reaction-btn" onclick="shareArticle()">↗ Поделиться</button>
   </div>
 
-  <a href="/useful.php" class="cta-banner">
+  <a href="/" class="cta-banner">
     <div class="cta-icon">🔍</div>
     <div>
       <div class="cta-title">Найти специалиста в Poisq</div>
