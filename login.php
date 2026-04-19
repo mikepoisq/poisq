@@ -28,7 +28,9 @@ if (isset($_SESSION['user_id'])) {
         exit;
     }
     ob_end_clean();
-    header('Location: profile.php');
+    $redirect = isset($_POST['redirect']) ? trim($_POST['redirect']) : (isset($_GET['redirect']) ? trim($_GET['redirect']) : '');
+    $redirect = preg_match('/^\/[a-zA-Z0-9\/_-]*\.php/', $redirect) ? $redirect : '/profile.php';
+    header('Location: ' . $redirect);
     exit;
 }
 
@@ -69,7 +71,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 }
 
                 ob_end_clean();
-                echo '<script>window.location.href="profile.php";</script>';
+                $_redir = isset($_GET["redirect"]) && preg_match('/^\/[a-zA-Z0-9\/_-]*\.php/', $_GET["redirect"]) ? $_GET["redirect"] : "/profile.php";
+                echo '<script>window.location.href="' . addslashes($_redir) . '";</script>';
                 exit;
 
             } else {
@@ -96,6 +99,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Вход — Poisq</title>
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
@@ -333,8 +337,34 @@ body {
   .auth-wrap  { padding: 28px 18px 20px; }
 }
 ::-webkit-scrollbar { display: none; }
+
+@media (min-width: 1024px) {
+  body {
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 80px 24px 40px;
+  }
+  .app-container {
+    max-width: 460px;
+    width: 100%;
+    padding-top: 0;
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .header { display: none; }
+  .auth-wrap { padding: 36px 40px 32px; }
+  .auth-logo { height: 36px; margin-bottom: 20px; }
+  .auth-title { font-size: 26px; }
+  .auth-footer { padding: 16px 40px 24px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
@@ -380,7 +410,8 @@ body {
     </div>
     <?php endif; ?>
 
-    <form class="auth-form" method="POST" action="login.php">
+    <form class="auth-form" method="POST" action="login.php<?php echo isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : ''; ?>">
+    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_GET['redirect'] ?? ''); ?>">
       <div class="field-group">
         <label class="field-label" for="email">Email</label>
         <input type="email" class="field-input" id="email" name="email"

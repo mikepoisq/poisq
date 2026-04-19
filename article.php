@@ -318,7 +318,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
         <span class="overline-country"><?php echo strtoupper(htmlspecialchars($article['country_code'])); ?></span>
         <?php endif; ?>
       </div>
-      <a href="/add-article.php" class="btn-add-article">
+      <a href="<?php echo $isLoggedIn ? '/add-article.php' : '/login.php?redirect=/add-article.php'; ?>" class="btn-add-article">
         <svg viewBox="0 0 10 10"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/></svg>
         Добавить статью
       </a>
