@@ -2294,5 +2294,6 @@ if (desc && desc.value) {
 }
 })();
 </script>
+<script src="/assets/js/address-autocomplete.js"></script>
 </body>
 </html>

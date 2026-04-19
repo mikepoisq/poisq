@@ -225,7 +225,8 @@ ob_start();
                 </div>
                 <div>
                     <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Адрес</label>
-                    <input type="text" name="address" class="form-control" value="<?php echo htmlspecialchars($service['address'] ?? ''); ?>">
+                    <small style="color:#10B981;font-size:11px;display:block;margin-bottom:4px;">Для подсказок сначала выберите страну и город</small>
+                    <input type="text" name="address" class="form-control" value="<?php echo htmlspecialchars($service['address'] ?? ''); ?>" data-country="<?php echo htmlspecialchars($service['country_code'] ?? ''); ?>">
                 </div>
             </div>
         </div>
@@ -762,7 +763,7 @@ async function saveCallStatus(serviceId) {
     btn.textContent = 'Сохранить статус созвона';
 }
 </script>
-
+<script src="/assets/js/address-autocomplete.js"></script>
 <?php
 $content = ob_get_clean();
 renderLayout('Редактировать сервис #' . $serviceId, $content, $pendingCount, 0, $pendingReviewCount);

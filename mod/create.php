@@ -353,6 +353,7 @@ body.dark-theme .panel-pink     { background: #2D1A20 !important; }
                 </div>
                 <div style="grid-column:1/-1;">
                     <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Адрес</label>
+                    <small style="color:#10B981;font-size:11px;display:block;margin-bottom:4px;">Для подсказок сначала выберите страну и город</small>
                     <input type="text" name="address" class="form-control" placeholder="Улица, дом, город">
                 </div>
             </div>
@@ -785,7 +786,7 @@ function removeService(btn) {
     if (rows.length > 1) btn.closest('.service-row').remove();
 }
 </script>
-
+<script src="/assets/js/address-autocomplete.js"></script>
 <?php
 $content = ob_get_clean();
 renderModLayout('Создать сервис', $content);

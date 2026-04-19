@@ -287,6 +287,7 @@ ob_start();
                 </div>
                 <div style="grid-column:1/-1;">
                     <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Адрес</label>
+                    <small style="color:#10B981;font-size:11px;display:block;margin-bottom:4px;">Для подсказок сначала выберите страну и город</small>
                     <input type="text" name="address" class="form-control" placeholder="Улица, дом, город">
                 </div>
             </div>
@@ -787,7 +788,7 @@ function removeService(btn) {
     if (rows.length > 1) btn.closest('.service-row').remove();
 }
 </script>
-
+<script src="/assets/js/address-autocomplete.js"></script>
 <?php
 $content = ob_get_clean();
 renderLayout('Создать сервис', $content, $pendingCount, 0, $pendingReviewCount);
