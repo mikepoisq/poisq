@@ -183,7 +183,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .country-sheet { width: 100%; max-width: 430px; background: var(--bg); border-radius: 0 0 16px 16px; padding: 0; max-height: 90vh; display: flex; flex-direction: column; animation: slideDown 0.25s cubic-bezier(.4,0,.2,1); }
 @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 .sheet-handle { display: none; }
-.sheet-title { font-size: 17px; font-weight: 800; color: var(--text); padding: 16px 20px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+.sheet-title { font-size: 17px; font-weight: 800; color: var(--text); }
+.sheet-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text-light); transition: background 0.15s; flex-shrink: 0; }
+.sheet-close:active { background: var(--border); }
 .sheet-search-wrap { padding: 0 16px 12px; flex-shrink: 0; }
 .sheet-search-inner { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 14px; background: var(--bg-secondary); }
 .sheet-search-inner:focus-within { border-color: var(--primary); }
@@ -350,7 +353,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 <div class="country-modal" id="countryModal" onclick="onModalOverlay(event)">
   <div class="country-sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Выберите страну</div>
+    <div class="sheet-header"><span class="sheet-title">Выберите страну</span><button class="sheet-close" onclick="closeCountryModal()">✕</button></div>
     <div class="sheet-search-wrap">
       <div class="sheet-search-inner">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -498,7 +501,7 @@ function renderLead(a) {
   return '<a class="lead-story" href="'+url+'">'+
     '<div class="lead-badge">◆ Материал раздела</div>'+
     cover+
-    '<div class="lead-meta"><span class="lead-category">'+esc(cat)+'</span><span class="lead-read-time">· '+esc(time)+' чтения</span></div>'+
+    '<div class="lead-meta"><span class="lead-category">'+esc(cat)+'</span><span class="lead-read-time">· '+esc(time)+' чтения</span>'+(a.likes>0?'<span class="lead-read-time">· 👍 '+a.likes+'</span>':'')+'</div>'+
     '<h2 class="lead-title">'+esc(a.title)+'</h2>'+
     (a.excerpt ? '<p class="lead-excerpt">'+esc(a.excerpt)+'</p>' : '')+
     '<div class="lead-author">'+(a.author ? '<div class="author-avatar">'+esc(a.author.charAt(0).toUpperCase())+'</div><span>'+esc(a.author)+'</span><span>·</span>' : '')+'<span>'+date+'</span></div>'+
@@ -518,7 +521,7 @@ function renderRow(a, first) {
     '<span class="story-category">'+esc(cat)+'</span>'+
     '<div class="story-title">'+esc(a.title)+'</div>'+
     (a.excerpt ? '<div class="story-excerpt">'+esc(a.excerpt)+'</div>' : '')+
-    '<div class="story-meta-row">'+(a.author?'<span>'+esc(a.author)+'</span><span>·</span>':'')+' <span>'+date+'</span><span>·</span><span>'+esc(time)+' чтения</span></div>'+
+    '<div class="story-meta-row">'+(a.author?'<span>'+esc(a.author)+'</span><span>·</span>':'')+' <span>'+date+'</span><span>·</span><span>'+esc(time)+' чтения</span>'+(a.likes>0?'<span>·</span><span>👍 '+a.likes+'</span>':'')+'</div>'+
     '</div>'+thumb+'</a>';
 }
 

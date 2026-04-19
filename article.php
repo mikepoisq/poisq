@@ -207,7 +207,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
 .related-cat { font-family: ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; display: block; }
 .related-title { font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: -0.2px; color: var(--ink); margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .related-meta { font-size: 11px; color: var(--muted); }
-.related-thumb { width: 72px; height: 72px; flex-shrink: 0; object-fit: cover; display: block; background: var(--bg-secondary); }
+.related-thumb { width: 72px; height: 72px; flex-shrink: 0; object-fit: cover; display: block; background: var(--bg-secondary); border-radius: var(--radius-xs); }
 .related-thumb-ph { width: 72px; height: 72px; flex-shrink: 0; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; font-size: 24px; }
 
 /* ── FOOTER ── */
@@ -355,8 +355,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
   </div>
 
   <div class="article-reactions">
-    <button class="reaction-btn" onclick="this.classList.toggle('active')">👍 Полезно</button>
-    <button class="reaction-btn" onclick="saveArticle(this)">🔖 Сохранить</button>
+    <button class="reaction-btn" id="likeBtn" onclick="toggleLike()">
+      👍 Полезно <span id="likeCount" style="margin-left:4px;font-weight:700"></span>
+    </button>
     <button class="reaction-btn" onclick="shareArticle()">↗ Поделиться</button>
   </div>
 
@@ -509,13 +510,48 @@ async function loadAnnServices(cityId) {
         const now = new Date(), d2 = new Date(s.created_at);
         const diff = Math.floor((now - d2) / 86400000);
         const ds = diff === 0 ? 'Сегодня' : diff === 1 ? 'Вчера' : diff + ' дн.';
-        html += '<div class="ann-item" onclick="location.href='/service/' + s.id + ''"><img src="' + photo + '" alt="' + s.name + '" loading="lazy" onerror="this.src='https://via.placeholder.com/200?text=Poisq'"><div class="ann-date">' + ds + '</div><div class="ann-item-name">' + s.name + '</div></div>';
+        html += '<div class="ann-item" onclick="location.href=\"/service/' + s.id + '\"">' + '<img src="' + photo + '" alt="' + s.name + '" loading="lazy" onerror="this.src=\'https://via.placeholder.com/200?text=Poisq\'">' + '<div class="ann-date">' + ds + '</div><div class="ann-item-name">' + s.name + '</div></div>';
       });
       html += '</div></div>';
     }
     content.innerHTML = html;
   } catch(e) { content.innerHTML = '<div class="ann-empty"><h3>Ошибка</h3><p>Не удалось загрузить</p></div>'; }
 }
+
+// ── ЛАЙКИ ──
+const ARTICLE_SLUG = '<?php echo addslashes($article["slug"] ?? ""); ?>';
+
+async function initLikes() {
+  try {
+    const r = await fetch('/api/article-like.php?slug=' + encodeURIComponent(ARTICLE_SLUG));
+    const d = await r.json();
+    updateLikeUI(d.likes, d.liked);
+  } catch(e) {}
+}
+
+async function toggleLike() {
+  const btn = document.getElementById('likeBtn');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/article-like.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'slug=' + encodeURIComponent(ARTICLE_SLUG)
+    });
+    const d = await r.json();
+    updateLikeUI(d.likes, d.liked);
+  } catch(e) {}
+  btn.disabled = false;
+}
+
+function updateLikeUI(likes, liked) {
+  const btn = document.getElementById('likeBtn');
+  const cnt = document.getElementById('likeCount');
+  if (btn) btn.classList.toggle('active', liked);
+  if (cnt) cnt.textContent = likes > 0 ? likes : '';
+}
+
+initLikes();
 
 // ── ИНИТ BOOKMARK ──
 (function() {
