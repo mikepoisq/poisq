@@ -67,7 +67,13 @@ try {
                 if ($row = $d->fetch()) $duplicateId = $row['id'];
             }
 
-            // 3. Совпадение по названию + город
+            // 3. Совпадение по адресу
+            if (!$duplicateId && !empty($svcData['address'])) {
+                $d = $pdo->prepare("SELECT id FROM services WHERE address = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");
+                $d->execute([$svcData['address'], $serviceId]);
+                if ($row = $d->fetch()) $duplicateId = $row['id'];
+            }
+            // 4. Совпадение по названию + город
             if (!$duplicateId && !empty($svcData['name']) && !empty($svcData['city_id'])) {
                 $nameLike = '%' . mb_substr(trim($svcData['name']), 0, 15) . '%';
                 $d = $pdo->prepare("SELECT id FROM services WHERE name LIKE ? AND city_id = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");

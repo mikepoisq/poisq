@@ -298,6 +298,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($row = $d->fetch()) $duplicateId = $row['id'];
                 }
 
+                if (!$duplicateId && !empty($formData['address'])) {
+                    $d = $pdo->prepare("SELECT id FROM services WHERE address = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");
+                    $d->execute([$formData['address'], $newServiceId]);
+                    if ($row = $d->fetch()) $duplicateId = $row['id'];
+                }
                 if (!$duplicateId && !empty($formData['name']) && !empty($formData['city_id'])) {
                     $nameLike = '%' . mb_substr(trim($formData['name']), 0, 15) . '%';
                     $d = $pdo->prepare("SELECT id FROM services WHERE name LIKE ? AND city_id = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");
