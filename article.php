@@ -274,13 +274,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
       <a href="/"><img src="/logo.png" alt="Poisq" onerror="this.style.display='none'"></a>
     </div>
     <div style="width:84px;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
-      <button class="btn-grid" onclick="openAnnModal()" aria-label="Свежие сервисы">
-        <svg viewBox="0 0 24 24">
-          <circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/>
-          <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
-          <circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
-        </svg>
-      </button>
+
       <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
       <button class="btn-add" onclick="openSlotsModal()" aria-label="Добавить сервис">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
