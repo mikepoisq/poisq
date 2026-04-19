@@ -431,6 +431,20 @@ body {
   font-size: 12px; color: var(--text-secondary); line-height: 1.5;
   margin-bottom: 14px;
 }
+.goodbye-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(255,255,255,0.97);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px 24px;
+  animation: fadeInGoodbye 0.4s ease;
+}
+.goodbye-overlay.active { display: flex; }
+@keyframes fadeInGoodbye { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.goodbye-emoji { font-size: 64px; margin-bottom: 20px; }
+.goodbye-title { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 12px; }
+.goodbye-text { font-size: 16px; color: var(--text-secondary); line-height: 1.6; max-width: 300px; margin-bottom: 32px; }
+.goodbye-btn { padding: 14px 32px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .da-btn-confirm {
   width: 100%; padding: 14px;
   background: var(--danger); color: white;
@@ -1188,6 +1202,14 @@ body {
   </header>
 
   <?php include __DIR__ . '/includes/menu.php'; ?>
+
+<!-- GOODBYE SCREEN -->
+<div class="goodbye-overlay" id="goodbyeOverlay">
+  <div class="goodbye-emoji">👋</div>
+  <div class="goodbye-title">До свидания!</div>
+  <div class="goodbye-text">Ваш аккаунт удалён. Мы будем рады видеть вас снова — возвращайтесь в любое время.<br><br>Удачи вам во всём! 🍀</div>
+  <button class="goodbye-btn" onclick="window.location.href='/'">На главную</button>
+</div>
 
   <!-- КОНТЕНТ -->
   <main class="profile-container">
@@ -2746,7 +2768,8 @@ async function deleteAccountConfirm() {
     const data = await res.json();
 
     if (data.success) {
-      window.location.href = '/';
+      document.getElementById('goodbyeOverlay').classList.add('active');
+      setTimeout(() => { window.location.href = '/'; }, 4000);
     } else {
       errEl.textContent = data.error || 'Ошибка. Попробуйте снова.';
       btn.disabled = false;

@@ -55,6 +55,8 @@ try {
         }
     }
 
+    // Удаляем verification_requests связанные с сервисами юзера
+    $pdo->prepare("DELETE vr FROM verification_requests vr INNER JOIN services s ON vr.service_id = s.id WHERE s.user_id = ?")->execute([$userId]);
     // Удаляем сервисы
     $pdo->prepare("DELETE FROM services WHERE user_id = ?")->execute([$userId]);
 
@@ -66,6 +68,11 @@ try {
         }
     }
 
+    // Удаляем связанные записи
+    $pdo->prepare("DELETE FROM article_submissions WHERE user_id = ?")->execute([$userId]);
+    $pdo->prepare("DELETE FROM review_owner_replies WHERE owner_user_id = ?")->execute([$userId]);
+    $pdo->prepare("DELETE FROM favorites WHERE user_id = ?")->execute([$userId]);
+    $pdo->prepare("DELETE FROM verification_requests WHERE user_id = ?")->execute([$userId]);
     // Удаляем пользователя
     $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$userId]);
 
@@ -80,7 +87,7 @@ try {
     }
     session_destroy();
 
-    echo json_encode(['success' => true]);
+    echo json_encode(['success' => true, 'message' => 'goodbye']);
 
 } catch (PDOException $e) {
     error_log('delete-account.php error: ' . $e->getMessage());
