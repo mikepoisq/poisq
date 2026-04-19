@@ -50,6 +50,7 @@ $errorMessage = $_GET['error'] ?? '';
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Мои сервисы — Poisq</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
@@ -730,9 +731,20 @@ body {
 .btn-burger.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .btn-burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--text); }
 
-
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 760px;
+    padding-top: 64px;
+  }
+  .header { display: none; }
+  .content { padding: 20px 24px 40px; }
+  .slots-block { border-radius: 12px; }
+  .services-list { grid-template-columns: repeat(2, 1fr); display: grid; }
+  .service-card:nth-child(3) { animation-delay: 0.15s; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
@@ -831,7 +843,8 @@ body {
           'draft'    => ['text' => 'Черновик',       'class' => 'draft'],
           'pending'  => ['text' => 'На модерации',   'class' => 'pending'],
           'approved' => ['text' => 'Активный',       'class' => 'active'],
-          'rejected' => ['text' => 'Отклонён',       'class' => 'rejected'],
+          'rejected'  => ['text' => 'Отклонён',       'class' => 'rejected'],
+          'duplicate' => ['text' => 'Проверка дубля', 'class' => 'pending'],
         ];
         $status = $statusConfig[$service['status']] ?? $statusConfig['draft'];
 

@@ -290,6 +290,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } catch (Exception $e) {
                     error_log('Add service moderation email error: ' . $e->getMessage());
                 }
+                // ── ПРОВЕРКА ДУБЛЕЙ ──────────────────────────────────
+                $duplicateId = null;
+                if (!empty($formData['phone'])) {
+                    $d = $pdo->prepare("SELECT id FROM services WHERE phone = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");
+                    $d->execute([$formData['phone'], $newServiceId]);
+                    if ($row = $d->fetch()) $duplicateId = $row['id'];
+                }
+
+                if (!$duplicateId && !empty($formData['name']) && !empty($formData['city_id'])) {
+                    $nameLike = '%' . mb_substr(trim($formData['name']), 0, 15) . '%';
+                    $d = $pdo->prepare("SELECT id FROM services WHERE name LIKE ? AND city_id = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");
+                    $d->execute([$nameLike, $formData['city_id'], $newServiceId]);
+                    if ($row = $d->fetch()) $duplicateId = $row['id'];
+                }
+                if ($duplicateId) {
+                    $pdo->prepare("UPDATE services SET status = 'duplicate', duplicate_of = ? WHERE id = ?")->execute([$duplicateId, $newServiceId]);
+                }
             } else {
                 $successMessage = 'Черновик сохранён! Вы можете вернуться и отредактировать позже.';
             }
@@ -310,6 +327,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Добавить сервис — Poisq</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
@@ -1050,8 +1068,33 @@ color: white;
 .social-grid { grid-template-columns: 1fr; }
 }
 ::-webkit-scrollbar { display: none; }
+
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 800px;
+    padding-top: 64px;
+  }
+  .header { display: none; }
+
+  .breadcrumbs { padding: 14px 24px; }
+
+  .form-container { padding: 24px 24px 100px; }
+
+  .section-header { padding: 16px 20px; }
+  .section-content { padding: 20px; }
+  .form-section { border-radius: 16px; }
+
+  .form-actions {
+    max-width: 800px;
+    padding: 14px 24px;
+  }
+
+  .languages-grid { grid-template-columns: repeat(4, 1fr); }
+  .social-grid { grid-template-columns: repeat(3, 1fr); }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>

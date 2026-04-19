@@ -24,6 +24,10 @@ try {
 $approvedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='approved'")->fetchColumn();
 $rejectedCount  = $pdo->query("SELECT COUNT(*) FROM services WHERE status='rejected'")->fetchColumn();
 $draftCount     = $pdo->query("SELECT COUNT(*) FROM services WHERE status='draft'")->fetchColumn();
+$duplicatesCount = 0;
+try {
+    $duplicatesCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='duplicate'")->fetchColumn();
+} catch (Exception $e) { $duplicatesCount = 0; }
 $totalUsers     = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $blockedUsers   = $pdo->query("SELECT COUNT(*) FROM users WHERE is_blocked=1")->fetchColumn();
 $newToday       = $pdo->query("SELECT COUNT(*) FROM services WHERE DATE(created_at) = CURDATE()")->fetchColumn();
@@ -38,7 +42,7 @@ $recentServices = $pdo->query("
     SELECT s.id, s.name, s.status, s.category, s.created_at,
            u.name as user_name, c.name as city_name, s.country_code
     FROM services s
-    JOIN users u ON s.user_id = u.id
+    LEFT JOIN users u ON s.user_id = u.id
     LEFT JOIN cities c ON s.city_id = c.id
     WHERE s.status = 'pending'
     ORDER BY s.created_at ASC
@@ -287,5 +291,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-renderLayout('Дашборд', $content, (int)$pendingCount, (int)$pendingVerifCount, (int)$pendingReviewCount);
+renderLayout('Дашборд', $content, (int)$pendingCount, (int)$pendingVerifCount, (int)$pendingReviewCount, 0, (int)$duplicatesCount);
 ?>

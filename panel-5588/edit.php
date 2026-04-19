@@ -13,7 +13,7 @@ if (!$serviceId) { header("Location: /panel-5588/services.php"); exit; }
 $stmt = $pdo->prepare("
     SELECT s.*, s.created_by_admin, s.call_status, s.call_note,
            u.name as user_name, u.email as user_email, c.name as city_name
-    FROM services s JOIN users u ON s.user_id=u.id
+    FROM services s LEFT JOIN users u ON s.user_id=u.id
     LEFT JOIN cities c ON s.city_id=c.id
     WHERE s.id=?
 ");
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($newStatus === 'approved' && $oldStatus !== 'approved') $success .= ' — письмо отправлено ✅';
         if ($newStatus === 'rejected' && $oldStatus !== 'rejected') $success .= ' — письмо с причиной отправлено ✅';
 
-        $stmt = $pdo->prepare("SELECT s.*, u.name as user_name, u.email as user_email, c.name as city_name FROM services s JOIN users u ON s.user_id=u.id LEFT JOIN cities c ON s.city_id=c.id WHERE s.id=?");
+        $stmt = $pdo->prepare("SELECT s.*, u.name as user_name, u.email as user_email, c.name as city_name FROM services s LEFT JOIN users u ON s.user_id=u.id LEFT JOIN cities c ON s.city_id=c.id WHERE s.id=?");
         $stmt->execute([$serviceId]);
         $service = $stmt->fetch(PDO::FETCH_ASSOC);
     }

@@ -53,7 +53,36 @@ try {
         if (!$service) { echo json_encode(['success' => false, 'error' => 'Сервис не найден']); exit; }
         if (!in_array($service['status'], ['draft', 'rejected'])) { echo json_encode(['success' => false, 'error' => 'Нельзя отправить на модерацию']); exit; }
 
-        $pdo->prepare("UPDATE services SET status = 'pending', moderation_comment = NULL, updated_at = NOW() WHERE id = ? AND user_id = ?")->execute([$serviceId, $userId]);
+        // ── ПРОВЕРКА ДУБЛЕЙ ──────────────────────────────────
+        $svcFull = $pdo->prepare("SELECT * FROM services WHERE id = ? AND user_id = ?");
+        $svcFull->execute([$serviceId, $userId]);
+        $svcData = $svcFull->fetch(PDO::FETCH_ASSOC);
+        $duplicateId = null;
+
+        if ($svcData) {
+            // 1. Совпадение по телефону
+            if (!$duplicateId && !empty($svcData['phone'])) {
+                $d = $pdo->prepare("SELECT id FROM services WHERE phone = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");
+                $d->execute([$svcData['phone'], $serviceId]);
+                if ($row = $d->fetch()) $duplicateId = $row['id'];
+            }
+
+            // 3. Совпадение по названию + город
+            if (!$duplicateId && !empty($svcData['name']) && !empty($svcData['city_id'])) {
+                $nameLike = '%' . mb_substr(trim($svcData['name']), 0, 15) . '%';
+                $d = $pdo->prepare("SELECT id FROM services WHERE name LIKE ? AND city_id = ? AND id != ? AND status IN ('approved','pending') LIMIT 1");
+                $d->execute([$nameLike, $svcData['city_id'], $serviceId]);
+                if ($row = $d->fetch()) $duplicateId = $row['id'];
+            }
+        }
+
+        if ($duplicateId) {
+            $pdo->prepare("UPDATE services SET status = 'duplicate', duplicate_of = ?, moderation_comment = NULL, updated_at = NOW() WHERE id = ? AND user_id = ?")->execute([$duplicateId, $serviceId, $userId]);
+            echo json_encode(['success' => true, 'message' => 'Сервис отправлен на проверку']);
+            exit;
+        }
+
+        $pdo->prepare("UPDATE services SET status = 'pending', duplicate_of = NULL, moderation_comment = NULL, updated_at = NOW() WHERE id = ? AND user_id = ?")->execute([$serviceId, $userId]);
 
         // Отправляем уведомление администратору
         try {

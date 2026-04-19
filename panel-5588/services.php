@@ -23,7 +23,7 @@ if ($search) {
 }
 $whereSQL = $where ? "WHERE " . implode(" AND ", $where) : "";
 
-$total = $pdo->prepare("SELECT COUNT(*) FROM services s JOIN users u ON s.user_id=u.id $whereSQL");
+$total = $pdo->prepare("SELECT COUNT(*) FROM services s LEFT JOIN users u ON s.user_id=u.id $whereSQL");
 $total->execute($params);
 $total = (int)$total->fetchColumn();
 $totalPages = max(1, ceil($total / $perPage));
@@ -34,7 +34,7 @@ $stmt = $pdo->prepare("
            s.verified, s.verified_until, s.created_by_admin, s.created_by_moderator, s.call_status, s.call_note,
            u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s
-    JOIN users u ON s.user_id = u.id
+    LEFT JOIN users u ON s.user_id = u.id
     LEFT JOIN cities c ON s.city_id = c.id
     $whereSQL
     ORDER BY s.created_at DESC

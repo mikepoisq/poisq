@@ -7,6 +7,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 $navItems = [
     'dashboard'  => ['icon' => 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', 'label' => 'Дашборд'],
     'moderate'   => ['icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'label' => 'Модерация'],
+    'duplicates' => ['icon' => 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z', 'label' => 'Дубликаты'],
     'services'   => ['icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'label' => 'Сервисы'],
     'users'      => ['icon' => 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75', 'label' => 'Пользователи'],
 
@@ -16,12 +17,13 @@ $navItems = [
 
 ];
 
-function renderLayout(string $pageTitle, string $content, int $pendingCount = 0, int $pendingVerifCount = 0, int $pendingReviewCount = 0, int $pendingArticlesCount = 0): void {
+function renderLayout(string $pageTitle, string $content, int $pendingCount = 0, int $pendingVerifCount = 0, int $pendingReviewCount = 0, int $pendingArticlesCount = 0, int $duplicatesCount = 0): void {
     // Всегда считаем свежо из БД
     try {
         $_db = getDbConnection();
         $pendingArticlesCount = (int)$_db->query("SELECT COUNT(*) FROM article_submissions WHERE status='pending'")->fetchColumn();
-    } catch (Exception $_e) { $pendingArticlesCount = 0; }
+        $duplicatesCount = (int)$_db->query("SELECT COUNT(*) FROM services WHERE status='duplicate'")->fetchColumn();
+    } catch (Exception $_e) { $pendingArticlesCount = 0; $duplicatesCount = 0; }
     global $currentPage, $navItems;
     $isAdmin    = function_exists('isAdminLoggedIn') && isAdminLoggedIn();
     $isModerator = !$isAdmin && function_exists('isModeratorLoggedIn') && isModeratorLoggedIn();
@@ -572,6 +574,9 @@ body.dark-theme [style*="color:var(--warning)"] {
             <?php endif; ?>
             <?php if ($page === 'reviews' && $pendingReviewCount > 0): ?>
             <span class="nav-badge"><?php echo $pendingReviewCount; ?></span>
+            <?php endif; ?>
+            <?php if ($page === 'duplicates' && $duplicatesCount > 0): ?>
+            <span class="nav-badge" style="background:#F59E0B"><?php echo $duplicatesCount; ?></span>
             <?php endif; ?>
         </a>
         <?php endforeach; ?>

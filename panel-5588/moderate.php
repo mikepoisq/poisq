@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $svcRow = $row->fetch(PDO::FETCH_ASSOC);
                 if ($svcRow) meiliAddDocument(meiliPrepareDoc($svcRow));
             }
-            $svc = $pdo->prepare("SELECT s.name, u.email, u.name as uname FROM services s JOIN users u ON s.user_id=u.id WHERE s.id=?");
+            $svc = $pdo->prepare("SELECT s.name, u.email, u.name as uname FROM services s LEFT JOIN users u ON s.user_id=u.id WHERE s.id=?");
             $svc->execute([$serviceId]);
             $svc = $svc->fetch();
             if ($svc) { require_once __DIR__ . "/../config/email.php"; sendStatusEmail($svc["email"], $svc["uname"], $svc["name"], "approved", ""); }
@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $comment = trim($_POST["comment"] ?? "");
             $pdo->prepare("UPDATE services SET status='rejected', is_visible=0, moderation_comment=? WHERE id=?")->execute([$comment, $serviceId]);
             if (file_exists(__DIR__ . '/../config/meilisearch.php')) { require_once __DIR__ . '/../config/meilisearch.php'; meiliDeleteDocument($serviceId); }
-            $svc = $pdo->prepare("SELECT s.name, u.email, u.name as uname FROM services s JOIN users u ON s.user_id=u.id WHERE s.id=?");
+            $svc = $pdo->prepare("SELECT s.name, u.email, u.name as uname FROM services s LEFT JOIN users u ON s.user_id=u.id WHERE s.id=?");
             $svc->execute([$serviceId]);
             $svc = $svc->fetch();
             if ($svc) { require_once __DIR__ . "/../config/email.php"; sendStatusEmail($svc["email"], $svc["uname"], $svc["name"], "rejected", $comment); }
@@ -46,7 +46,7 @@ $services = $pdo->query("
            u.name as user_name, u.email as user_email,
            c.name as city_name, c.status as city_status
     FROM services s
-    JOIN users u ON s.user_id = u.id
+    LEFT JOIN users u ON s.user_id = u.id
     LEFT JOIN cities c ON s.city_id = c.id
     WHERE s.status = 'pending'
     ORDER BY s.created_at ASC

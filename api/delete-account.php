@@ -55,8 +55,11 @@ try {
         }
     }
 
-    // Удаляем verification_requests связанные с сервисами юзера
-    $pdo->prepare("DELETE vr FROM verification_requests vr INNER JOIN services s ON vr.service_id = s.id WHERE s.user_id = ?")->execute([$userId]);
+    // Удаляем всё связанное с сервисами юзера
+    try { $pdo->prepare("DELETE ror FROM review_owner_replies ror INNER JOIN reviews r ON ror.review_id = r.id INNER JOIN services s ON r.service_id = s.id WHERE s.user_id = ?")->execute([$userId]); } catch(Exception $e) {}
+    try { $pdo->prepare("DELETE r FROM reviews r INNER JOIN services s ON r.service_id = s.id WHERE s.user_id = ?")->execute([$userId]); } catch(Exception $e) {}
+    try { $pdo->prepare("DELETE vr FROM verification_requests vr INNER JOIN services s ON vr.service_id = s.id WHERE s.user_id = ?")->execute([$userId]); } catch(Exception $e) {}
+    try { $pdo->prepare("DELETE f FROM favorites f INNER JOIN services s ON f.service_id = s.id WHERE s.user_id = ?")->execute([$userId]); } catch(Exception $e) {}
     // Удаляем сервисы
     $pdo->prepare("DELETE FROM services WHERE user_id = ?")->execute([$userId]);
 
