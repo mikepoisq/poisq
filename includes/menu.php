@@ -62,6 +62,88 @@ $menuUserInitial = $menuIsLoggedIn ? strtoupper(mb_substr($menuUserName, 0, 1, '
 .menu-footer-btn-logout{background:#FEF2F2;color:#DC2626}
 .menu-footer-btn-secondary{display:block;text-align:center;padding:10px;border-radius:12px;font-size:14px;font-weight:500;color:var(--text-secondary);text-decoration:none;border:1px solid var(--border)}
 </style>
+<!-- ══ ДЕСКТОП ШАПКА (скрыта на мобиле через desktop.css) ══ -->
+<header class="d-header" id="dHeader">
+  <div class="d-header-inner">
+
+    <!-- Логотип -->
+    <a href="/" class="d-logo">
+      <img src="/logo.png" alt="Poisq">
+    </a>
+
+    <!-- Навигация -->
+    <nav class="d-nav">
+      <a href="/" class="d-nav-link" id="d-nav-home">Главная</a>
+      <a href="/useful.php" class="d-nav-link" id="d-nav-useful">Полезное</a>
+      <a href="/help.php" class="d-nav-link" id="d-nav-help">Помощь</a>
+      <a href="/contact.php" class="d-nav-link" id="d-nav-contact">Контакт</a>
+    </nav>
+
+    <!-- Действия справа -->
+    <div class="d-header-actions">
+
+      <!-- Переключатель темы -->
+      <button class="d-theme-btn" onclick="toggleTheme()" aria-label="Сменить тему" title="Сменить тему">
+        <svg id="dThemeIcon" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+
+      <!-- Кнопка добавить сервис -->
+      <a href="<?php echo $menuIsLoggedIn ? '/add-service.php' : '/register.php'; ?>" class="d-btn-add">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Добавить сервис
+      </a>
+
+      <!-- Войти / Аватар -->
+      <?php if ($menuIsLoggedIn): ?>
+        <a href="/profile.php" class="d-user-btn" title="Личный кабинет">
+          <div class="d-user-avatar">
+            <?php if ($menuUserAvatar): ?>
+              <img src="<?php echo htmlspecialchars($menuUserAvatar); ?>" alt="">
+            <?php else: ?>
+              <?php echo htmlspecialchars($menuUserInitial); ?>
+            <?php endif; ?>
+          </div>
+          <span class="d-user-name"><?php echo htmlspecialchars($menuUserName); ?></span>
+        </a>
+      <?php else: ?>
+        <a href="/login.php" class="d-btn-login">Войти</a>
+      <?php endif; ?>
+
+    </div>
+  </div>
+</header>
+<script>
+// Подсвечиваем активный пункт десктоп-навигации
+(function() {
+  var path = window.location.pathname;
+  var map = {
+    'd-nav-home':    ['/', '/index.php'],
+    'd-nav-useful':  ['/useful.php'],
+    'd-nav-help':    ['/help.php'],
+    'd-nav-contact': ['/contact.php'],
+  };
+  for (var id in map) {
+    if (map[id].indexOf(path) !== -1) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('d-nav-active');
+    }
+  }
+  // Синхронизируем иконку темы в десктоп шапке
+  var dIcon = document.getElementById('dThemeIcon');
+  if (dIcon) {
+    var theme = document.documentElement.getAttribute('data-theme') ||
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if (theme === 'dark') {
+      dIcon.innerHTML = '<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    }
+  }
+})();
+</script>
+
 <div class="side-menu-overlay" id="menuOverlay"></div>
 <div class="side-menu" id="sideMenu">
   <div class="side-menu-header">

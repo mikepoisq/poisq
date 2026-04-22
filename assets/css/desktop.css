@@ -1,0 +1,236 @@
+/* ══════════════════════════════════════════════════════════════
+   POISQ — DESKTOP RESPONSIVE STYLES
+   Стратегия: add-only, мобильный вид не трогаем.
+   Брейкпоинты:
+     768px  — планшет
+     1024px — десктоп
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Десктопная шапка скрыта на мобиле ────────────────────── */
+.d-header { display: none; }
+
+/* ════════════════════════════════════════════════════════════
+   ПЛАНШЕТ — 768px+
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 600px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ДЕСКТОП — 1024px+
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  /* ── Десктопная шапка ────────────────────────────────────── */
+  .d-header {
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 64px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border-light);
+    z-index: 200;
+    box-shadow: 0 1px 0 var(--border-light);
+  }
+
+  .d-header-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  /* Логотип в десктоп шапке */
+  .d-logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+  .d-logo img {
+    height: 30px;
+    width: auto;
+    object-fit: contain;
+  }
+  [data-theme="dark"] .d-logo img {
+    filter: brightness(0) invert(1);
+  }
+
+  /* Навигационные ссылки */
+  .d-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .d-nav-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .d-nav-link:hover {
+    color: var(--text);
+    background: var(--bg-secondary);
+  }
+  .d-nav-link.d-nav-active {
+    color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  /* Правая часть шапки: кнопки действий */
+  .d-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Кнопка "Добавить сервис" */
+  .d-btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: white;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .d-btn-add:hover { background: var(--primary-dark); }
+  .d-btn-add:active { transform: scale(0.97); }
+
+  /* Кнопка "Войти" */
+  .d-btn-login {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 16px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .d-btn-login:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  /* Аватар пользователя */
+  .d-user-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border-radius: 99px;
+    border: 1.5px solid var(--border);
+    text-decoration: none;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+  }
+  .d-user-btn:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  .d-user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .d-user-avatar img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+
+  .d-user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Кнопка темы */
+  .d-theme-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .d-theme-btn:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+  .d-theme-btn svg {
+    width: 18px; height: 18px;
+    stroke: currentColor; fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ── Скрываем мобильную шапку ────────────────────────────── */
+  .header {
+    display: none;
+  }
+
+  /* ── Скрываем бургер и боковое меню (side drawer) ─────────── */
+  .btn-burger          { display: none; }
+  .side-menu           { display: none !important; }
+  .side-menu-overlay   { display: none !important; }
+
+  /* ── Основной контейнер ──────────────────────────────────── */
+  .app-container {
+    max-width: 720px;
+    padding-top: 64px; /* высота d-header */
+  }
+
+}
+
+/* ════════════════════════════════════════════════════════════
+   ШИРОКИЙ ДЕСКТОП — 1440px+
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 1440px) {
+  .d-header-inner {
+    max-width: 1400px;
+  }
+}

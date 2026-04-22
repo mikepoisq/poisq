@@ -103,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Регистрация — Poisq</title>
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
@@ -358,8 +359,31 @@ body {
   text-align: center; padding-top: 4px;
 }
 
+@media (min-width: 1024px) {
+  body {
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 80px 24px 40px;
+  }
+  .app-container {
+    max-width: 460px;
+    width: 100%;
+    padding-top: 0;
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .header { display: none; }
+  .auth-wrap { padding: 32px 40px 28px; }
+  .auth-title { font-size: 24px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>

@@ -259,8 +259,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .ann-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
 .ann-date { font-size: 10px; color: var(--text-light); font-weight: 600; padding: 6px 8px 2px; }
 .ann-item-name { font-size: 12px; font-weight: 700; color: var(--text); padding: 0 8px 8px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+@media (min-width: 1024px) {
+  .app-container { max-width: 720px; padding-top: 64px; }
+  .page-header { display: none; }
+  .page-content { padding: 32px 24px 48px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>

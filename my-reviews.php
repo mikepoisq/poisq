@@ -202,6 +202,16 @@ body {
     z-index: 999; opacity: 0; transition: opacity 0.3s;
     white-space: nowrap; pointer-events: none;
 }
+
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 760px;
+    padding-top: 0;
+  }
+  .page-header { padding: 10px 24px; }
+  .svc-group-header { padding: 14px 24px 10px; }
+  .review-card { padding: 16px 24px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">

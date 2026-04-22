@@ -7,6 +7,20 @@ ini_set('session.cookie_httponly', '1');
 ini_set('session.use_strict_mode', '1');
 session_start();
 
+$categories = [
+    'health'     => ['name'=>'🏥 Здоровье и красота'],
+    'legal'      => ['name'=>'⚖️ Юридические услуги'],
+    'family'     => ['name'=>'👨‍👩‍👧 Семья и дети'],
+    'shops'      => ['name'=>'🛒 Магазины и продукты'],
+    'home'       => ['name'=>'🏠 Дом и быт'],
+    'education'  => ['name'=>'📚 Образование'],
+    'business'   => ['name'=>'💼 Бизнес и финансы'],
+    'transport'  => ['name'=>'🚗 Транспорт и авто'],
+    'events'     => ['name'=>'📷 События и развлечения'],
+    'it'         => ['name'=>'💻 IT и онлайн услуги'],
+    'realestate' => ['name'=>'🏢 Недвижимость'],
+    'messengers' => ['name'=>'💬 Группы ВатсАп и Телеграм'],
+];
 $serviceId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if ($serviceId <= 0) {
@@ -864,6 +878,132 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
     </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">
+<link rel="stylesheet" href="/assets/css/desktop.css">
+<style>
+/* ══════════════════════════════════════════════════════
+   service.php — десктоп (1024px+)
+   2-колонки: слева контент, справа галерея sticky
+   ══════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  body { padding-bottom: 0; background: var(--bg-secondary); }
+
+  /* ── Контейнер: CSS Grid 2 колонки ── */
+  .app-container {
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    grid-template-areas:
+      "svc-hdr  svc-hdr"
+      "svc-body svc-img";
+    align-items: start;
+    gap: 0;
+    background: var(--bg-secondary);
+    /* нет padding-top: menu.php не подключён, d-header отсутствует */
+  }
+
+  /* ── Шапка: приклеена к самому верху браузера ── */
+  .service-header {
+    grid-area: svc-hdr;
+    display: block;
+    position: sticky;
+    top: 0;           /* прямо у верха, без разрыва */
+    z-index: 99;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .header-nav {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 8px 20px;
+    height: 52px;
+    justify-content: space-between;
+  }
+  /* Кнопка назад: с текстом */
+  .btn-back {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 14px 0 10px;
+    width: auto;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg-secondary);
+  }
+  .btn-back::after {
+    content: 'Назад';
+  }
+  /* Кнопки поделиться и избранное */
+  .btn-share, .btn-favorite {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+  }
+
+  /* ── Фото-галерея: правая колонка, sticky ── */
+  .service-slider {
+    grid-area: svc-img;
+    height: 480px;
+    position: sticky;
+    top: calc(52px + 16px); /* service-header (52px) + отступ */
+    margin: 16px 16px 16px 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  }
+  .service-slider .slider-arrow { display: flex; }
+
+  /* ── Основной контент: левая колонка ── */
+  .service-content {
+    grid-area: svc-body;
+    padding: 24px 28px 40px;
+    background: var(--bg);
+    min-height: calc(100vh - 64px);
+  }
+
+  /* Заголовок сервиса крупнее */
+  .service-title { font-size: 26px; }
+  .service-category { font-size: 15px; margin-bottom: 12px; }
+
+  /* Рейтинг */
+  .service-rating-row { margin-bottom: 20px; gap: 12px; }
+
+  /* Кнопки действий — шире, без скролла */
+  .action-buttons {
+    overflow-x: visible;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .btn-action {
+    padding: 12px 22px;
+    font-size: 14px;
+  }
+
+  /* Секции: максимальная ширина и чуть крупнее текст */
+  .settings-section { border-radius: 12px; }
+  .settings-item-label { font-size: 15px; }
+  .settings-item-description { font-size: 14px; }
+
+  /* Социальные ссылки: 3 колонки на десктопе */
+  .social-links { grid-template-columns: repeat(3, 1fr); }
+
+  /* Карта выше */
+  .map-container { height: 280px; }
+
+  /* ── Скрываем плавающую нижнюю панель ── */
+  .bottom-bar { display: none !important; }
+
+}
+
+/* ── Планшет: service.php (768-1023px) ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-container { max-width: 720px; }
+  .service-slider { height: 340px; }
+  .service-content { padding: 20px; }
+  .bottom-bar { display: none !important; }
+}
+</style>
 </head>
 <body>
     <div class="app-container">
@@ -932,7 +1072,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                 <?php endif; ?>
             </div>
             
-            <p class="service-category"><?php echo htmlspecialchars($service['category']); ?><?php echo $service['city_name'] ? ' • ' . htmlspecialchars($service['city_name']) : ''; ?></p>
+            <p class="service-category"><?php echo htmlspecialchars($service['subcategory'] ?: $categories[$service['category']]['name'] ?? $service['category']); ?><?php echo $service['city_name'] ? ' • ' . htmlspecialchars($service['city_name']) : ''; ?></p>
             
             <div class="service-rating-row">
                 <div class="service-rating" onclick="addReview()" style="cursor:pointer">

@@ -1142,15 +1142,212 @@ body {
 }
 .lang-check-item .lang-flag { font-size: 20px; flex-shrink: 0; }
 
+
+/* ══════════════════════════════════════════════════════════════
+   results.php — Google-style десктоп (1024px+)
+   Горизонтальные фильтры сверху, результаты в одной колонке
+   со смещением влево — как у Google.
+   ══════════════════════════════════════════════════════════════ */
+
+@media (min-width: 1024px) {
+
+  body { background: var(--bg); }
+
+  /* ── Контейнер: без ограничений, вся ширина ── */
+  .app-container {
+    max-width: none;
+    min-height: calc(100vh - 64px);
+    background: var(--bg);
+  }
+
+  /* ── Шапка результатов: sticky полная ширина ── */
+  .results-header {
+    position: sticky;
+    top: 64px;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border-light);
+    padding: 0;
+    height: auto;
+    overflow: visible;
+    display: block;
+  }
+
+  /* Скрываем мобильный header-top (лого + бургер) */
+  .header-top { display: none; }
+  /* Скрываем заглушку сайдбара */
+  .sidebar-title-desktop { display: none !important; }
+
+  /* ── Строка поиска: смещение влево как у Google ── */
+  .header-search {
+    padding: 10px 40px 6px 195px;
+  }
+  .search-bar {
+    max-width: 640px;
+    border-radius: 24px;
+    padding: 11px 18px;
+    background: var(--bg);
+    border-color: var(--border);
+  }
+  .search-bar:focus-within {
+    box-shadow: 0 1px 6px rgba(32,33,36,.28);
+    border-color: rgba(223,225,229,0);
+  }
+  .search-bar input { font-size: 16px; }
+
+  /* ── Фильтр-чипсы: горизонтальная строка со смещением ── */
+  .filters-row {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 4px 40px 0 195px;
+    gap: 0;
+    border-bottom: none;
+    scrollbar-width: none;
+  }
+  .filters-row::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    border: none;
+    border-radius: 0;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #5F6368;
+    background: transparent;
+    border-bottom: 3px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .filter-chip:hover {
+    color: var(--text);
+    background: transparent;
+  }
+  .filter-chip.active {
+    color: #1A73E8;
+    background: transparent;
+    border-bottom-color: #1A73E8;
+    font-weight: 600;
+  }
+  .filter-chip .dot { background: #1A73E8; }
+
+  /* ── Мета-строка: счётчик результатов ── */
+  .results-meta {
+    padding: 6px 40px 6px 195px;
+    border-top: 1px solid var(--border-light);
+  }
+  .results-count {
+    font-size: 13px;
+    color: #70757A;
+    font-weight: 400;
+  }
+  .results-count span { color: #70757A; font-weight: 400; }
+  .sort-btn { display: none; }
+
+  /* ── Блоки результатов: смещение влево ── */
+  .results-list {
+    padding: 8px 40px 40px 195px;
+    background: var(--bg);
+    max-width: 900px;
+  }
+
+  /* ── Карточки: чистый Google-стиль ── */
+  .service-card {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-light) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--bg) !important;
+    margin: 0;
+    max-width: 650px;
+    animation: none;
+    transition: background 0.1s;
+  }
+  .service-card:last-child {
+    border-bottom: none !important;
+  }
+  .service-card:hover {
+    background: #F8F9FA !important;
+    transform: none;
+  }
+  .service-card:active {
+    background: #F1F3F4 !important;
+  }
+
+  /* Favicon */
+  .card-favicon { width: 32px; height: 32px; font-size: 13px; }
+
+  /* Название / breadcrumb */
+  .card-site-name { font-size: 14px; }
+  .card-breadcrumb { font-size: 12px; }
+
+  /* Заголовок: Google-синий, 20px */
+  .card-title {
+    font-size: 20px;
+    line-height: 1.3;
+    color: #1A0DAB;
+    margin-bottom: 4px;
+    -webkit-line-clamp: 2;
+  }
+  [data-theme="dark"] .card-title { color: #8AB4F8; }
+
+  /* Сниппет */
+  .card-snippet {
+    font-size: 14px;
+    line-height: 1.58;
+    color: #4D5156;
+    -webkit-line-clamp: 3;
+    margin-bottom: 10px;
+  }
+  [data-theme="dark"] .card-snippet { color: #BDC1C6; }
+
+  /* Кнопки */
+  .btn-call { padding: 8px 20px; font-size: 14px; border-radius: 20px; }
+  .btn-icon { width: 36px; height: 36px; }
+
+  /* ── Пагинация: круглые кнопки как у Google ── */
+  .pagination {
+    max-width: 650px;
+    padding: 28px 0 40px;
+    justify-content: center;
+    gap: 4px;
+  }
+  .page-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: none;
+    font-size: 14px;
+    color: #1A73E8;
+    background: transparent;
+  }
+  .page-btn:hover { background: #F0F4FF; }
+  .page-btn.active { background: #1A73E8; color: white; }
+  .page-btn.disabled { color: #BDC1C6; }
+  .page-btn svg { stroke: currentColor; }
+
+  /* ── Пустое состояние ── */
+  .empty-state { max-width: 500px; padding: 80px 24px; }
+
+}
+
+/* ── Планшет: results.php (768-1023px) ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-container { max-width: 768px; }
+  .header-top { display: none; }
+  .header-search { padding: 10px 16px 6px; }
+  .results-list { padding-bottom: 32px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">
+<link rel="stylesheet" href="/assets/css/desktop.css">
 </head>
 <body>
 <div class="app-container">
 
-  <!-- HEADER -->
+  <!-- HEADER / ДЕСКТОП САЙДБАР -->
   <div class="results-header">
+    <!-- Заголовок сайдбара (только десктоп) -->
+    <span class="sidebar-title-desktop" style="display:none">Поиск и фильтры</span>
     <div class="header-top">
       <div style="width:84px;display:flex;align-items:center;">
         <button class="btn-grid" onclick="openAnnModal()" aria-label="Свежие сервисы">
@@ -1254,6 +1451,7 @@ body {
       $svcList = array_slice($svc['service_list_arr'], 0, 2);
       $catLabel = $categories[$svc['category']] ?? $svc['category'];
       $subcatLabel = $svc['subcategory'] ?? '';
+      $displayCat = $subcatLabel ?: strip_tags($catLabel);
       $isNew = (time() - strtotime($svc['created_at'])) < 7 * 86400;
       $flagMap = [
         'ru' => '🇷🇺 Русский', 'fr' => '🇫🇷 Français', 'en' => '🇬🇧 English',
@@ -1279,7 +1477,7 @@ body {
       $fc = $faviconColors[$svc['category']] ?? ['bg'=>'#E8F0FE','color'=>'#1A73E8'];
 
       // Breadcrumb: poisq.com › Категория › Город
-      $crumbCat = strip_tags($catLabel);
+      $crumbCat = $displayCat;
       $crumbCity = $svc['city_name'] ?? '';
 
       // Заголовок карточки — как у Google: "Название — категория в Городе"
@@ -1464,6 +1662,8 @@ body {
     $langs = $svc['languages_arr'];
     $svcList = array_slice($svc['service_list_arr'], 0, 2);
     $catLabel = $categories[$svc['category']] ?? $svc['category'];
+    $subcatLabel = $svc['subcategory'] ?? '';
+    $displayCat = $subcatLabel ?: strip_tags($catLabel);
     $isNew = (time() - strtotime($svc['created_at'])) < 7 * 86400;
     $flagMap = [
       'ru' => '🇷🇺 Русский', 'fr' => '🇫🇷 Français', 'en' => '🇬🇧 English',
@@ -1480,7 +1680,7 @@ body {
       'realestate'=>['bg'=>'#F1F8E9','color'=>'#33691E'],
     ];
     $fc = $faviconColorsEx[$svc['category']] ?? ['bg'=>'#E8F0FE','color'=>'#1A73E8'];
-    $crumbCat = strip_tags($catLabel);
+    $crumbCat = $displayCat;
     $crumbCity = $svc['city_name'] ?? '';
     $cardTitle = htmlspecialchars($svc['name']);
     if ($crumbCity) $cardTitle .= ' — ' . htmlspecialchars($crumbCity);
@@ -1592,6 +1792,8 @@ body {
     $langs = $svc['languages_arr'];
     $svcList = array_slice($svc['service_list_arr'], 0, 2);
     $catLabel = $categories[$svc['category']] ?? $svc['category'];
+    $subcatLabel = $svc['subcategory'] ?? '';
+    $displayCat = $subcatLabel ?: strip_tags($catLabel);
     $isNew = (time() - strtotime($svc['created_at'])) < 7 * 86400;
     $flagMap = [
       'ru' => '🇷🇺 Русский', 'fr' => '🇫🇷 Français', 'en' => '🇬🇧 English',
@@ -1608,7 +1810,7 @@ body {
       'realestate'=>['bg'=>'#F1F8E9','color'=>'#33691E'],
     ];
     $fc = $faviconColorsEx[$svc['category']] ?? ['bg'=>'#E8F0FE','color'=>'#1A73E8'];
-    $crumbCat = strip_tags($catLabel);
+    $crumbCat = $displayCat;
     $crumbCity = $svc['city_name'] ?? '';
     $cardTitle = htmlspecialchars($svc['name']);
     if ($crumbCity) $cardTitle .= ' — ' . htmlspecialchars($crumbCity);

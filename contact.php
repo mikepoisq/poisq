@@ -325,8 +325,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 /* КНОПКА ВТОРИЧНАЯ */
 .btn-outlined { display: block; width: 100%; padding: 13px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; text-align: center; text-decoration: none; transition: border-color 0.15s, background 0.15s; letter-spacing: -0.1px; }
 .btn-outlined:active { background: var(--bg-secondary); border-color: var(--text-secondary); }
+
+@media (min-width: 1024px) {
+  .app-container { max-width: 720px; padding-top: 64px; }
+  .page-header { display: none; }
+  .page-content { padding: 32px 24px 48px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
+<link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>

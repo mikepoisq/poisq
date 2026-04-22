@@ -368,6 +368,27 @@ body {
   .verify-wrap  { padding: 32px 16px 20px; }
 }
 ::-webkit-scrollbar { display: none; }
+
+@media (min-width: 1024px) {
+  body {
+    background: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+  .app-container {
+    max-width: 460px;
+    width: 100%;
+    padding-top: 0;
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .verify-wrap { padding: 32px 40px 28px; }
+}
 </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">

@@ -31,7 +31,7 @@ $totalPages = max(1, ceil($total / $perPage));
 $offset = ($page - 1) * $perPage;
 
 $stmt = $pdo->prepare("
-    SELECT s.id, s.user_id, s.name, s.category, s.status, s.is_visible, s.country_code, s.created_at, s.views, s.created_by_admin, s.created_by_moderator,
+    SELECT s.id, s.user_id, s.name, s.category, s.subcategory, s.status, s.is_visible, s.country_code, s.created_at, s.views, s.created_by_admin, s.created_by_moderator,
            s.verified, s.verified_until,
            u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s
@@ -161,7 +161,7 @@ ob_start();
                     <div style="font-size:11px;color:var(--text-light);">скрыт</div>
                     <?php endif; ?>
                 </td>
-                <td class="col-cat" style="font-size:12px;color:var(--text-secondary);"><?php echo $categories[$svc["category"]] ?? $svc["category"]; ?></td>
+                <td class="col-cat" style="font-size:12px;color:var(--text-secondary);"><?php echo $svc["subcategory"] ?: ($categories[$svc["category"]] ?? $svc["category"]); ?></td>
                 <td class="col-city" style="font-size:12px;">
                     <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($svc["city_name"] ?? "—"); ?></div>
                     <div style="color:var(--text-light);font-size:11px;"><?php echo strtoupper($svc["country_code"]); ?></div>

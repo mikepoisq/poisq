@@ -85,7 +85,7 @@ ob_start();
 
 <?php foreach ($services as $svc):
     $photos = json_decode($svc["photo"] ?? "[]", true) ?: [];
-    $cat    = $categories[$svc["category"]] ?? $svc["category"];
+    $cat    = $svc["subcategory"] ?: ($categories[$svc["category"]] ?? $svc["category"]);
     $langs  = json_decode($svc["languages"] ?? "[]", true) ?: [];
     $svcs   = json_decode($svc["services"] ?? "[]", true) ?: [];
     $social = json_decode($svc["social"] ?? "{}", true) ?: [];

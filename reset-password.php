@@ -217,6 +217,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
             .form-input { padding: 12px 14px; font-size: 15px; }
         }
         ::-webkit-scrollbar { display: none; }
+        @media (min-width: 1024px) {
+            body {
+                background: var(--bg-secondary);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-height: 100vh;
+                padding: 40px 24px;
+            }
+            .app-container {
+                max-width: 460px;
+                width: 100%;
+                padding-top: 0;
+                border-radius: 20px;
+                background: var(--bg);
+                box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+                overflow: hidden;
+            }
+            .auth-container { padding: 0 40px 32px; }
+            .auth-title { font-size: 24px; }
+        }
     </style>
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">

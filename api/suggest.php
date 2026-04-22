@@ -96,7 +96,7 @@ if (empty($hits) && empty($r2)) {
 
 $seen = [];
 foreach ($hits as $hit) {
-    $key = mb_strtolower($hit['name']) . '_' . $hit['city_id'];
+    $key = mb_strtolower($hit['name']) . '_' . $hit['city_id'] . '_' . $hit['id'];
     if (isset($seen[$key])) continue;
     $seen[$key] = true;
     $results[] = formatHit($hit);

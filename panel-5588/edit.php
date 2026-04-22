@@ -411,7 +411,7 @@ ob_start();
                 <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
                     <div style="display:flex;justify-content:space-between;">
                         <span style="color:var(--text-secondary);">Категория</span>
-                        <span style="font-weight:500;"><?php echo $categories[$service['category']] ?? $service['category']; ?></span>
+                        <span style="font-weight:500;"><?php echo $service['subcategory'] ?: ($categories[$service['category']] ?? $service['category']); ?></span>
                     </div>
                     <div style="display:flex;justify-content:space-between;">
                         <span style="color:var(--text-secondary);">Город</span>
