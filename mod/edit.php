@@ -27,6 +27,8 @@ $error   = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name        = trim($_POST['name']        ?? '');
+    $category    = trim($_POST['category']    ?? $service['category']);
+    $subcategory = trim($_POST['subcategory'] ?? $service['subcategory'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $phone       = trim($_POST['phone']       ?? '');
     $whatsapp    = trim($_POST['whatsapp']    ?? '');
@@ -91,10 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             UPDATE services SET
                 name=?, description=?, phone=?, whatsapp=?, email=?,
                 website=?, address=?, status=?, is_visible=?,
-                moderation_comment=?, photo=?, hours=?, updated_at=NOW()
+                moderation_comment=?, photo=?, hours=?, category=?, subcategory=?, updated_at=NOW()
             WHERE id=?
         ")->execute([$name, $description, $phone, $whatsapp, $email,
-                     $website, $address, $newStatus, $is_visible, $mod_comment, $photoJson, $hoursJson, $serviceId]);
+                     $website, $address, $newStatus, $is_visible, $mod_comment, $photoJson, $hoursJson, $category, $subcategory, $serviceId]);
 
         if (file_exists(__DIR__ . '/../config/meilisearch.php')) {
             require_once __DIR__ . '/../config/meilisearch.php';
@@ -125,10 +127,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $statuses = ['draft'=>'Черновик','pending'=>'На модерации','approved'=>'Одобрен','rejected'=>'Отклонён'];
 $categories = [
-    "health"=>"🏥 Здоровье","legal"=>"⚖️ Юридические","family"=>"👨‍👩‍👧 Семья",
-    "shops"=>"🛒 Магазины","home"=>"🏠 Дом","education"=>"📚 Образование",
-    "business"=>"💼 Бизнес","transport"=>"🚗 Транспорт","events"=>"📷 События",
-    "it"=>"💻 IT","realestate"=>"🏢 Недвижимость"
+    'health'     => ['name'=>'🏥 Здоровье и красота',        'subs'=>['Врачи','Стоматология','Психология','Альтернативная медицина','Салоны красоты','Фитнес и спорт','Аптеки']],
+    'legal'      => ['name'=>'⚖️ Юридические услуги',        'subs'=>['Иммиграция','Семейное право','Недвижимость','Бизнес право','Нотариус','Консультации']],
+    'family'     => ['name'=>'👨‍👩‍👧 Семья и дети',           'subs'=>['Няни','Репетиторы','Детские кружки','Бэбиситтеры','Детские праздники','Детские товары']],
+    'shops'      => ['name'=>'🛒 Магазины и продукты',       'subs'=>['Русские магазины','Доставка продуктов','Рестораны','Пекарни','Мясные лавки','Онлайн магазины']],
+    'home'       => ['name'=>'🏠 Дом и быт',                 'subs'=>['Уборка','Ремонт','Переезды','Химчистка','Животные','Сад и огород']],
+    'education'  => ['name'=>'📚 Образование',               'subs'=>['Языковые курсы','Русский язык','Школьные предметы','Музыка','Профессиональные курсы','Онлайн обучение']],
+    'business'   => ['name'=>'💼 Бизнес и финансы',          'subs'=>['Бухгалтерия','Налоги','Страхование','Бизнес консультации','Переводы денег']],
+    'transport'  => ['name'=>'🚗 Транспорт и авто',          'subs'=>['Авто сервис','Автошкола','Такси/Трансфер','Аренда авто','Покупка авто']],
+    'events'     => ['name'=>'📷 События и развлечения',     'subs'=>['Фотографы','Видеографы','Праздники','Туризм','Развлечения','Культура']],
+    'it'         => ['name'=>'💻 IT и онлайн услуги',        'subs'=>['Веб разработка','Дизайн','Ремонт техники','SMM/Маркетинг','Консультации']],
+    'realestate' => ['name'=>'🏢 Недвижимость',              'subs'=>['Аренда','Покупка','Продажа','Управление','Ипотека']],
+    'messengers' => ['name'=>'💬 Группы ВатсАп и Телеграм', 'subs'=>['WhatsApp группы','Telegram каналы','Telegram группы','Чаты и сообщества']],
 ];
 $photos = json_decode($service['photo'] ?? '[]', true) ?: [];
 $pendingReviewCount = (int)$pdo->query("SELECT COUNT(*) FROM reviews WHERE status='pending'")->fetchColumn();
@@ -216,6 +226,28 @@ ob_start();
                 <div>
                     <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Название *</label>
                     <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($service['name']); ?>" required>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Категория *</label>
+                        <select name="category" id="editCategorySelect" class="form-control form-select" onchange="updateEditSubcategories()" required>
+                            <option value="">Выберите категорию</option>
+                            <?php foreach ($categories as $key => $cat): ?>
+                            <option value="<?php echo $key; ?>" <?php echo $service['category']===$key?'selected':''; ?>><?php echo $cat['name']; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Подкатегория</label>
+                        <select name="subcategory" id="editSubcategorySelect" class="form-control form-select">
+                            <option value="">Выберите подкатегорию</option>
+                            <?php if (!empty($service['category']) && isset($categories[$service['category']])): ?>
+                                <?php foreach ($categories[$service['category']]['subs'] as $sub): ?>
+                                <option value="<?php echo htmlspecialchars($sub); ?>" <?php echo $service['subcategory']===$sub?'selected':''; ?>><?php echo htmlspecialchars($sub); ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Описание</label>
@@ -406,7 +438,7 @@ ob_start();
                 <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
                     <div style="display:flex;justify-content:space-between;">
                         <span style="color:var(--text-secondary);">Категория</span>
-                        <span style="font-weight:500;"><?php echo $service['subcategory'] ?: ($categories[$service['category']] ?? $service['category']); ?></span>
+                        <span style="font-weight:500;"><?php echo $service['subcategory'] ?: ($categories[$service['category']]['name'] ?? $service['category']); ?></span>
                     </div>
                     <div style="display:flex;justify-content:space-between;">
                         <span style="color:var(--text-secondary);">Город</span>
@@ -749,6 +781,28 @@ async function saveCallStatus(serviceId) {
     }
     btn.disabled = false;
     btn.textContent = 'Сохранить статус созвона';
+}
+</script>
+<script>
+const editCategoriesData = <?php echo json_encode(array_map(fn($c) => $c['subs'], $categories)); ?>;
+const editCategoriesKeys = <?php echo json_encode(array_keys($categories)); ?>;
+function updateEditSubcategories() {
+    const cat = document.getElementById('editCategorySelect').value;
+    const sub = document.getElementById('editSubcategorySelect');
+    sub.innerHTML = '<option value="">Выберите подкатегорию</option>';
+    if (cat) {
+        const idx = editCategoriesKeys.indexOf(cat);
+        if (idx >= 0) {
+            editCategoriesData[editCategoriesKeys[idx]].forEach(s => {
+                const o = document.createElement('option');
+                o.value = s; o.textContent = s;
+                sub.appendChild(o);
+            });
+            sub.disabled = false;
+        }
+    } else {
+        sub.disabled = true;
+    }
 }
 </script>
 <script src="/assets/js/address-autocomplete.js"></script>
