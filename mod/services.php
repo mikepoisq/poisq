@@ -32,7 +32,7 @@ $offset = ($page - 1) * $perPage;
 
 $stmt = $pdo->prepare("
     SELECT s.id, s.user_id, s.name, s.category, s.subcategory, s.status, s.is_visible, s.country_code, s.created_at, s.views, s.created_by_admin, s.created_by_moderator,
-           s.verified, s.verified_until,
+           s.verified, s.verified_until, s.call_status, s.call_note,
            u.name as user_name, u.email as user_email, c.name as city_name
     FROM services s
     JOIN users u ON s.user_id = u.id
@@ -72,6 +72,7 @@ ob_start();
 .svc-table .col-city    { width: 90px;  min-width: 60px; }
 .svc-table .col-owner   { width: 130px; min-width: 90px; overflow: hidden; }
 .svc-table .col-status  { width: 90px;  min-width: 80px; white-space: nowrap; }
+.svc-table .col-call    { width: 60px;  min-width: 50px;  text-align: center; }
 .svc-table .col-views   { width: 60px;  min-width: 50px; }
 .svc-table .col-date    { width: 80px;  min-width: 70px; white-space: nowrap; }
 .svc-table .col-actions { width: 50px;  min-width: 50px; white-space: nowrap; }
@@ -134,6 +135,7 @@ ob_start();
                     <th class="col-city">Город</th>
                     <th class="col-owner">Владелец</th>
                     <th class="col-status">Статус</th>
+                    <th class="col-call">Созвон</th>
                     <th class="col-views">Просм.</th>
                     <th class="col-date">Дата</th>
                     <th class="col-actions"></th>
@@ -171,6 +173,21 @@ ob_start();
                     <div style="font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($svc["user_email"]); ?></div>
                 </td>
                 <td class="col-status"><span class="badge <?php echo $sc['class']; ?>" style="font-size:11px;padding:2px 7px;white-space:nowrap;"><?php echo $sc['label']; ?></span></td>
+                <td class="col-call" style="font-size:15px;text-align:center;">
+                    <?php
+                    $cs = $svc['call_status'] ?? 'not_called';
+                    if ($cs === 'not_called'):     ?>
+                    <span style="color:var(--text-light);" title="Не звонили">—</span>
+                    <?php elseif ($cs === 'no_answer'): ?>
+                    <span style="color:#D97706;" title="Не дозвонились">☎️</span>
+                    <?php elseif ($cs === 'reached'): ?>
+                    <span style="color:#10B981;" title="Дозвонились">✅</span>
+                    <?php elseif ($cs === 'no_number'): ?>
+                    <span style="color:var(--text-light);" title="Нет номера">🚫</span>
+                    <?php elseif ($cs === 'other'): ?>
+                    <span style="color:#3B6CF4;cursor:default;" title="<?php echo htmlspecialchars($svc['call_note'] ?? ''); ?>">📝</span>
+                    <?php endif; ?>
+                </td>
                 <td class="col-views" style="font-size:12px;color:var(--text-secondary);"><?php echo (int)$svc['views']; ?></td>
                 <td class="col-date" style="font-size:11px;color:var(--text-light);white-space:nowrap;"><?php echo date("d.m.y", strtotime($svc["created_at"])); ?></td>
                 <td class="col-actions" style="white-space:nowrap;">
