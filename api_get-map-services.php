@@ -1,0 +1,58 @@
+<?php
+header('Content-Type: application/json; charset=utf-8');
+require_once 'config/database.php';
+
+$pdo = getDbConnection();
+
+$country  = $_GET['country'] ?? '';
+$city_id  = $_GET['city_id'] ?? '';
+$category = $_GET['category'] ?? '';
+$rating   = floatval($_GET['rating'] ?? 0);
+$verified = isset($_GET['verified']) ? 1 : 0;
+$q        = trim($_GET['q'] ?? '');
+
+$where = ["s.status = 'approved'", "s.is_visible = 1", "s.lat IS NOT NULL", "s.lng IS NOT NULL"];
+$params = [];
+
+if ($country) {
+    $where[] = "s.country_code = ?";
+    $params[] = $country;
+}
+if ($city_id) {
+    $where[] = "s.city_id = ?";
+    $params[] = $city_id;
+}
+if ($category) {
+    $where[] = "s.category = ?";
+    $params[] = $category;
+}
+if ($rating > 0) {
+    $where[] = "s.rating >= ?";
+    $params[] = $rating;
+}
+if ($verified) {
+    $where[] = "s.verified = 1";
+}
+if ($q) {
+    $where[] = "(s.name LIKE ? OR s.description LIKE ?)";
+    $params[] = '%' . $q . '%';
+    $params[] = '%' . $q . '%';
+}
+
+$sql = "SELECT s.id, s.name, s.category, s.subcategory, s.lat, s.lng, 
+               s.phone, s.whatsapp, s.photo, s.address, s.description,
+               c.name as city_name, s.country_code
+        FROM services s
+        LEFT JOIN cities c ON s.city_id = c.id
+        WHERE " . implode(' AND ', $where);
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($services as &$s) {
+    $photos = json_decode($s['photo'], true);
+    $s['photo'] = (!empty($photos) && is_array($photos)) ? $photos[0] : null;
+}
+
+echo json_encode(['success' => true, 'services' => $services], JSON_UNESCAPED_UNICODE);

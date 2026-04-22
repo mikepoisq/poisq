@@ -1400,6 +1400,7 @@ body {
     <div class="filters-row">
       <div class="filter-chip <?php echo empty($categoryFilter) && !$ratingFilter && !$verifiedFilter && !$cityFilter ? 'active' : ''; ?>"
         onclick="resetFilters()">Все</div>
+      <div class="filter-chip" onclick="goToMap()">🗺 Карта</div>
       <div class="filter-chip <?php echo $verifiedFilter ? 'active' : ''; ?>"
         onclick="toggleFilter('verified')"><span class="dot"></span> Проверено</div>
       <div class="filter-chip <?php echo $ratingFilter >= 4.5 ? 'active' : ''; ?>"
@@ -1596,8 +1597,8 @@ body {
         <?php endif; ?>
 
         <?php if (!$isMessengerCard && $svc['address']): ?>
-          <a href="https://maps.google.com/?q=<?php echo urlencode($svc['address']); ?>"
-            target="_blank" class="btn-icon" aria-label="На карте" title="На карте">
+          <a href="/map.php?country=<?php echo $countryCode; ?>&focus=<?php echo $svc['id']; ?><?php echo $cityFilter ? '&city_id='.$cityFilter : ''; ?><?php echo $citySlug ? '&city_slug='.$citySlug : ''; ?>"
+            class="btn-icon" aria-label="На карте" title="На карте">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 00-16 0c0 3 2.7 7 8 11.7z"/></svg>
           </a>
         <?php endif; ?>
@@ -2353,6 +2354,20 @@ function toggleRating(r) {
   applyFilters();
 }
 
+function goToMap() {
+  const q = '<?php echo addslashes($searchQuery); ?>';
+  const params = new URLSearchParams();
+  params.set('country', countryCode);
+  if (currentCity > 0) params.set('city_id', currentCity);
+  const citySlugVal = '<?php echo $citySlug; ?>';
+  if (citySlugVal) params.set('city_slug', citySlugVal);
+  if (q) params.set('q', q);
+  if (currentCategory) params.set('category', currentCategory);
+  if (currentRating > 0) params.set('rating', currentRating);
+  if (currentVerified) params.set('verified', 1);
+  if (currentLanguages.length > 0) params.set('languages', currentLanguages.join(','));
+  window.location.href = '/map.php?' + params.toString();
+}
 function resetFilters() {
   currentCategory = '';
   currentCity = 0;
