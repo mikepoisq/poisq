@@ -117,11 +117,17 @@ try {
     $dayKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     foreach ($dayKeys as $dk) {
         if (!empty($hoursRaw[$dk])) {
-            $o = trim($hoursRaw[$dk]['open']  ?? '');
-            $c = trim($hoursRaw[$dk]['close'] ?? '');
-            $hours[$dk] = ($o && $c) ? "с $o до $c" : 'Закрыто';
+            $o  = trim($hoursRaw[$dk]['open']        ?? '');
+            $c  = trim($hoursRaw[$dk]['close']       ?? '');
+            $bs = trim($hoursRaw[$dk]['break_start'] ?? '');
+            $be = trim($hoursRaw[$dk]['break_end']   ?? '');
+            if ($o && $c) {
+                $hours[$dk] = ['time' => "с $o до $c", 'break' => ($bs && $be ? "$bs – $be" : '')];
+            } else {
+                $hours[$dk] = ['time' => 'Закрыто', 'break' => ''];
+            }
         } else {
-            $hours[$dk] = '—';
+            $hours[$dk] = ['time' => '—', 'break' => ''];
         }
     }
 
@@ -1176,11 +1182,21 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                             <?php
                             $days = ['mon' => 'Понедельник', 'tue' => 'Вторник', 'wed' => 'Среда', 'thu' => 'Четверг', 'fri' => 'Пятница', 'sat' => 'Суббота', 'sun' => 'Воскресенье'];
                             foreach ($days as $key => $name):
-                                $isClosed = isset($service['hours'][$key]) && $service['hours'][$key] === 'Закрыто';
+                            ?><?php
+                                $hEntry = $service['hours'][$key] ?? ['time'=>'—','break'=>''];
+                                $isClosed = ($hEntry['time'] === 'Закрыто');
                             ?>
                             <tr class="<?php echo $isClosed ? 'closed' : ''; ?>">
                                 <td><?php echo $name; ?></td>
-                                <td><?php echo $isClosed ? 'Закрыто' : htmlspecialchars($service['hours'][$key] ?? '—'); ?></td>
+                                <td>
+                                    <?php echo htmlspecialchars($hEntry['time']); ?>
+                                    <?php if (!empty($hEntry['break'])): ?>
+                                    </td></tr><tr>
+                                        <td style="color:#F59E0B;font-size:13px;padding-top:0;padding-bottom:8px;">Перерыв:</td>
+                                        <td style="color:#F59E0B;font-size:13px;text-align:right;padding-top:0;padding-bottom:8px;"><?php echo htmlspecialchars($hEntry['break']); ?></td>
+                                    </tr><tr style="display:none;">
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </table>

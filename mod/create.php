@@ -500,9 +500,9 @@ body.dark-theme .panel-pink     { background: #2D1A20 !important; }
             <?php endif; ?>
                 <span class="hours-break-label">Перерыв:</span>
                 <div class="hours-time">
-                    <input type="text" name="hours[<?php echo $key; ?>][break_start]" class="hours-break-start" placeholder="13:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_start'] ?? ''); ?>">
+                    <input type="text" name="hours[<?php echo $key; ?>][break_start]" class="hours-break-start" placeholder="чч:мм" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_start'] ?? ''); ?>">
                     <span>—</span>
-                    <input type="text" name="hours[<?php echo $key; ?>][break_end]" class="hours-break-end" placeholder="14:00" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_end'] ?? ''); ?>">
+                    <input type="text" name="hours[<?php echo $key; ?>][break_end]" class="hours-break-end" placeholder="чч:мм" maxlength="5" value="<?php echo htmlspecialchars($dayHours['break_end'] ?? ''); ?>">
                 </div>
                 <button type="button" class="hours-break-remove" onclick="removeBreak(this)" title="Убрать перерыв">✕</button>
             </div>
