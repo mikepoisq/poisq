@@ -7,6 +7,13 @@ function renderModLayout(string $pageTitle, string $content): void {
     $name  = getModeratorName();
     $initial = mb_strtoupper(mb_substr($name, 0, 1));
     $curPage = basename($_SERVER['PHP_SELF'], '.php');
+    $dupCount = 0;
+    if (in_array('duplicates', $perms)) {
+        try {
+            $pdo = getDbConnection();
+            $dupCount = (int)$pdo->query("SELECT COUNT(*) FROM services WHERE status='duplicate'")->fetchColumn();
+        } catch (Exception $e) {}
+    }
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -217,6 +224,15 @@ body.dark-theme .panel-pink     { background: #2D1A20 !important; }
         </a>
         <?php endif; ?>
 
+        <?php if (in_array('duplicates', $perms)): ?>
+        <a href="/mod/duplicates.php" class="nav-item <?php echo $curPage==='duplicates'?'active':''; ?>">
+            <svg viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            Дубликаты
+            <?php if (!empty($dupCount) && $dupCount > 0): ?>
+            <span class="nav-badge"><?php echo $dupCount; ?></span>
+            <?php endif; ?>
+        </a>
+        <?php endif; ?>
         <?php if (in_array('analytics', $perms)): ?>
         <a href="/mod/analytics.php" class="nav-item <?php echo $curPage==='analytics'?'active':''; ?>">
             <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>

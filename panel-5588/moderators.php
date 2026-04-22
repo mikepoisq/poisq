@@ -19,6 +19,7 @@ $allPermissions = [
     'faq'             => 'FAQ (Помощь)',
     'analytics'       => 'Аналитика',
     'my_stats'        => 'Моя статистика',
+    'duplicates'      => 'Дубликаты',
 ];
 
 // ── POST обработка ──
