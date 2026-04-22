@@ -786,6 +786,153 @@ function removeService(btn) {
     if (rows.length > 1) btn.closest('.service-row').remove();
 }
 </script>
+
+<style>
+<style>
+.dup-inline {
+    display:none; margin-top:6px;
+    border:1.5px solid #FDE68A; border-radius:10px;
+    background:#FFFBEB; overflow:hidden;
+}
+body.dark-theme .dup-inline { background:#2A2210; border-color:#92400E; }
+.dup-inline-header {
+    padding:7px 12px; font-size:11px; font-weight:700;
+    color:#92400E; display:flex; align-items:center; gap:6px;
+}
+body.dark-theme .dup-inline-header { color:#FBBF24; }
+.dup-inline-item {
+    display:flex; gap:10px; padding:8px 12px;
+    border-top:1px solid #FDE68A;
+    text-decoration:none; color:inherit;
+    transition:background .1s; align-items:center;
+}
+body.dark-theme .dup-inline-item { border-color:#3D2E0A; }
+.dup-inline-item:hover { background:#FEF3C7; }
+body.dark-theme .dup-inline-item:hover { background:#1A1500; }
+.dup-inline-thumb {
+    width:40px; height:40px; border-radius:7px;
+    object-fit:cover; flex-shrink:0; background:#F3F4F6;
+}
+.dup-inline-thumb-empty {
+    width:40px; height:40px; border-radius:7px;
+    background:#FEF3C7; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+}
+.dup-inline-info { flex:1; min-width:0; }
+.dup-inline-name {
+    font-size:13px; font-weight:700; color:#1F2937;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+body.dark-theme .dup-inline-name { color:#F9FAFB; }
+.dup-inline-meta { font-size:11px; color:#6B7280; margin-top:1px; line-height:1.5; }
+.dup-inline-status {
+    display:inline-block; font-size:10px; font-weight:700;
+    padding:1px 6px; border-radius:99px; margin-top:2px;
+}
+.dh-status-approved  { background:#D1FAE5; color:#065F46; }
+.dh-status-pending   { background:#FEF3C7; color:#92400E; }
+.dh-status-duplicate { background:#FEE2E2; color:#991B1B; }
+</style>
+
+<script>
+(function() {
+    var timers = {};
+    var lastVals = {};
+    var cache = {};
+    var API = '/panel-5588/api_duplicate_check.php';
+    var EDIT_BASE = '/mod/edit.php';
+    var statusLabel = { approved: 'Активный', pending: 'На модерации', duplicate: 'Дубль' };
+    var statusClass  = { approved: 'dh-status-approved', pending: 'dh-status-pending', duplicate: 'dh-status-duplicate' };
+    var fieldMap = {
+        name:    { param: 'name',    minLen: 4 },
+        phone:   { param: 'phone',   minLen: 7 },
+        email:   { param: 'email',   minLen: 6 },
+        address: { param: 'address', minLen: 6 }
+    };
+
+    function getOrCreateHint(fieldName, inputEl) {
+        var hintId = 'dup-hint-' + fieldName;
+        var hint = document.getElementById(hintId);
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = hintId;
+            hint.className = 'dup-inline';
+            hint.innerHTML = '<div class="dup-inline-header">\u26a0\ufe0f \u041f\u043e\u0445\u043e\u0436\u0438\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044b \u0443\u0436\u0435 \u0435\u0441\u0442\u044c<button onclick="this.closest(\'.dup-inline\').style.display=\'none\'" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:#92400E;line-height:1;padding:0 2px;">\u2715</button></div><div class="dup-inline-list"></div>';
+            inputEl.parentNode.insertBefore(hint, inputEl.nextSibling);
+        }
+        return hint;
+    }
+
+    function renderItems(items, fieldName) {
+        var inputEl = document.querySelector('[name="' + fieldName + '"]');
+        if (!inputEl) return;
+        var hint = getOrCreateHint(fieldName, inputEl);
+        var list = hint.querySelector('.dup-inline-list');
+        if (!items || items.length === 0) { hint.style.display = 'none'; return; }
+        list.innerHTML = items.map(function(it) {
+            var thumb = it.photo
+                ? '<img class="dup-inline-thumb" src="' + it.photo + '" alt="" onerror="this.style.display=\'none\'">'
+                : '<div class="dup-inline-thumb-empty">\ud83c\udfe2</div>';
+            var meta = [];
+            if (it.phone)   meta.push('\ud83d\udcde ' + it.phone);
+            if (it.email)   meta.push('\u2709\ufe0f ' + it.email);
+            if (it.address) meta.push('\ud83d\udccd ' + it.address.substring(0,40) + (it.address.length>40?'\u2026':''));
+            if (it.city)    meta.push('\ud83c\udfd9 ' + it.city + (it.country?' ('+it.country.toUpperCase()+')':''));
+            var sl = statusLabel[it.status] || it.status;
+            var sc = statusClass[it.status] || '';
+            return '<a class="dup-inline-item" href="' + EDIT_BASE + '?id=' + it.id + '" target="_blank">'
+                + thumb + '<div class="dup-inline-info">'
+                + '<div class="dup-inline-name">' + it.name + '</div>'
+                + (meta.length ? '<div class="dup-inline-meta">' + meta.join(' &middot; ') + '</div>' : '')
+                + '<span class="dup-inline-status ' + sc + '">' + sl + '</span>'
+                + '</div></a>';
+        }).join('');
+        hint.style.display = 'block';
+    }
+
+    function doCheck(fieldName, val, param) {
+        if (val === lastVals[fieldName]) return;
+        lastVals[fieldName] = val;
+        var cacheKey = fieldName + ':' + val;
+        if (cache[cacheKey] !== undefined) { renderItems(cache[cacheKey], fieldName); return; }
+        fetch(API + '?' + param + '=' + encodeURIComponent(val))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var items = Array.isArray(data) ? data : [];
+                cache[cacheKey] = items;
+                renderItems(items, fieldName);
+            }).catch(function() {});
+    }
+
+    function bindField(fieldName, cfg) {
+        var el = document.querySelector('[name="' + fieldName + '"]');
+        if (!el) return;
+        function handler() {
+            var val = el.value.trim();
+            if (val.length < cfg.minLen || (fieldName === 'email' && val.indexOf('@') < 0)) {
+                var hint = document.getElementById('dup-hint-' + fieldName);
+                if (hint) hint.style.display = 'none';
+                return;
+            }
+            clearTimeout(timers[fieldName]);
+            timers[fieldName] = setTimeout(function() { doCheck(fieldName, val, cfg.param); }, 600);
+        }
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+    }
+
+    function init() {
+        Object.keys(fieldMap).forEach(function(fn) { bindField(fn, fieldMap[fn]); });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else { init(); }
+})();
+</script>
+
+</script>
+
 <script src="/assets/js/address-autocomplete.js"></script>
 <?php
 $content = ob_get_clean();

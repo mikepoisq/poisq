@@ -91,8 +91,11 @@
             div.addEventListener('mouseleave', () => div.style.background = '#fff');
             div.addEventListener('mousedown', (e) => {
                 e.preventDefault();
+                justSelected = true;
                 input.value = label;
                 hideDropdown();
+                input.focus();
+                input.dispatchEvent(new Event('change', { bubbles: true }));
             });
             dropdown.appendChild(div);
         });
@@ -123,9 +126,12 @@
         } catch(e) { return []; }
     }
 
+    let justSelected = false;
+
     function initInput(input) {
         input.setAttribute('autocomplete', 'off');
         input.addEventListener('input', () => {
+            if (justSelected) { justSelected = false; return; }
             currentInput = input;
             const val = input.value.trim();
             clearTimeout(debounceTimer);
