@@ -1970,7 +1970,7 @@ if (hasUnsavedChanges) {
 const formData = new FormData(document.getElementById('serviceForm'));
 const data = Object.fromEntries(formData);
 localStorage.setItem('serviceDraft', JSON.stringify(data));
-console.log('Черновик автосохранён');
+
 }
 }, 30000);
 document.querySelectorAll('input, select, textarea').forEach(el => {
