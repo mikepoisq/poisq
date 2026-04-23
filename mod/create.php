@@ -840,7 +840,7 @@ body.dark-theme .dup-inline-name { color:#F9FAFB; }
     var timers = {};
     var lastVals = {};
     var cache = {};
-    var API = '/panel-5588/api_duplicate_check.php';
+    var API = '/mod/api_duplicate_check.php';
     var EDIT_BASE = '/mod/edit.php';
     var statusLabel = { approved: 'Активный', pending: 'На модерации', duplicate: 'Дубль' };
     var statusClass  = { approved: 'dh-status-approved', pending: 'dh-status-pending', duplicate: 'dh-status-duplicate' };
