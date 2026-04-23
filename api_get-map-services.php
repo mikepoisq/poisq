@@ -10,6 +10,25 @@ $category = $_GET['category'] ?? '';
 $rating   = floatval($_GET['rating'] ?? 0);
 $verified = isset($_GET['verified']) ? 1 : 0;
 $q        = trim($_GET['q'] ?? '');
+$focus_id = intval($_GET['focus'] ?? 0);
+
+// Если передан focus — возвращаем только этот сервис
+if ($focus_id > 0) {
+    $stmt = $pdo->prepare("SELECT s.id, s.name, s.category, s.subcategory, s.lat, s.lng,
+               s.phone, s.whatsapp, s.photo, s.address, s.description,
+               c.name as city_name, s.country_code
+        FROM services s
+        LEFT JOIN cities c ON s.city_id = c.id
+        WHERE s.id = ? AND s.status = 'approved' AND s.is_visible = 1 AND s.lat IS NOT NULL AND s.lng IS NOT NULL");
+    $stmt->execute([$focus_id]);
+    $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($services as &$s) {
+        $photos = json_decode($s['photo'], true);
+        $s['photo'] = (!empty($photos) && is_array($photos)) ? $photos[0] : null;
+    }
+    echo json_encode(['success' => true, 'services' => $services], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $where = ["s.status = 'approved'", "s.is_visible = 1", "s.lat IS NOT NULL", "s.lng IS NOT NULL"];
 $params = [];

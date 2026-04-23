@@ -485,15 +485,16 @@ function buildApiUrl() {
   params.set('country', countryCode);
   if (cityFilter > 0) params.set('city_id', cityFilter);
   if (categoryFilter) params.set('category', categoryFilter);
-  if (searchQuery) params.set('q', searchQuery);
+  if (searchQuery && focusId === 0) params.set('q', searchQuery);
   if (ratingFilter > 0) params.set('rating', ratingFilter);
   if (verifiedFilter) params.set('verified', 1);
+  if (focusId > 0) params.set('focus', focusId);
   return '/api_get-map-services.php?' + params.toString();
 }
 
 function buildPopup(s) {
   const emoji = CATEGORY_ICONS[s.category] || '📍';
-  const catName = CATEGORY_NAMES[s.category] || s.category;
+  const catName = s.subcategory || CATEGORY_NAMES[s.category] || s.category;
   const photoHtml = s.photo
     ? `<img src="${s.photo}" alt="${s.name}" style="width:100%;height:130px;object-fit:cover;">`
     : `<div class="popup-photo-placeholder">${emoji}</div>`;

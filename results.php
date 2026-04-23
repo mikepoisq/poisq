@@ -1597,7 +1597,7 @@ body {
         <?php endif; ?>
 
         <?php if (!$isMessengerCard && $svc['address']): ?>
-          <a href="/map.php?country=<?php echo $countryCode; ?>&focus=<?php echo $svc['id']; ?><?php echo $cityFilter ? '&city_id='.$cityFilter : ''; ?><?php echo $citySlug ? '&city_slug='.$citySlug : ''; ?>"
+          <a href="/map.php?country=<?php echo $countryCode; ?>&focus=<?php echo $svc['id']; ?><?php echo $cityFilter ? '&city_id='.$cityFilter : ''; ?><?php echo $citySlug ? '&city_slug='.$citySlug : ''; ?><?php echo $searchQuery ? '&q='.urlencode($searchQuery) : ''; ?>"
             class="btn-icon" aria-label="На карте" title="На карте">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 00-16 0c0 3 2.7 7 8 11.7z"/></svg>
           </a>
