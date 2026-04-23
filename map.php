@@ -7,7 +7,7 @@ ini_set('session.use_strict_mode', '1');
 session_start();
 require_once __DIR__ . '/config/database.php';
 
-$countryCode    = preg_replace('/[^a-z]/', '', strtolower($_GET['country'] ?? 'fr'));
+$countryCode    = preg_replace('/[^a-z]/', '', strtolower($_GET['country'] ?? $_SESSION['user_country'] ?? 'fr'));
 $citySlug       = preg_replace('/[^a-z0-9-]/', '', strtolower($_GET['city_slug'] ?? ''));
 $cityFilter     = intval($_GET['city_id'] ?? 0);
 $categoryFilter = preg_replace('/[^a-z]/', '', strtolower($_GET['category'] ?? ''));
@@ -327,6 +327,65 @@ body { font-family: 'Manrope', sans-serif; background: var(--bg, #fff); color: v
 }
 .so-clear-history:active { background: var(--bg-secondary); }
 .so-clear-history svg { width: 15px; height: 15px; stroke: var(--text-secondary); fill: none; stroke-width: 2; }
+
+/* ── ПОДПИСИ НАД МАРКЕРАМИ ── */
+.mk-wrap { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.mk-label {
+  background: #fff; border-radius: 6px; padding: 2px 7px;
+  font-size: 10px; font-weight: 700; color: #0F172A; font-family: 'Manrope', sans-serif;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18); margin-bottom: 3px; pointer-events: none;
+}
+/* ── НИЖНИЙ ПОПАП ── */
+.map-bp {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+  width: 100%; max-width: 480px; background: #fff;
+  border-radius: 20px 20px 0 0; box-shadow: 0 -4px 32px rgba(0,0,0,0.18);
+  z-index: 1000; transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); overflow: hidden;
+}
+.map-bp.active { transform: translateX(-50%) translateY(0); }
+.mbp-drag { width: 36px; height: 4px; background: #DDE1E7; border-radius: 99px; margin: 10px auto 0; }
+.mbp-content { padding: 12px 16px 20px; }
+.mbp-row1 { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
+.mbp-photo-wrap {
+  width: 72px; height: 72px; border-radius: 14px; overflow: hidden; flex-shrink: 0;
+  background: #EEF2FF; display: flex; align-items: center; justify-content: center; font-size: 30px;
+}
+.mbp-photo-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.mbp-meta { flex: 1; min-width: 0; }
+.mbp-subcat { font-size: 11px; font-weight: 700; color: #3B6CF4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+.mbp-name { font-size: 16px; font-weight: 800; color: #0F172A; line-height: 1.25; margin-bottom: 4px; }
+.mbp-addr { font-size: 12px; color: #64748B; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.mbp-addr svg { width: 12px; height: 12px; flex-shrink: 0; stroke: #64748B; fill: none; stroke-width: 2; }
+.mbp-rating-row { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.mbp-stars { color: #F59E0B; font-size: 13px; letter-spacing: 0.5px; }
+.mbp-rating-val { font-size: 13px; font-weight: 700; color: #0F172A; }
+.mbp-review-cnt { font-size: 12px; color: #94A3B8; }
+.mbp-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+.mbp-icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  text-decoration: none; -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.mbp-icon-btn:active { opacity: 0.75; transform: scale(0.9); }
+.mbp-icon-btn svg { width: 18px; height: 18px; }
+.mbp-btn-fav { background: #FFF1F2; color: #EF4444; }
+.mbp-btn-fav svg { stroke: currentColor; fill: none; stroke-width: 2.2; }
+.mbp-btn-fav.active { background: #EF4444; color: #fff; }
+.mbp-btn-phone { background: #EEF2FF; color: #3B6CF4; }
+.mbp-btn-phone svg { stroke: currentColor; fill: none; stroke-width: 2; }
+.mbp-btn-wa { background: #E6F4EA; }
+.mbp-btn-wa svg { fill: #1E8E3E; }
+.mbp-btn-more {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 12px 16px; border-radius: 14px; font-size: 14px; font-weight: 700;
+  font-family: 'Manrope', sans-serif; cursor: pointer; text-decoration: none; border: none;
+  background: #3B6CF4; color: #fff; white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s; -webkit-tap-highlight-color: transparent;
+}
+.mbp-btn-more:active { opacity: 0.85; transform: scale(0.97); }
+.leaflet-control-attribution { z-index: 400 !important; }
 </style>
 </head>
 <body>
@@ -381,6 +440,13 @@ body { font-family: 'Manrope', sans-serif; background: var(--bg, #fff); color: v
     <div id="mapCount" class="map-count-badge" style="display:none"></div>
   </div>
 </div>
+
+<!-- ── НИЖНИЙ ПОПАП ── -->
+<div id="mapBottomPopup" class="map-bp">
+  <div class="mbp-drag"></div>
+  <div id="mbpContent" class="mbp-content"></div>
+</div>
+
 <!-- ── SEARCH OVERLAY ── -->
 <div class="search-overlay" id="searchOverlay">
   <div class="so-header">
@@ -432,7 +498,7 @@ let searchQuery      = '<?php echo addslashes($searchQuery); ?>';
 const ratingFilter   = <?php echo $ratingFilter; ?>;
 const verifiedFilter = <?php echo $verifiedFilter; ?>;
 const languagesFilter = <?php echo json_encode($languagesFilter); ?>;
-const focusId = <?php echo $focusId; ?>;
+let focusId = <?php echo $focusId; ?>;
 
 const CATEGORY_COLORS = {
   health:'#EF4444', legal:'#8B5CF6', family:'#F59E0B',
@@ -452,16 +518,22 @@ const CATEGORY_ICONS = {
   events:'📷', it:'💻', realestate:'🏢'
 };
 
-function makeMarkerIcon(category) {
-  const color = CATEGORY_COLORS[category] || CATEGORY_COLORS.default;
+function makeMarkerIcon(category, name, viewed) {
+  const color = viewed ? '#94A3B8' : (CATEGORY_COLORS[category] || CATEGORY_COLORS.default);
   const emoji = CATEGORY_ICONS[category] || '📍';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
+  const rawLabel = name || '';
+  const label = rawLabel.length > 18 ? rawLabel.slice(0, 17) + '…' : rawLabel;
+  const pinSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
     <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.25)"/></filter>
     <path d="M18 0C9.163 0 2 7.163 2 16c0 11 16 28 16 28S34 27 34 16C34 7.163 26.837 0 18 0z" fill="${color}" filter="url(#sh)"/>
     <circle cx="18" cy="16" r="9" fill="white" fill-opacity="0.92"/>
     <text x="18" y="20" text-anchor="middle" font-size="10">${emoji}</text>
   </svg>`;
-  return L.divIcon({ html: svg, className: '', iconSize: [36, 44], iconAnchor: [18, 44], popupAnchor: [0, -46] });
+  const safeLabel = label.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const labelHtml = safeLabel ? `<div class="mk-label">${safeLabel}</div>` : '';
+  const totalH = safeLabel ? 67 : 44;
+  const html = `<div class="mk-wrap">${labelHtml}${pinSvg}</div>`;
+  return L.divIcon({ html, className: '', iconSize: [36, totalH], iconAnchor: [18, totalH], popupAnchor: [0, -(totalH + 2)] });
 }
 
 const map = L.map('map', { zoomControl: true, attributionControl: false });
@@ -480,10 +552,15 @@ const markers = L.markerClusterGroup({
   }
 });
 
+let currentCityOverride = 0;
+let markerById = new Map();
+
 function buildApiUrl() {
   const params = new URLSearchParams();
   params.set('country', countryCode);
-  if (cityFilter > 0) params.set('city_id', cityFilter);
+  const activeCityId = (typeof currentCityOverride !== 'undefined' && currentCityOverride > 0)
+    ? currentCityOverride : cityFilter;
+  if (activeCityId > 0) params.set('city_id', activeCityId);
   if (categoryFilter) params.set('category', categoryFilter);
   if (searchQuery && focusId === 0) params.set('q', searchQuery);
   if (ratingFilter > 0) params.set('rating', ratingFilter);
@@ -509,6 +586,7 @@ function buildPopup(s) {
 
 async function loadServices() {
   markers.clearLayers();
+  markerById.clear();
   const noRes = document.querySelector('.map-no-results');
   if (noRes) noRes.remove();
   document.getElementById('mapCount').style.display = 'none';
@@ -526,9 +604,11 @@ async function loadServices() {
     data.services.forEach(s => {
       const lat = parseFloat(s.lat), lng = parseFloat(s.lng);
       if (!lat || !lng) return;
-      const marker = L.marker([lat, lng], { icon: makeMarkerIcon(s.category) });
-      marker.bindPopup(buildPopup(s), { maxWidth: 270, minWidth: 270 });
+      const viewed = getViewed().has(String(s.id));
+      const marker = L.marker([lat, lng], { icon: makeMarkerIcon(s.category, s.name, viewed) });
+      marker.on('click', (function(svc){ return function(e){ showMbp(svc); }; })(s));
       markers.addLayer(marker);
+      markerById.set(String(s.id), marker);
       bounds.push([lat, lng]);
     });
     map.addLayer(markers);
@@ -546,7 +626,7 @@ async function loadServices() {
           const ll = layer.getLatLng();
           if (Math.abs(ll.lat - parseFloat(focusSvc.lat)) < 0.0001 &&
               Math.abs(ll.lng - parseFloat(focusSvc.lng)) < 0.0001) {
-            setTimeout(() => layer.openPopup(), 600);
+            setTimeout(() => showMbp(focusSvc), 600);
           }
         });
       } else {
@@ -744,11 +824,50 @@ function soSanitizeQuery(q) {
   return q.replace(/\//g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+const CITY_HINTS = {};
+
+async function loadCityHints() {
+  try {
+    const r = await fetch('/api/get-cities.php?country=' + countryCode);
+    const cities = await r.json();
+    cities.forEach(c => {
+      if (c.name) CITY_HINTS[c.name.toLowerCase()] = c.id;
+      if (c.name_lat) CITY_HINTS[c.name_lat.toLowerCase()] = c.id;
+    });
+  } catch(e) {}
+}
+loadCityHints();
+
+function detectCityFromQuery(q) {
+  const lower = q.toLowerCase();
+  for (const [name, id] of Object.entries(CITY_HINTS)) {
+    if (lower.includes(name)) return id;
+  }
+  return 0;
+}
+
+function stripCityFromQuery(q) {
+  const lower = q.toLowerCase();
+  for (const name of Object.keys(CITY_HINTS)) {
+    if (lower.includes(name)) {
+      return q.replace(new RegExp(name, 'i'), '').replace(/\s+/g, ' ').trim();
+    }
+  }
+  return q;
+}
+
 function soUpdateMap(q) {
-  searchQuery = q;
+  focusId = 0;
+  const detectedCity = detectCityFromQuery(q);
+  currentCityOverride = detectedCity;
+  const cleanQ = detectedCity ? stripCityFromQuery(q) : q;
+  searchQuery = cleanQ;
+
   const params = new URLSearchParams(window.location.search);
-  if (q) params.set('q', q); else params.delete('q');
+  if (cleanQ) params.set('q', cleanQ); else params.delete('q');
+  if (detectedCity) params.set('city_id', detectedCity); else params.delete('city_id');
   history.replaceState({}, '', '/map.php?' + params.toString());
+
   const span = document.getElementById('searchBarText');
   if (span) {
     span.textContent = q || 'Поиск сервисов...';
@@ -915,6 +1034,100 @@ function annFmtDate(ds) {
   if (diff < 5)  return diff + ' дн.';
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 }
+
+// ── ПРОСМОТРЕННЫЕ МАРКЕРЫ ──
+const VIEWED_KEY = 'poisq_viewed_map';
+function getViewed() {
+  try { return new Set(JSON.parse(localStorage.getItem(VIEWED_KEY)) || []); } catch { return new Set(); }
+}
+function addViewed(id) {
+  const s = getViewed(); s.add(String(id));
+  localStorage.setItem(VIEWED_KEY, JSON.stringify([...s]));
+}
+
+// ── НИЖНИЙ ПОПАП ──
+let _mbpIsOpening = false;
+
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showMbp(s) {
+  _mbpIsOpening = true;
+  setTimeout(() => { _mbpIsOpening = false; }, 150);
+  addViewed(s.id);
+  const _vm = markerById.get(String(s.id));
+  if (_vm) _vm.setIcon(makeMarkerIcon(s.category, s.name, true));
+
+  const emoji = CATEGORY_ICONS[s.category] || '📍';
+  const catName = s.subcategory || CATEGORY_NAMES[s.category] || s.category;
+  const photoInner = s.photo ? `<img src="${escH(s.photo)}" alt="">` : emoji;
+
+  const addrHtml = s.address
+    ? `<div class="mbp-addr"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 00-16 0c0 3 2.7 6 8 11.7z"/></svg>${escH(s.address)}</div>` : '';
+
+  let ratingHtml = '';
+  if (parseFloat(s.rating) > 0) {
+    const r = parseFloat(s.rating);
+    const full = Math.round(r);
+    const stars = '★'.repeat(Math.min(full,5)) + '☆'.repeat(Math.max(0, 5-full));
+    ratingHtml = `<div class="mbp-rating-row"><span class="mbp-stars">${stars}</span><span class="mbp-rating-val">${r.toFixed(1)}</span>${parseInt(s.reviews_count) > 0 ? `<span class="mbp-review-cnt">(${s.reviews_count})</span>` : ''}</div>`;
+  }
+
+  let btns = `<button class="mbp-icon-btn mbp-btn-fav" id="mbpFavBtn" onclick="mbpToggleFav(${parseInt(s.id)})"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>`;
+
+  if (s.phone) {
+    btns += `<a href="tel:${escH(s.phone)}" class="mbp-icon-btn mbp-btn-phone"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.07 5.18 2 2 0 015.07 3h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L9.09 10.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg></a>`;
+  }
+
+  if (s.whatsapp) {
+    const waNum = String(s.whatsapp).replace(/\D/g,'');
+    btns += `<a href="https://wa.me/${escH(waNum)}" target="_blank" rel="noopener" class="mbp-icon-btn mbp-btn-wa"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>`;
+  }
+
+  btns += `<a href="/service/${parseInt(s.id)}" class="mbp-btn-more" onclick="mbpSaveBackUrl()">Подробнее →</a>`;
+
+  document.getElementById('mbpContent').innerHTML = `
+    <div class="mbp-row1">
+      <div class="mbp-photo-wrap">${photoInner}</div>
+      <div class="mbp-meta">
+        <div class="mbp-subcat">${escH(catName)}</div>
+        <div class="mbp-name">${escH(s.name)}</div>
+        ${addrHtml}
+        ${ratingHtml}
+      </div>
+    </div>
+    <div class="mbp-actions">${btns}</div>`;
+
+  document.getElementById('mapBottomPopup').classList.add('active');
+}
+
+function closeMbp() {
+  document.getElementById('mapBottomPopup').classList.remove('active');
+}
+
+function mbpSaveBackUrl() {
+  const u = new URL(window.location.href);
+  u.searchParams.delete('focus');
+  sessionStorage.setItem('mapBackUrl', u.toString());
+}
+
+async function mbpToggleFav(id) {
+  const btn = document.getElementById('mbpFavBtn');
+  if (!btn) return;
+  try {
+    const fd = new FormData();
+    fd.append('service_id', id);
+    const res = await fetch('/api/favorites.php', { method: 'POST', body: fd });
+    const d = await res.json();
+    if (d.success) btn.classList.toggle('active', d.action === 'added');
+  } catch(e) {}
+}
+
+map.on('click', function() {
+  if (_mbpIsOpening) return;
+  if (document.getElementById('mapBottomPopup').classList.contains('active')) closeMbp();
+});
 </script>
 </body>
 </html>

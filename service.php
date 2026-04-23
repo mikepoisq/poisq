@@ -1568,6 +1568,12 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         toggleFooter(); // Проверить при загрузке
 
         function goBack() {
+            const mapBackUrl = sessionStorage.getItem('mapBackUrl');
+            if (mapBackUrl) {
+                sessionStorage.removeItem('mapBackUrl');
+                window.location.href = mapBackUrl;
+                return;
+            }
             const referrer = document.referrer;
             if (referrer.includes('results.php')) {
                 sessionStorage.setItem('resultsScroll', window.scrollY);
@@ -1576,6 +1582,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                 window.history.back();
             }
         }
+
 
         window.addEventListener('load', () => {
             const scrollPos = sessionStorage.getItem('resultsScroll');
