@@ -249,7 +249,7 @@ try {
         // Сначала ищем в стране пользователя
         $r3user = meiliSearch($cleanQuery, [
             'filter' => ($mf ? "$mf AND " : '') . "country_code = '$userCountry' AND country_code != '$countryCode'",
-            'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
+            'limit'  => 10, 'sort' => ['verified:desc','rating:desc','views:desc'],
         ]);
         $meiliIds2 = array_column($r3user['hits'] ?? [], 'id');
     }
@@ -257,27 +257,25 @@ try {
     if ($meiliOk && (!empty($cleanQuery) || !empty($messengerFilter) || $cityFilter > 0)) {
         $r4 = meiliSearch($cleanQuery, [
             'filter' => ($mf ? "$mf AND " : '') . "country_code != '$countryCode' AND country_code != '$userCountry'",
-            'limit'  => 5, 'sort' => ['verified:desc','rating:desc','views:desc'],
+            'limit'  => 10, 'sort' => ['verified:desc','rating:desc','views:desc'],
         ]);
         $meiliIds3 = array_column($r4['hits'] ?? [], 'id');
     }
-    // Если в своей стране 0 результатов — основной список пустой, похожее в своём блоке
+    // Если в своей стране 0 результатов — показываем сообщение + похожее в других странах
     if ($meiliOk && count($meiliIds) === 0) {
         $totalCount = 0;
-        // Глобальный поиск без фильтра по стране — если есть текстовый запрос
-        // Показываем как основные результаты (юзер ввёл точное название)
-        if (!empty($cleanQuery)) {
+        // Глобальный поиск — результаты идут в блок "Похожее в других странах"
+        if (!empty($cleanQuery) && empty($meiliIds3)) {
+            $globalFilter = "country_code != '$countryCode'";
+            if ($userCountry !== $countryCode) $globalFilter .= " AND country_code != '$userCountry'";
             $rGlobal = meiliSearch($cleanQuery, [
-                'limit' => $perPage,
-                'sort'  => ['verified:desc','rating:desc','views:desc'],
+                'filter' => $globalFilter,
+                'limit'  => 5,
+                'sort'   => ['verified:desc','rating:desc','views:desc'],
             ]);
             $globalHits = array_column($rGlobal['hits'] ?? [], 'id');
             if (!empty($globalHits)) {
-                $meiliIds   = $globalHits;
-                $totalCount = $rGlobal['estimatedTotalHits'] ?? count($globalHits);
-                $meiliIds2  = [];
-                $meiliIds3  = [];
-                $isGlobalSearch = true;
+                $meiliIds3 = $globalHits;
             }
         }
     }
@@ -308,6 +306,7 @@ if ($meiliOk) {
     $services       = fetchFullByIds($pdo, $meiliIds);
     $servicesExtra  = fetchFullByIds($pdo, $meiliIds2);
     $servicesGlobal = fetchFullByIds($pdo, $meiliIds3);
+
 } else {
     // Fallback: MySQL FULLTEXT + LIKE
     function buildSearchCondition(string $text, array &$params, string $alias = 's'): string {
@@ -473,19 +472,16 @@ $categories = [
 <meta name="robots" content="noindex, follow">
 <?php
 // ── SEO мета-теги для results.php ───────────────────────
-$countryNames = [
-    'fr'=>'Франции','de'=>'Германии','es'=>'Испании','it'=>'Италии',
-    'gb'=>'Великобритании','us'=>'США','ca'=>'Канаде','au'=>'Австралии',
-    'nl'=>'Нидерландах','be'=>'Бельгии','ch'=>'Швейцарии','at'=>'Австрии',
-    'pt'=>'Португалии','gr'=>'Греции','pl'=>'Польше','cz'=>'Чехии',
-    'se'=>'Швеции','no'=>'Норвегии','dk'=>'Дании','fi'=>'Финляндии',
-    'ie'=>'Ирландии','nz'=>'Новой Зеландии','ae'=>'ОАЭ','il'=>'Израиле',
-    'tr'=>'Турции','th'=>'Таиланде','jp'=>'Японии','kr'=>'Южной Корее',
-    'sg'=>'Сингапуре','hk'=>'Гонконге','mx'=>'Мексике','br'=>'Бразилии',
-    'ar'=>'Аргентине','cl'=>'Чили','co'=>'Колумбии','za'=>'ЮАР',
-    'ru'=>'России','ua'=>'Украине','by'=>'Беларуси','kz'=>'Казахстане',
-];
-$countryNameIn = $countryNames[$countryCode] ?? $countryCode;
+// Берём названия стран из БД (предложный падеж)
+$countryNames = [];
+try {
+    $stCountries = $pdo->query("SELECT code, name_ru_in FROM countries WHERE is_active=1");
+    foreach ($stCountries->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $countryNames[$row['code']] = $row['name_ru_in'] ?: $row['code'];
+    }
+} catch (Exception $e) {}
+$countryNameIn     = $countryNames[$countryCode]  ?? $countryCode;
+$userCountryNameIn = $countryNames[$userCountry]  ?? $userCountry;
 
 // Формируем title и description в зависимости от контекста
 if (!empty($searchQuery) && $detectedCity) {
@@ -1433,9 +1429,12 @@ body {
       <div class="empty-title">Ничего не найдено</div>
       <div class="empty-subtitle">
         <?php if ($searchQuery): ?>
-          По запросу «<?php echo htmlspecialchars($searchQuery); ?>» сервисов не нашлось. Попробуйте другой запрос.
+          По запросу «<?php echo htmlspecialchars($searchQuery); ?>» в <?php echo htmlspecialchars($countryNameIn); ?> пока ничего нет.
+          <?php if (!empty($servicesGlobal)): ?>
+            Но нашлось похожее в других странах — смотри ниже 👇
+          <?php endif; ?>
         <?php else: ?>
-          В этой категории пока нет сервисов. Попробуйте другой фильтр.
+          В <?php echo htmlspecialchars($countryNameIn); ?> в этой категории пока нет сервисов.
         <?php endif; ?>
       </div>
       <a href="/<?php echo $countryCode; ?>/" class="btn-reset">
@@ -1652,7 +1651,7 @@ body {
   <div style="display:flex;align-items:center;gap:10px;padding:2px 2px 14px;">
     <div style="flex:1;height:1.5px;background:var(--border)"></div>
     <span style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">
-      📍 Похожее в твоей стране
+      📍 Похожее в <?php echo htmlspecialchars($userCountryNameIn); ?>
     </span>
     <div style="flex:1;height:1.5px;background:var(--border)"></div>
   </div>
