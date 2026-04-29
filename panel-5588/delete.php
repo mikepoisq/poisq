@@ -19,6 +19,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
         }
         $pdo->prepare("DELETE FROM services WHERE id=?")->execute([$serviceId]);
+        // Удаляем из Meilisearch
+        try {
+            $ch = curl_init("http://localhost:7700/indexes/services/documents/$serviceId");
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_exec($ch);
+            curl_close($ch);
+        } catch (Exception $e) {}
     }
 }
 header("Location: /panel-5588/services.php");
