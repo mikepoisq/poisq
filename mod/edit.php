@@ -462,7 +462,7 @@ ob_start();
                         <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;">
                             <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                                 <span style="font-size:12px;color:var(--text-secondary);">Логин</span>
-                                <span style="font-size:12px;font-weight:600;font-family:monospace;">new@poisq.com</span>
+                                <span style="font-size:12px;font-weight:600;font-family:monospace;"><?php echo 'service_' . $service['id'] . '@poisq.com'; ?></span>
                             </div>
                             <div style="display:flex;justify-content:space-between;align-items:center;">
                                 <span style="font-size:12px;color:var(--text-secondary);">Пароль</span>

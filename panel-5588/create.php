@@ -50,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $passHash = password_hash($password, PASSWORD_DEFAULT);
 
         // Обновляем пароль технического аккаунта
-        $pdo->prepare("UPDATE users SET password_hash=? WHERE id=?")->execute([$passHash, ADMIN_USER_ID]);
 
         // Обработка часов работы
         $hoursRaw = $_POST['hours'] ?? [];
@@ -120,6 +119,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $createdByAdmin, $createdByMod
         ]);
         $newId = (int)$pdo->lastInsertId();
+
+        // Создаём отдельного пользователя для этого сервиса
+        $serviceEmail = 'service_' . $newId . '@poisq.com';
+        $passHash = password_hash($password, PASSWORD_DEFAULT);
+        $pdo->prepare("INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, 'user')")
+            ->execute([$serviceEmail, $passHash, 'Владелец сервиса #' . $newId]);
+        $serviceUserId = (int)$pdo->lastInsertId();
+        $pdo->prepare("UPDATE services SET user_id=? WHERE id=?")->execute([$serviceUserId, $newId]);
 
         // Записываем статистику модератора
         if ($createdByMod) {
@@ -194,7 +201,7 @@ ob_start();
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
         <div style="background:white;border-radius:var(--radius-sm);padding:14px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:6px;">Логин для входа</div>
-            <div style="font-size:16px;font-weight:700;font-family:monospace;color:#1F2937;"><?php echo ADMIN_USER_EMAIL; ?></div>
+            <div style="font-size:16px;font-weight:700;font-family:monospace;color:#1F2937;"><?php echo 'service_' . $newId . '@poisq.com'; ?></div>
         </div>
         <div style="background:white;border-radius:var(--radius-sm);padding:14px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:6px;">Пароль (сохраните!)</div>
@@ -447,7 +454,7 @@ ob_start();
             <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:10px;">👑 Сервис администратора</div>
             <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
                 Сервис будет привязан к аккаунту:<br>
-                <strong style="color:var(--text);"><?php echo ADMIN_USER_EMAIL; ?></strong><br><br>
+                <strong style="color:var(--text);">service_[ID]@poisq.com</strong><br><br>
                 Для каждого сервиса генерируется уникальный пароль. Сохраните его после создания — он отображается только один раз.
             </div>
         </div>

@@ -57,7 +57,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .topbar{height:var(--header-h);background:var(--bg-white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;position:sticky;top:0;z-index:50;gap:12px;}
 .topbar-title{font-size:16px;font-weight:700;color:var(--text);flex:1;}
 .topbar-badge{background:#D1FAE5;color:#065F46;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;}
-.content{padding:24px;flex:1;max-width:1100px;}
+.content{padding:24px;flex:1;max-width:1200px;}
 .stat-grid{display:grid;gap:14px;margin-bottom:24px;}
 .stat-grid-4{grid-template-columns:repeat(4,1fr);}
 .stat-grid-3{grid-template-columns:repeat(3,1fr);}

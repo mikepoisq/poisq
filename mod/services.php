@@ -75,11 +75,11 @@ ob_start();
 .svc-table .col-call    { width: 60px;  min-width: 50px;  text-align: center; }
 .svc-table .col-views   { width: 60px;  min-width: 50px; }
 .svc-table .col-date    { width: 80px;  min-width: 70px; white-space: nowrap; }
-.svc-table .col-actions { width: 50px;  min-width: 50px; white-space: nowrap; }
+.svc-table .col-actions { width: 120px; min-width: 120px; white-space: nowrap; }
 .svc-table .col-name    { min-width: 140px; overflow: hidden; }
 @media (max-width: 1200px) {
     .svc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .svc-table      { min-width: 760px; }
+    .svc-table      { min-width: 820px; }
 }
 </style>
 

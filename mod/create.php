@@ -114,6 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $newId = (int)$pdo->lastInsertId();
 
+        $serviceEmail = 'service_' . $newId . '@poisq.com';
+        $passHash = password_hash($password, PASSWORD_DEFAULT);
+        $pdo->prepare("INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, 'user')")
+            ->execute([$serviceEmail, $passHash, 'Владелец сервиса #' . $newId]);
+        $serviceUserId = (int)$pdo->lastInsertId();
+        $pdo->prepare("UPDATE services SET user_id=? WHERE id=?")->execute([$serviceUserId, $newId]);
+
         recordModeratorStat($createdByMod, $newId, 'created');
 
         if (file_exists(__DIR__ . '/../config/meilisearch.php')) {
@@ -180,7 +187,7 @@ ob_start();
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
         <div style="background:var(--bg-white);border-radius:var(--radius-sm);padding:14px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:6px;">Логин для входа</div>
-            <div style="font-size:16px;font-weight:700;font-family:monospace;color:#1F2937;"><?php echo ADMIN_USER_EMAIL; ?></div>
+            <div style="font-size:16px;font-weight:700;font-family:monospace;color:#1F2937;"><?php echo 'service_' . $newId . '@poisq.com'; ?></div>
         </div>
         <div style="background:var(--bg-white);border-radius:var(--radius-sm);padding:14px;">
             <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:6px;">Пароль (сохраните!)</div>
@@ -418,7 +425,7 @@ body.dark-theme .panel-pink     { background: #2D1A20 !important; }
         <div style="background:var(--primary-light);border:1px solid #BFDBFE;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;font-size:12px;">
             <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">👑 Сервис администратора</div>
             <div style="color:var(--text-secondary);line-height:1.55;">
-                Привязан к: <strong style="color:var(--text);"><?php echo ADMIN_USER_EMAIL; ?></strong><br>
+                Привязан к: <strong style="color:var(--text);"><?php echo 'service_' . $newId . '@poisq.com'; ?></strong><br>
                 Уникальный пароль генерируется при создании. Сохраните его — показывается один раз.
             </div>
         </div>
