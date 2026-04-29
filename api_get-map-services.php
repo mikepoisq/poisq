@@ -52,6 +52,48 @@ if ($rating > 0) {
 if ($verified) {
     $where[] = "s.verified = 1";
 }
+// Убираем название города из запроса если city_id уже передан
+if ($q && $city_id) {
+    try {
+        $cs = $pdo->prepare("SELECT name, name_lat FROM cities WHERE id = ? LIMIT 1");
+        $cs->execute([$city_id]);
+        $fc = $cs->fetch(PDO::FETCH_ASSOC);
+        if ($fc) {
+            $q = trim(preg_replace('/'.preg_quote($fc['name'], '/').'/iu', '', $q));
+            $q = trim(preg_replace('/'.preg_quote($fc['name_lat'], '/').'/iu', '', $q));
+            $q = trim(preg_replace('/\s+/', ' ', $q));
+        }
+    } catch (Exception $e) {}
+}
+// Парсим город из текста запроса (если city_id не передан)
+if ($q && !$city_id) {
+    $qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w) >= 3);
+    foreach ($qwords as $qw) {
+        $cs = $pdo->prepare("SELECT id, name, name_lat, country_code FROM cities WHERE LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ? LIMIT 1");
+        $cs->execute(['%'.$qw.'%', '%'.$qw.'%']);
+        $fc = $cs->fetch(PDO::FETCH_ASSOC);
+        if ($fc) {
+            $city_id = $fc['id'];
+            if (!$country) $country = $fc['country_code'];
+            // Убираем название города из запроса
+            $q = trim(preg_replace('/'.preg_quote($fc['name'], '/').'/iu', '', $q));
+            $q = trim(preg_replace('/'.preg_quote($fc['name_lat'], '/').'/iu', '', $q));
+            $q = trim(preg_replace('/\s+/', ' ', $q));
+            // Обновляем WHERE для города
+            $where[] = "s.city_id = ?";
+            $params[] = $city_id;
+            // Убираем фильтр страны если был — город точнее
+            if ($country) {
+                $where = array_filter($where, fn($w) => strpos($w, 'country_code') === false);
+                $where = array_values($where);
+                $params = array_filter($params, fn($v) => $v !== $country);
+                $params = array_values($params);
+            }
+            break;
+        }
+    }
+}
+
 if ($q) {
     // Ищем совпадение с подкатегорией
     $subStmt = $pdo->prepare("SELECT category_slug, name FROM service_subcategories WHERE is_active=1");
