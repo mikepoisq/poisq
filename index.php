@@ -1578,10 +1578,13 @@ async function openAnnModal() {
   content.innerHTML = `<div class="ann-loading"><div class="spinner"></div><p>Загрузка...</p></div>`;
 
   try {
-    const cr  = await fetch('api/get-user-country.php');
-    const cd  = await cr.json();
-    const cc  = cd.country_code || 'fr';
-
+    // Сначала берём страну из localStorage (юзер мог выбрать вручную)
+    let cc = localStorage.getItem('poisq_country') || '';
+    if (!cc) {
+      const cr = await fetch('api/get-user-country.php');
+      const cd = await cr.json();
+      cc = cd.country_code || 'fr';
+    }
     const cir = await fetch(`api/get-cities.php?country=${cc}`);
     const cities = await cir.json();
 
