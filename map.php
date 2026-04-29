@@ -557,9 +557,13 @@ let markerById = new Map();
 
 function buildApiUrl() {
   const params = new URLSearchParams();
-  params.set('country', countryCode);
   const activeCityId = (typeof currentCityOverride !== 'undefined' && currentCityOverride > 0)
     ? currentCityOverride : cityFilter;
+  // Для мессенджеров без города — показываем все страны
+  const messengerKw = ['ватсап','вотсап','whatsapp','телеграм','telegram','тг'];
+  const qLow = (searchQuery || '').toLowerCase();
+  const isMessengerSearch = messengerKw.some(kw => qLow.includes(kw));
+  if (!isMessengerSearch || activeCityId > 0) params.set('country', countryCode);
   if (activeCityId > 0) params.set('city_id', activeCityId);
   if (categoryFilter) params.set('category', categoryFilter);
   if (searchQuery && focusId === 0) params.set('q', searchQuery);

@@ -30,7 +30,7 @@ if ($focus_id > 0) {
     exit;
 }
 
-$where = ["s.status = 'approved'", "s.is_visible = 1", "s.lat IS NOT NULL", "s.lng IS NOT NULL"];
+$where = ["s.status = 'approved'", "s.is_visible = 1", "(s.lat IS NOT NULL OR (s.category = 'messengers' AND c2.lat IS NOT NULL))"];
 $params = [];
 
 if ($country) {
@@ -94,6 +94,22 @@ if ($q && !$city_id) {
     }
 }
 
+// Распознаём мессенджер из запроса
+$messengerKeywords = [
+    'WhatsApp группа' => ['ватсап','вотсап','whatsapp','ватсапп'],
+    'Telegram группа' => ['телеграм','telegram','телеграмм','тг'],
+];
+foreach ($messengerKeywords as $subcatValue => $keywords) {
+    foreach ($keywords as $kw) {
+        if (mb_strpos(mb_strtolower($q, 'UTF-8'), $kw) !== false) {
+            $where[] = "s.subcategory = ?";
+            $params[] = $subcatValue;
+            $q = '';
+            break 2;
+        }
+    }
+}
+
 if ($q) {
     // Ищем совпадение с подкатегорией
     $subStmt = $pdo->prepare("SELECT category_slug, name FROM service_subcategories WHERE is_active=1");
@@ -147,11 +163,13 @@ if ($q) {
     }
 }
 
-$sql = "SELECT s.id, s.name, s.category, s.subcategory, s.lat, s.lng, 
+$sql = "SELECT s.id, s.name, s.category, s.subcategory,
+               COALESCE(s.lat, c2.lat) as lat,
+               COALESCE(s.lng, c2.lng) as lng,
                s.phone, s.whatsapp, s.photo, s.address, s.description,
-               s.rating, s.reviews_count, c.name as city_name, s.country_code
+               s.rating, s.reviews_count, c2.name as city_name, s.country_code, s.group_link
         FROM services s
-        LEFT JOIN cities c ON s.city_id = c.id
+        LEFT JOIN cities c2 ON s.city_id = c2.id
         WHERE " . implode(' AND ', $where);
 
 $stmt = $pdo->prepare($sql);
