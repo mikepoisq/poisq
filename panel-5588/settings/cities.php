@@ -26,8 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $capital = (int)($_POST['is_capital'] ?? 0);
             $order   = (int)($_POST['sort_order'] ?? 0);
             if (!$name || !$cc) jerr('Название и страна обязательны');
-            $pdo->prepare("INSERT INTO cities (name, name_lat, country_code, is_capital, sort_order, status) VALUES (?,?,?,?,?,'active')")
-                ->execute([$name, $nameLat, $cc, $capital, $order]);
+            $lat = !empty($_POST['lat']) ? floatval($_POST['lat']) : null;
+            $lng = !empty($_POST['lng']) ? floatval($_POST['lng']) : null;
+            $pdo->prepare("INSERT INTO cities (name, name_lat, country_code, is_capital, sort_order, status, lat, lng) VALUES (?,?,?,?,?,'active',?,?)")
+                ->execute([$name, $nameLat, $cc, $capital, $order, $lat, $lng]);
             jok(['id' => $pdo->lastInsertId()]);
         }
         case 'edit': {
@@ -38,8 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $order   = (int)($_POST['sort_order'] ?? 0);
             $status  = in_array($_POST['status'] ?? '', ['active','pending']) ? $_POST['status'] : 'active';
             if (!$id || !$name) jerr('id и name обязательны');
-            $pdo->prepare("UPDATE cities SET name=?,name_lat=?,is_capital=?,sort_order=?,status=? WHERE id=?")
-                ->execute([$name, $nameLat, $capital, $order, $status, $id]);
+            $lat = !empty($_POST['lat']) ? floatval($_POST['lat']) : null;
+            $lng = !empty($_POST['lng']) ? floatval($_POST['lng']) : null;
+            if ($lat && $lng) {
+                $pdo->prepare("UPDATE cities SET name=?,name_lat=?,is_capital=?,sort_order=?,status=?,lat=?,lng=? WHERE id=?")
+                    ->execute([$name, $nameLat, $capital, $order, $status, $lat, $lng, $id]);
+            } else {
+                $pdo->prepare("UPDATE cities SET name=?,name_lat=?,is_capital=?,sort_order=?,status=? WHERE id=?")
+                    ->execute([$name, $nameLat, $capital, $order, $status, $id]);
+            }
             jok();
         }
         case 'approve': {
@@ -364,22 +373,38 @@ function openEditModal(id, name, nameLat, cc, capital, order, status) {
 
 function closeModal() { document.getElementById('cityModal').style.display = 'none'; }
 
+async function geocodeCity(name, nameLat, cc) {
+    const q = encodeURIComponent((nameLat || name) + ', ' + cc);
+    try {
+        const r = await fetch('https://nominatim.openstreetmap.org/search?q=' + q + '&format=json&limit=1', {
+            headers: {'User-Agent': 'Poisq/1.0'}
+        });
+        const d = await r.json();
+        if (d && d[0]) return { lat: d[0].lat, lng: d[0].lon };
+    } catch(e) {}
+    return null;
+}
 async function saveCity() {
     const id = document.getElementById('cityId').value;
     const name = document.getElementById('cityName').value.trim();
     if (!name) { alert('Введите название города'); return; }
+    const nameLat = document.getElementById('cityNameLat').value.trim();
+    const cc = document.getElementById('cityCC').value;
     const fd = new FormData();
     fd.append('action', id ? 'edit' : 'add');
     if (id) fd.append('id', id);
     fd.append('name', name);
-    fd.append('name_lat', document.getElementById('cityNameLat').value.trim());
-    fd.append('country_code', document.getElementById('cityCC').value);
+    fd.append('name_lat', nameLat);
+    fd.append('country_code', cc);
     fd.append('is_capital', document.getElementById('cityCapital').value);
     fd.append('sort_order', document.getElementById('cityOrder').value);
     fd.append('status', document.getElementById('cityStatus').value);
+    // Автогеокодирование
+    const geo = await geocodeCity(name, nameLat, cc);
+    if (geo) { fd.append('lat', geo.lat); fd.append('lng', geo.lng); }
     const res = await fetch(CITY_API, { method: 'POST', body: fd });
     const data = await res.json();
-    if (data.ok) { closeModal(); showAlert('Город сохранён', 'success'); setTimeout(() => location.reload(), 900); }
+    if (data.ok) { closeModal(); showAlert('Город сохранён' + (geo ? ' (координаты получены)' : ''), 'success'); setTimeout(() => location.reload(), 900); }
     else showAlert(data.error, 'danger');
 }
 

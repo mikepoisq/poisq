@@ -2,6 +2,18 @@
 // config/helpers.php — вспомогательные функции Poisq
 
 // Генерация ЧПУ slug из названия сервиса
+function getCategoriesWithSubs(PDO $pdo): array {
+    $cats = $pdo->query("SELECT slug, name, icon FROM service_categories WHERE is_active=1 ORDER BY sort_order")->fetchAll(PDO::FETCH_ASSOC);
+    $subs = $pdo->query("SELECT category_slug, name FROM service_subcategories WHERE is_active=1 ORDER BY sort_order")->fetchAll(PDO::FETCH_ASSOC);
+    $subMap = [];
+    foreach ($subs as $s) $subMap[$s['category_slug']][] = $s['name'];
+    $result = [];
+    foreach ($cats as $c) {
+        $result[$c['slug']] = ['name' => $c['icon'] . ' ' . $c['name'], 'subs' => $subMap[$c['slug']] ?? []];
+    }
+    return $result;
+}
+
 function serviceUrl($id, $name) {
     $slug = mb_strtolower($name, 'UTF-8');
     $ru = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я'];

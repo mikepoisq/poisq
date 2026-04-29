@@ -119,6 +119,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $createdByAdmin, $createdByMod
         ]);
         $newId = (int)$pdo->lastInsertId();
+        // Автогеокодирование через Nominatim
+        if (!empty($address)) {
+            try {
+                $geoQuery = $address;
+                $cityRow = $cityId ? $pdo->prepare("SELECT name FROM cities WHERE id=? LIMIT 1") : null;
+                if ($cityRow) { $cityRow->execute([$cityId]); $cityData = $cityRow->fetch(); if ($cityData) $geoQuery .= ', ' . $cityData['name']; }
+                $geoUrl = 'https://nominatim.openstreetmap.org/search?q=' . urlencode($geoQuery) . '&format=json&limit=1';
+                $ch = curl_init($geoUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Poisq/1.0 geocoder');
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                $geoResult = curl_exec($ch);
+                curl_close($ch);
+                $geoData = json_decode($geoResult, true);
+                if (!empty($geoData[0]['lat'])) {
+                    $pdo->prepare("UPDATE services SET lat=?, lng=? WHERE id=?")->execute([$geoData[0]['lat'], $geoData[0]['lon'], $newId]);
+                }
+            } catch (Exception $e) {}
+        }
 
         // Создаём отдельного пользователя для этого сервиса
         $serviceEmail = 'service_' . $newId . '@poisq.com';
@@ -152,20 +171,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$categories = [
-    'health'     => ['name'=>'🏥 Здоровье и красота',    'subs'=>['Врачи','Стоматология','Психология','Альтернативная медицина','Салоны красоты','Фитнес и спорт','Аптеки']],
-    'legal'      => ['name'=>'⚖️ Юридические услуги',    'subs'=>['Иммиграция','Семейное право','Недвижимость','Бизнес право','Нотариус','Консультации']],
-    'family'     => ['name'=>'👨‍👩‍👧 Семья и дети',       'subs'=>['Няни','Репетиторы','Детские кружки','Бэбиситтеры','Детские праздники','Детские товары']],
-    'shops'      => ['name'=>'🛒 Магазины и продукты',   'subs'=>['Русские магазины','Доставка продуктов','Рестораны','Пекарни','Мясные лавки','Онлайн магазины']],
-    'home'       => ['name'=>'🏠 Дом и быт',             'subs'=>['Уборка','Ремонт','Переезды','Химчистка','Животные','Сад и огород']],
-    'education'  => ['name'=>'📚 Образование',           'subs'=>['Языковые курсы','Русский язык','Школьные предметы','Музыка','Профессиональные курсы','Онлайн обучение']],
-    'business'   => ['name'=>'💼 Бизнес и финансы',      'subs'=>['Бухгалтерия','Налоги','Страхование','Бизнес консультации','Переводы денег']],
-    'transport'  => ['name'=>'🚗 Транспорт и авто',      'subs'=>['Авто сервис','Автошкола','Такси/Трансфер','Аренда авто','Покупка авто']],
-    'events'     => ['name'=>'📷 События и развлечения', 'subs'=>['Фотографы','Видеографы','Праздники','Туризм','Развлечения','Культура']],
-    'it'         => ['name'=>'💻 IT и онлайн услуги',    'subs'=>['Веб разработка','Дизайн','Ремонт техники','SMM/Маркетинг','Консультации']],
-    'realestate'  => ['name'=>'🏢 Недвижимость',              'subs'=>['Аренда','Покупка','Продажа','Управление','Ипотека']],
-    'messengers'  => ['name'=>'💬 Группы ВатсАп и Телеграм', 'subs'=>['WhatsApp группы','Telegram каналы','Telegram группы','Чаты и сообщества']],
-];
+require_once __DIR__ . '/../config/helpers.php';
+$categories = getCategoriesWithSubs($pdo);
 
 $countryNames = [
     'ad'=>'🇦🇩 Андорра','ar'=>'🇦🇷 Аргентина','at'=>'🇦🇹 Австрия','au'=>'🇦🇺 Австралия',

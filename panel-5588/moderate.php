@@ -13,6 +13,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($serviceId > 0) {
         if ($action === "approve") {
             $pdo->prepare("UPDATE services SET status='approved', is_visible=1 WHERE id=?")->execute([$serviceId]);
+            // Автогеокодирование через Nominatim если нет координат
+            try {
+                $geoRow = $pdo->prepare("SELECT s.lat, s.lng, s.address, c.name as city_name, c.name_lat as city_slug, co.name_ru as country_name FROM services s LEFT JOIN cities c ON s.city_id = c.id LEFT JOIN countries co ON s.country_code = co.code WHERE s.id = ?");
+                $geoRow->execute([$serviceId]);
+                $geoSvc = $geoRow->fetch(PDO::FETCH_ASSOC);
+                if ($geoSvc && empty($geoSvc['lat']) && !empty($geoSvc['address'])) {
+                    $geoQuery = trim($geoSvc['address']);
+                    if (!empty($geoSvc['city_name'])) $geoQuery .= ', ' . $geoSvc['city_name'];
+                    if (!empty($geoSvc['country_name'])) $geoQuery .= ', ' . $geoSvc['country_name'];
+                    $geoUrl = 'https://nominatim.openstreetmap.org/search?q=' . urlencode($geoQuery) . '&format=json&limit=1';
+                    $ch = curl_init($geoUrl);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_USERAGENT, 'Poisq/1.0 geocoder');
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                    $geoResult = curl_exec($ch);
+                    curl_close($ch);
+                    $geoData = json_decode($geoResult, true);
+                    if (!empty($geoData[0]['lat'])) {
+                        $pdo->prepare("UPDATE services SET lat=?, lng=? WHERE id=?")
+                            ->execute([$geoData[0]['lat'], $geoData[0]['lon'], $serviceId]);
+                    }
+                }
+            } catch (Exception $e) {}
             if (file_exists(__DIR__ . '/../config/meilisearch.php')) {
                 require_once __DIR__ . '/../config/meilisearch.php';
                 $row = $pdo->prepare("SELECT s.*, c.name AS city_name, c.name_lat AS city_slug FROM services s LEFT JOIN cities c ON s.city_id = c.id WHERE s.id = ?");
