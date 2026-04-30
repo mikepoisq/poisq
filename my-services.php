@@ -30,9 +30,11 @@ try {
     
     // 🔧 ПОЛУЧАЕМ ВСЕ СЕРВИСЫ ПОЛЬЗОВАТЕЛЯ
     $stmt = $pdo->prepare("
-        SELECT * FROM services 
-        WHERE user_id = ? 
-        ORDER BY created_at DESC
+        SELECT s.*,
+               (SELECT COUNT(*) FROM favorites f WHERE f.service_id = s.id) AS favorites_count
+        FROM services s
+        WHERE s.user_id = ?
+        ORDER BY s.created_at DESC
     ");
     $stmt->execute([$userId]);
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -910,6 +912,12 @@ body {
             <div class="service-views">
               <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <?php echo number_format($service['views'], 0, '.', ' '); ?>
+            </div>
+            <?php endif; ?>
+            <?php if (!empty($service['favorites_count']) && $service['favorites_count'] > 0): ?>
+            <div class="service-views" style="color:#E11D48;">
+              <svg viewBox="0 0 24 24" fill="#E11D48" stroke="#E11D48" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <?php echo (int)$service['favorites_count']; ?>
             </div>
             <?php endif; ?>
             <span class="btn-spacer"></span>
