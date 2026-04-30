@@ -204,6 +204,12 @@ body { font-family: 'Manrope', sans-serif; background: var(--bg, #fff); color: v
   font-size: 13px; font-weight: 600; z-index: 400; pointer-events: none;
   backdrop-filter: blur(4px); white-space: nowrap; display: none;
 }
+.map-country-empty-badge {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(100,116,139,0.88); color: #fff; padding: 7px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; z-index: 401; pointer-events: none;
+  backdrop-filter: blur(4px); white-space: nowrap; display: none;
+}
 .map-expand-banner {
   position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
   background: rgba(15,23,42,0.88); color: #fff; padding: 10px 20px;
@@ -455,6 +461,7 @@ body { font-family: 'Manrope', sans-serif; background: var(--bg, #fff); color: v
     <div id="map"></div>
     <div id="mapCount" class="map-count-badge" style="display:none"></div>
     <div id="mapGlobalBadge" class="map-global-badge">🌍 Результаты со всего мира</div>
+    <div id="mapCountryEmptyBadge" class="map-country-empty-badge"></div>
     <div id="mapExpandBanner" class="map-expand-banner" onclick="onExpandBannerTap()"></div>
   </div>
 </div>
@@ -732,6 +739,8 @@ async function loadServices() {
   const noRes = document.querySelector('.map-no-results');
   if (noRes) noRes.remove();
   document.getElementById('mapCount').style.display = 'none';
+  document.getElementById('mapCountryEmptyBadge').style.display = 'none';
+  document.getElementById('mapExpandBanner').style.top = '16px';
   document.getElementById('mapLoading').style.display = 'flex';
   try {
     const res = await fetch(buildApiUrl());
@@ -755,10 +764,23 @@ async function loadServices() {
       return;
     }
 
-    // ── Нет результатов в стране: показываем банер соседних стран ───────────
+    // ── Нет результатов в стране: зумим на страну + два банера ─────────────
     if (data.fallback_level === 'country_empty') {
       if (globalBadge) globalBadge.style.display = 'none';
+      var emptyCC = data.searched_country || countryCode;
+      var emptyGen = COUNTRY_GENITIVE[emptyCC];
+      var emptyLabel = emptyGen ? 'в ' + emptyGen : 'в этой стране';
+      var emptyBadge = document.getElementById('mapCountryEmptyBadge');
+      if (emptyBadge) { emptyBadge.textContent = 'Сервисов ' + emptyLabel + ' пока нет'; emptyBadge.style.display = 'block'; }
+      document.getElementById('mapExpandBanner').style.top = '54px';
       showExpandBanner('nearby', '🌍 Похожее в других странах →');
+      var emptyHint = detectedCountryHint;
+      if (!emptyHint) {
+        for (var hn in COUNTRY_HINTS) {
+          if (COUNTRY_HINTS[hn].code === emptyCC) { emptyHint = COUNTRY_HINTS[hn]; break; }
+        }
+      }
+      if (emptyHint) map.setView([emptyHint.lat, emptyHint.lng], emptyHint.zoom);
       return;
     }
 
@@ -811,6 +833,10 @@ async function loadServices() {
         else if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
         else map.setView([48.8566, 2.3522], 5);
       }
+    } else if (data.fallback_level === 'global') {
+      if (bounds.length === 1) map.setView(bounds[0], 10);
+      else if (bounds.length > 1) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 6 });
+      else map.setView([48.8566, 2.3522], 5);
     } else if (data.fallback_level === 'country' && detectedCountryHint) {
       map.setView([detectedCountryHint.lat, detectedCountryHint.lng], detectedCountryHint.zoom);
     } else if (bounds.length === 1) map.setView(bounds[0], 15);
