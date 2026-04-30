@@ -2354,7 +2354,8 @@ function toggleRating(r) {
 }
 
 function goToMap() {
-  const q = '<?php echo addslashes($searchQuery); ?>';
+  const origQ = '<?php echo addslashes(trim($_GET['q'] ?? '')); ?>';
+  const q = origQ || '<?php echo addslashes($searchQuery); ?>';
   const params = new URLSearchParams();
   params.set('country', countryCode);
   if (currentCity > 0) params.set('city_id', currentCity);

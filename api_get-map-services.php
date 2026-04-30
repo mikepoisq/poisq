@@ -4,55 +4,44 @@ require_once 'config/database.php';
 
 $pdo = getDbConnection();
 
-$country  = $_GET['country'] ?? '';
-$city_id  = $_GET['city_id'] ?? '';
-$category = $_GET['category'] ?? '';
-$rating   = floatval($_GET['rating'] ?? 0);
-$verified = isset($_GET['verified']) ? 1 : 0;
-$q        = trim($_GET['q'] ?? '');
-$focus_id = intval($_GET['focus'] ?? 0);
+$country     = $_GET['country'] ?? '';
+$city_id     = intval($_GET['city_id'] ?? 0);
+$category    = $_GET['category'] ?? '';
+$rating      = floatval($_GET['rating'] ?? 0);
+$verified    = isset($_GET['verified']) ? 1 : 0;
+$q           = trim($_GET['q'] ?? '');
+$focus_id    = intval($_GET['focus'] ?? 0);
+$isGlobal    = isset($_GET['global']) && $_GET['global'] === '1';
 
-// Если передан focus — возвращаем только этот сервис
+// Multi-country support (comma-separated country codes)
+$countriesList = [];
+foreach (explode(',', $_GET['countries'] ?? '') as $c) {
+    $c = trim($c);
+    if (preg_match('/^[a-z]{2}$/', $c)) $countriesList[] = $c;
+}
+
+// Focus mode: return single service
 if ($focus_id > 0) {
     $stmt = $pdo->prepare("SELECT s.id, s.name, s.category, s.subcategory, s.lat, s.lng,
                s.phone, s.whatsapp, s.photo, s.address, s.description,
                s.rating, s.reviews_count, c.name as city_name, s.country_code
         FROM services s
         LEFT JOIN cities c ON s.city_id = c.id
-        WHERE s.id = ? AND s.status = 'approved' AND s.is_visible = 1 AND s.lat IS NOT NULL AND s.lng IS NOT NULL");
+        WHERE s.id = ? AND s.status = 'approved' AND s.is_visible = 1
+          AND s.lat IS NOT NULL AND s.lng IS NOT NULL");
     $stmt->execute([$focus_id]);
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($services as &$s) {
         $photos = json_decode($s['photo'], true);
         $s['photo'] = (!empty($photos) && is_array($photos)) ? $photos[0] : null;
     }
-    echo json_encode(['success' => true, 'services' => $services], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => true, 'services' => $services, 'fallback_level' => 'city',
+        'searched_city' => null, 'searched_country' => $country, 'clean_q' => ''],
+        JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$where = ["s.status = 'approved'", "s.is_visible = 1", "(s.lat IS NOT NULL OR (s.category = 'messengers' AND c2.lat IS NOT NULL))"];
-$params = [];
-
-if ($country) {
-    $where[] = "s.country_code = ?";
-    $params[] = $country;
-}
-if ($city_id) {
-    $where[] = "s.city_id = ?";
-    $params[] = $city_id;
-}
-if ($category) {
-    $where[] = "s.category = ?";
-    $params[] = $category;
-}
-if ($rating > 0) {
-    $where[] = "s.rating >= ?";
-    $params[] = $rating;
-}
-if ($verified) {
-    $where[] = "s.verified = 1";
-}
-// Убираем название города из запроса если city_id уже передан
+// Strip city name from query if city_id already given
 if ($q && $city_id) {
     try {
         $cs = $pdo->prepare("SELECT name, name_lat FROM cities WHERE id = ? LIMIT 1");
@@ -65,77 +54,132 @@ if ($q && $city_id) {
         }
     } catch (Exception $e) {}
 }
-// Парсим город из текста запроса (если city_id не передан)
+
+// Auto-detect city from query text (if city_id not given)
 if ($q && !$city_id) {
     $qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w) >= 3);
     foreach ($qwords as $qw) {
-        $cs = $pdo->prepare("SELECT id, name, name_lat, country_code FROM cities WHERE LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ? LIMIT 1");
+        $cs = $pdo->prepare("SELECT id, name, name_lat, country_code FROM cities
+            WHERE LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ? LIMIT 1");
         $cs->execute(['%'.$qw.'%', '%'.$qw.'%']);
         $fc = $cs->fetch(PDO::FETCH_ASSOC);
         if ($fc) {
             $city_id = $fc['id'];
-            if (!$country) $country = $fc['country_code'];
-            // Убираем название города из запроса
+            $country = $fc['country_code']; // always update country from detected city
             $q = trim(preg_replace('/'.preg_quote($fc['name'], '/').'/iu', '', $q));
             $q = trim(preg_replace('/'.preg_quote($fc['name_lat'], '/').'/iu', '', $q));
             $q = trim(preg_replace('/\s+/', ' ', $q));
-            // Обновляем WHERE для города
-            $where[] = "s.city_id = ?";
-            $params[] = $city_id;
-            // Убираем фильтр страны если был — город точнее
-            if ($country) {
-                $where = array_filter($where, fn($w) => strpos($w, 'country_code') === false);
-                $where = array_values($where);
-                $params = array_filter($params, fn($v) => $v !== $country);
-                $params = array_values($params);
-            }
             break;
         }
     }
 }
 
-// Распознаём мессенджер из запроса
+// Save clean query (after city stripped) — returned in response for JS expand logic
+$cleanQ = $q;
+
+// Strip country name from query text (always, even if country already set)
+$countryStripList = [
+    'франция','германия','испания','италия','швейцария','австрия','бельгия',
+    'нидерланды','голландия','португалия','польша','великобритания','англия',
+    'швеция','израиль','турция','эмираты','оаэ','греция','финляндия','дания','норвегия','чехия',
+];
+foreach ($countryStripList as $name) {
+    if (mb_stripos($q, $name) !== false) {
+        $q = trim(preg_replace('/'.preg_quote($name, '/').'/iu', '', $q));
+        $q = trim(preg_replace('/\s+/', ' ', $q));
+        $cleanQ = $q;
+        break;
+    }
+}
+
+// Auto-detect country from query text (if country not given)
+if (!$country && !$city_id) {
+    $countryHints = [
+        'франция'=>'fr','германия'=>'de','испания'=>'es','италия'=>'it',
+        'швейцария'=>'ch','австрия'=>'at','бельгия'=>'be','нидерланды'=>'nl',
+        'голландия'=>'nl','португалия'=>'pt','польша'=>'pl','великобритания'=>'gb',
+        'англия'=>'gb','швеция'=>'se','израиль'=>'il','турция'=>'tr',
+        'эмираты'=>'ae','оаэ'=>'ae','греция'=>'gr','финляндия'=>'fi',
+        'дания'=>'dk','норвегия'=>'no','чехия'=>'cz',
+    ];
+    $qLowerForCountry = mb_strtolower($q, 'UTF-8');
+    foreach ($countryHints as $name => $code) {
+        if (mb_strpos($qLowerForCountry, $name) !== false) {
+            $country = $code;
+            // Убираем название страны из запроса
+            $q = trim(preg_replace('/'.preg_quote($name, '/').'/iu', '', $q));
+            $q = trim(preg_replace('/\s+/', ' ', $q));
+            $cleanQ = $q;
+            break;
+        }
+    }
+}
+
+// Base conditions (always applied)
+$baseWhere = [
+    "s.status = 'approved'",
+    "s.is_visible = 1",
+    "(s.lat IS NOT NULL OR (s.category = 'messengers' AND c2.lat IS NOT NULL))",
+];
+
+// Category / rating / verified filters
+$filterWhere  = [];
+$filterParams = [];
+if ($category) {
+    $filterWhere[] = "s.category = ?";
+    $filterParams[] = $category;
+}
+if ($rating > 0) {
+    $filterWhere[] = "s.rating >= ?";
+    $filterParams[] = $rating;
+}
+if ($verified) {
+    $filterWhere[] = "s.verified = 1";
+}
+
+// Text / search conditions
+$textWhere  = [];
+$textParams = [];
+
+// Messenger detection
 $messengerKeywords = [
     'WhatsApp группа' => ['ватсап','вотсап','whatsapp','ватсапп'],
     'Telegram группа' => ['телеграм','telegram','телеграмм','тг'],
 ];
+$messengerFound = false;
 foreach ($messengerKeywords as $subcatValue => $keywords) {
     foreach ($keywords as $kw) {
         if (mb_strpos(mb_strtolower($q, 'UTF-8'), $kw) !== false) {
-            $where[] = "s.subcategory = ?";
-            $params[] = $subcatValue;
+            $textWhere[]  = "s.subcategory = ?";
+            $textParams[] = $subcatValue;
             $q = '';
+            $messengerFound = true;
             break 2;
         }
     }
 }
 
-if ($q) {
-    // Ищем совпадение с подкатегорией
+if ($q && !$messengerFound) {
     $subStmt = $pdo->prepare("SELECT category_slug, name FROM service_subcategories WHERE is_active=1");
     $subStmt->execute();
     $allSubs = $subStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Ищем совпадение с категорией
     $catStmt = $pdo->prepare("SELECT slug, name FROM service_categories WHERE is_active=1");
     $catStmt->execute();
     $allCats = $catStmt->fetchAll(PDO::FETCH_ASSOC);
 
     $matchedSubcategory = null;
-    $matchedCategory = null;
+    $matchedCategory    = null;
     $qLower = mb_strtolower($q, 'UTF-8');
 
-    // Проверяем подкатегории (точное и частичное совпадение)
     foreach ($allSubs as $sub) {
         $subLower = mb_strtolower($sub['name'], 'UTF-8');
         if ($subLower === $qLower || strpos($subLower, $qLower) !== false || strpos($qLower, $subLower) !== false) {
             $matchedSubcategory = $sub['name'];
-            $matchedCategory = $sub['category_slug'];
+            $matchedCategory    = $sub['category_slug'];
             break;
         }
     }
-
-    // Если подкатегория не найдена — проверяем категории
     if (!$matchedSubcategory) {
         foreach ($allCats as $cat) {
             $catLower = mb_strtolower($cat['name'], 'UTF-8');
@@ -147,38 +191,127 @@ if ($q) {
     }
 
     if ($matchedSubcategory) {
-        // Точный поиск по подкатегории
-        $where[] = "s.subcategory = ?";
-        $params[] = $matchedSubcategory;
-    } elseif ($matchedCategory) {
-        // Поиск по категории
-        $where[] = "s.category = ?";
-        $params[] = $matchedCategory;
+        $textWhere[]  = "s.subcategory = ?";
+        $textParams[] = $matchedSubcategory;
+    } elseif ($matchedCategory && !$category) {
+        $textWhere[]  = "s.category = ?";
+        $textParams[] = $matchedCategory;
     } else {
-        // Обычный текстовый поиск
-        $where[] = "(s.name LIKE ? OR s.description LIKE ? OR s.subcategory LIKE ?)";
-        $params[] = '%' . $q . '%';
-        $params[] = '%' . $q . '%';
-        $params[] = '%' . $q . '%';
+        $textWhere[]  = "(s.name LIKE ? OR s.description LIKE ? OR s.subcategory LIKE ?)";
+        $textParams[] = '%' . $q . '%';
+        $textParams[] = '%' . $q . '%';
+        $textParams[] = '%' . $q . '%';
     }
 }
 
-$sql = "SELECT s.id, s.name, s.category, s.subcategory,
+$selectSql = "SELECT s.id, s.name, s.category, s.subcategory,
                COALESCE(s.lat, c2.lat) as lat,
                COALESCE(s.lng, c2.lng) as lng,
                s.phone, s.whatsapp, s.photo, s.address, s.description,
                s.rating, s.reviews_count, c2.name as city_name, s.country_code, s.group_link
         FROM services s
-        LEFT JOIN cities c2 ON s.city_id = c2.id
-        WHERE " . implode(' AND ', $where);
+        LEFT JOIN cities c2 ON s.city_id = c2.id";
+$orderBy = "s.verified DESC, s.rating DESC, s.views DESC";
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+function runQuery($pdo, $selectSql, $baseWhere, $locationWhere, $filterWhere, $textWhere,
+                  $locationParams, $filterParams, $textParams, $limit, $orderBy) {
+    $allWhere  = array_merge($baseWhere, $locationWhere, $filterWhere, $textWhere);
+    $allParams = array_merge($locationParams, $filterParams, $textParams);
+    $sql = $selectSql . ' WHERE ' . implode(' AND ', $allWhere)
+         . ' ORDER BY ' . $orderBy . ' LIMIT ' . $limit;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($allParams);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Fetch searched city info for response (coords for JS zoom)
+$searchedCity    = null;
+$searchedCountry = $country;
+if ($city_id) {
+    $cs = $pdo->prepare("SELECT id, name, lat, lng FROM cities WHERE id = ? LIMIT 1");
+    $cs->execute([$city_id]);
+    $cityRow = $cs->fetch(PDO::FETCH_ASSOC);
+    if ($cityRow) $searchedCity = $cityRow;
+}
+
+$services      = [];
+$fallbackLevel = 'global';
+
+if (!$isGlobal) {
+
+    // ── Level 1: specific city ──────────────────────────────────────────────
+    if ($city_id) {
+        $services = runQuery($pdo, $selectSql, $baseWhere,
+            ["s.city_id = ?"], $filterWhere, $textWhere,
+            [$city_id], $filterParams, $textParams, 200, $orderBy);
+
+        if (!empty($services)) {
+            $fallbackLevel = 'city';
+        } else {
+            // City has 0 results — return immediately, JS zooms to city + shows expand banner
+            echo json_encode([
+                'success'          => true,
+                'services'         => [],
+                'fallback_level'   => 'city_empty',
+                'searched_city'    => $searchedCity,
+                'searched_country' => $searchedCountry,
+                'clean_q'          => $cleanQ,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
+    // ── Level 2: country search (no specific city) ──────────────────────────
+    elseif ($country) {
+        $services = runQuery($pdo, $selectSql, $baseWhere,
+            ["s.country_code = ?"], $filterWhere, $textWhere,
+            [$country], $filterParams, $textParams, 200, $orderBy);
+
+        if (!empty($services)) {
+            $fallbackLevel = 'country';
+        } else {
+            // Country also empty — JS shows "nearby countries" banner
+            echo json_encode([
+                'success'          => true,
+                'services'         => [],
+                'fallback_level'   => 'country_empty',
+                'searched_city'    => null,
+                'searched_country' => $searchedCountry,
+                'clean_q'          => $cleanQ,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
+    // ── Multi-country search (banner tap: "nearby countries") ───────────────
+    elseif (!empty($countriesList)) {
+        $placeholders = implode(',', array_fill(0, count($countriesList), '?'));
+        $services = runQuery($pdo, $selectSql, $baseWhere,
+            ["s.country_code IN ($placeholders)"], $filterWhere, $textWhere,
+            $countriesList, $filterParams, $textParams, 30, $orderBy);
+        if (!empty($services)) $fallbackLevel = 'nearby';
+        // if still empty — falls through to global below
+    }
+}
+
+// ── Level 3 (global): global=1 or nothing found above ──────────────────────
+if (empty($services)) {
+    $services = runQuery($pdo, $selectSql, $baseWhere,
+        [], $filterWhere, $textWhere,
+        [], $filterParams, $textParams, 20, $orderBy);
+    $fallbackLevel = 'global';
+}
 
 foreach ($services as &$s) {
     $photos = json_decode($s['photo'], true);
     $s['photo'] = (!empty($photos) && is_array($photos)) ? $photos[0] : null;
 }
 
-echo json_encode(['success' => true, 'services' => $services], JSON_UNESCAPED_UNICODE);
+echo json_encode([
+    'success'          => true,
+    'services'         => $services,
+    'fallback_level'   => $fallbackLevel,
+    'searched_city'    => $searchedCity,
+    'searched_country' => $searchedCountry,
+    'clean_q'          => $cleanQ,
+], JSON_UNESCAPED_UNICODE);

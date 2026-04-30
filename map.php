@@ -198,6 +198,22 @@ body { font-family: 'Manrope', sans-serif; background: var(--bg, #fff); color: v
   font-size: 13px; font-weight: 600; z-index: 400; pointer-events: none;
   backdrop-filter: blur(4px); white-space: nowrap;
 }
+.map-global-badge {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(59,108,244,0.9); color: #fff; padding: 7px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; z-index: 400; pointer-events: none;
+  backdrop-filter: blur(4px); white-space: nowrap; display: none;
+}
+.map-expand-banner {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(15,23,42,0.88); color: #fff; padding: 10px 20px;
+  border-radius: 22px; font-size: 13px; font-weight: 600; z-index: 402;
+  backdrop-filter: blur(6px); cursor: pointer; display: none;
+  max-width: calc(100% - 32px); text-align: center; line-height: 1.4;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.28); white-space: nowrap;
+  -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+}
+.map-expand-banner:active { opacity: 0.78; }
 .map-no-results {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
   background: rgba(255,255,255,0.96); border-radius: 16px; padding: 24px 32px;
@@ -438,6 +454,8 @@ body { font-family: 'Manrope', sans-serif; background: var(--bg, #fff); color: v
     </div>
     <div id="map"></div>
     <div id="mapCount" class="map-count-badge" style="display:none"></div>
+    <div id="mapGlobalBadge" class="map-global-badge">🌍 Результаты со всего мира</div>
+    <div id="mapExpandBanner" class="map-expand-banner" onclick="onExpandBannerTap()"></div>
   </div>
 </div>
 
@@ -495,6 +513,7 @@ const cityFilter     = <?php echo $cityFilter; ?>;
 const citySlugVal    = '<?php echo $citySlug; ?>';
 const categoryFilter = '<?php echo $categoryFilter; ?>';
 let searchQuery      = '<?php echo addslashes($searchQuery); ?>';
+let displayQuery     = searchQuery; // полный запрос для отображения (с городом/страной)
 const ratingFilter   = <?php echo $ratingFilter; ?>;
 const verifiedFilter = <?php echo $verifiedFilter; ?>;
 const languagesFilter = <?php echo json_encode($languagesFilter); ?>;
@@ -517,6 +536,118 @@ const CATEGORY_ICONS = {
   business:'💼', shops:'🛒', home:'🏠', transport:'🚗',
   events:'📷', it:'💻', realestate:'🏢'
 };
+
+let detectedCountryHint = null;
+let activeCountryCode = countryCode;
+
+const COUNTRY_HINTS = {
+  'франция':        {code:'fr', lat:46.23,  lng:2.21,    zoom:6},
+  'германия':       {code:'de', lat:51.17,  lng:10.45,   zoom:6},
+  'испания':        {code:'es', lat:40.46,  lng:-3.74,   zoom:6},
+  'италия':         {code:'it', lat:41.87,  lng:12.57,   zoom:6},
+  'швейцария':      {code:'ch', lat:46.82,  lng:8.23,    zoom:8},
+  'австрия':        {code:'at', lat:47.52,  lng:14.55,   zoom:7},
+  'бельгия':        {code:'be', lat:50.50,  lng:4.47,    zoom:8},
+  'нидерланды':     {code:'nl', lat:52.13,  lng:5.29,    zoom:8},
+  'португалия':     {code:'pt', lat:39.40,  lng:-8.22,   zoom:7},
+  'польша':         {code:'pl', lat:51.92,  lng:19.15,   zoom:6},
+  'великобритания': {code:'gb', lat:55.38,  lng:-3.44,   zoom:6},
+  'швеция':         {code:'se', lat:60.13,  lng:18.64,   zoom:6},
+  'израиль':        {code:'il', lat:31.05,  lng:34.85,   zoom:8},
+  'турция':         {code:'tr', lat:38.96,  lng:35.24,   zoom:6},
+  'эмираты':        {code:'ae', lat:24.47,  lng:54.37,   zoom:8},
+  'оаэ':            {code:'ae', lat:24.47,  lng:54.37,   zoom:8},
+  'норвегия':       {code:'no', lat:60.47,  lng:8.47,    zoom:6},
+  'дания':          {code:'dk', lat:56.26,  lng:9.50,    zoom:7},
+  'финляндия':      {code:'fi', lat:61.92,  lng:25.75,   zoom:6},
+  'чехия':          {code:'cz', lat:49.82,  lng:15.47,   zoom:7},
+  'австралия':      {code:'au', lat:-25.27, lng:133.78,  zoom:5},
+  'канада':         {code:'ca', lat:56.13,  lng:-106.35, zoom:4},
+  'сша':            {code:'us', lat:37.09,  lng:-95.71,  zoom:4},
+  'таиланд':        {code:'th', lat:15.87,  lng:100.99,  zoom:6},
+  'япония':         {code:'jp', lat:36.20,  lng:138.25,  zoom:5},
+  'сингапур':       {code:'sg', lat:1.35,   lng:103.82,  zoom:12},
+  'россия':         {code:'ru', lat:61.52,  lng:105.32,  zoom:4},
+};
+
+const COUNTRY_GENITIVE = {
+  'fr':'Франции','de':'Германии','es':'Испании','it':'Италии',
+  'gb':'Великобритании','us':'США','ca':'Канады','au':'Австралии',
+  'nl':'Нидерландов','be':'Бельгии','ch':'Швейцарии','at':'Австрии',
+  'pt':'Португалии','pl':'Польши','cz':'Чехии','se':'Швеции',
+  'no':'Норвегии','dk':'Дании','fi':'Финляндии','ae':'ОАЭ',
+  'il':'Израиля','tr':'Турции','th':'Таиланда','jp':'Японии',
+  'sg':'Сингапура','hk':'Гонконга','ru':'России',
+};
+
+const NEIGHBORING_COUNTRIES = {
+  'fr':['de','be','es','it','ch','lu'],
+  'de':['fr','be','nl','ch','at','pl','cz','dk'],
+  'es':['fr','pt'],'it':['fr','ch','at','si'],
+  'ch':['fr','de','it','at'],'at':['de','ch','it','cz','sk','si','hu'],
+  'be':['fr','de','nl','lu'],'nl':['be','de'],
+  'pt':['es'],'pl':['de','cz','sk','ua','lt'],
+  'gb':['ie','fr'],'se':['no','fi','dk'],'no':['se','fi'],
+  'fi':['se','no','ee'],'dk':['se','de'],'cz':['de','at','sk','pl'],
+  'il':['jo','lb'],'tr':['gr','bg','ge'],'ae':['sa','om','qa'],
+  'th':['my','vn','kh'],'jp':['kr'],'sg':['my','id'],
+  'ru':['fi','ee','lv','lt','pl','by','ua','ge','kz'],
+  'au':['nz'],'ca':['us'],'us':['ca','mx'],
+};
+
+let lastSearchedCity    = null;
+let lastSearchedCountry = '';
+let lastCleanQuery      = '';
+let expandBannerMode    = '';
+let currentCountriesList = [];
+
+function showExpandBanner(mode, text) {
+  expandBannerMode = mode;
+  var el = document.getElementById('mapExpandBanner');
+  if (el) { el.textContent = text; el.style.display = 'block'; }
+}
+function hideExpandBanner() {
+  expandBannerMode = '';
+  var el = document.getElementById('mapExpandBanner');
+  if (el) el.style.display = 'none';
+}
+function onExpandBannerTap() {
+  if (expandBannerMode === 'country') expandToCountry();
+  else if (expandBannerMode === 'nearby') expandToNeighbors();
+}
+function expandToCountry() {
+  hideExpandBanner();
+  searchQuery = lastCleanQuery;
+  currentCityOverride  = 0;
+  currentCountriesList = [];
+  activeCountryCode    = lastSearchedCountry || activeCountryCode;
+  loadServices();
+}
+function expandToNeighbors() {
+  hideExpandBanner();
+  var neighbors = NEIGHBORING_COUNTRIES[lastSearchedCountry] || [];
+  currentCityOverride  = 0;
+  currentCountriesList = neighbors.length ? neighbors : [];
+  loadServices();
+}
+
+function detectCountryFromQuery(q) {
+  var lower = q.toLowerCase();
+  for (var name in COUNTRY_HINTS) {
+    if (lower.indexOf(name) !== -1) return COUNTRY_HINTS[name];
+  }
+  return null;
+}
+
+function stripCountryFromQuery(q) {
+  var lower = q.toLowerCase();
+  for (var name in COUNTRY_HINTS) {
+    if (lower.indexOf(name) !== -1) {
+      return q.replace(new RegExp(name, 'gi'), '').replace(/\s+/g, ' ').trim();
+    }
+  }
+  return q;
+}
 
 function makeMarkerIcon(category, name, viewed) {
   const color = viewed ? '#94A3B8' : (CATEGORY_COLORS[category] || CATEGORY_COLORS.default);
@@ -552,19 +683,26 @@ const markers = L.markerClusterGroup({
   }
 });
 
-let currentCityOverride = 0;
+// null = начальное состояние (используем cityFilter из URL)
+// 0    = поиск выполнен, город не обнаружен
+// >0   = обнаруженный город
+let currentCityOverride = null;
 let markerById = new Map();
 
 function buildApiUrl() {
   const params = new URLSearchParams();
-  const activeCityId = (typeof currentCityOverride !== 'undefined' && currentCityOverride > 0)
-    ? currentCityOverride : cityFilter;
-  // Для мессенджеров без города — показываем все страны
-  const messengerKw = ['ватсап','вотсап','whatsapp','телеграм','telegram','тг'];
-  const qLow = (searchQuery || '').toLowerCase();
-  const isMessengerSearch = messengerKw.some(kw => qLow.includes(kw));
-  if (!isMessengerSearch || activeCityId > 0) params.set('country', countryCode);
-  if (activeCityId > 0) params.set('city_id', activeCityId);
+  if (currentCountriesList.length > 0) {
+    // Multi-country mode (banner "nearby countries" tap)
+    params.set('countries', currentCountriesList.join(','));
+  } else {
+    const activeCityId = (currentCityOverride === null) ? cityFilter
+      : (currentCityOverride > 0 ? currentCityOverride : 0);
+    const messengerKw = ['ватсап','вотсап','whatsapp','телеграм','telegram','тг'];
+    const qLow = (searchQuery || '').toLowerCase();
+    const isMessengerSearch = messengerKw.some(kw => qLow.includes(kw));
+    if (!isMessengerSearch || activeCityId > 0) params.set('country', activeCountryCode);
+    if (activeCityId > 0) params.set('city_id', activeCityId);
+  }
   if (categoryFilter) params.set('category', categoryFilter);
   if (searchQuery && focusId === 0) params.set('q', searchQuery);
   if (ratingFilter > 0) params.set('rating', ratingFilter);
@@ -599,11 +737,45 @@ async function loadServices() {
     const res = await fetch(buildApiUrl());
     const data = await res.json();
     document.getElementById('mapLoading').style.display = 'none';
+    var globalBadge = document.getElementById('mapGlobalBadge');
+
+    // Сохраняем контекст поиска для кнопок расширения
+    if (data.searched_country) lastSearchedCountry = data.searched_country;
+    if (data.searched_city)    lastSearchedCity    = data.searched_city;
+    if (data.clean_q != null)  lastCleanQuery      = data.clean_q;
+
+    // ── Нет результатов в городе: зумим на город, показываем банер ──────────
+    if (data.fallback_level === 'city_empty') {
+      if (globalBadge) globalBadge.style.display = 'none';
+      if (data.searched_city && parseFloat(data.searched_city.lat) && parseFloat(data.searched_city.lng)) {
+        map.setView([parseFloat(data.searched_city.lat), parseFloat(data.searched_city.lng)], 12);
+      }
+      var gen = COUNTRY_GENITIVE[data.searched_country] || data.searched_country.toUpperCase();
+      showExpandBanner('country', '🔍 Похожее в других городах ' + gen);
+      return;
+    }
+
+    // ── Нет результатов в стране: показываем банер соседних стран ───────────
+    if (data.fallback_level === 'country_empty') {
+      if (globalBadge) globalBadge.style.display = 'none';
+      showExpandBanner('nearby', '🌍 Похожее в других странах →');
+      return;
+    }
+
+    // ── Нет результатов вообще ───────────────────────────────────────────────
     if (!data.success || !data.services.length) {
-      document.getElementById('map').insertAdjacentHTML('afterend', `<div class="map-no-results"><div style="font-size:36px">📍</div><p>Сервисы не найдены на карте</p></div>`);
+      if (globalBadge) globalBadge.style.display = 'none';
+      hideExpandBanner();
+      document.getElementById('map').insertAdjacentHTML('afterend',
+        '<div class="map-no-results"><div style="font-size:36px">📍</div><p>Сервисы не найдены на карте</p></div>');
       map.setView([48.8566, 2.3522], 5);
       return;
     }
+
+    // ── Есть результаты: строим маркеры ─────────────────────────────────────
+    hideExpandBanner();
+    if (globalBadge) globalBadge.style.display = (data.fallback_level === 'global') ? 'block' : 'none';
+
     const bounds = [];
     data.services.forEach(s => {
       const lat = parseFloat(s.lat), lng = parseFloat(s.lng);
@@ -616,16 +788,17 @@ async function loadServices() {
       bounds.push([lat, lng]);
     });
     map.addLayer(markers);
+
     const count = data.services.length;
     const badge = document.getElementById('mapCount');
     badge.textContent = count + (count === 1 ? ' сервис' : count < 5 ? ' сервиса' : ' сервисов') + ' на карте';
     badge.style.display = 'block';
-    // focus на конкретный сервис
+
+    // ── Зум ──────────────────────────────────────────────────────────────────
     if (focusId > 0) {
       const focusSvc = data.services.find(s => s.id == focusId);
       if (focusSvc && parseFloat(focusSvc.lat) && parseFloat(focusSvc.lng)) {
         map.setView([parseFloat(focusSvc.lat), parseFloat(focusSvc.lng)], 16);
-        // открываем попап нужного маркера
         markers.eachLayer(function(layer) {
           const ll = layer.getLatLng();
           if (Math.abs(ll.lat - parseFloat(focusSvc.lat)) < 0.0001 &&
@@ -638,9 +811,12 @@ async function loadServices() {
         else if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
         else map.setView([48.8566, 2.3522], 5);
       }
+    } else if (data.fallback_level === 'country' && detectedCountryHint) {
+      map.setView([detectedCountryHint.lat, detectedCountryHint.lng], detectedCountryHint.zoom);
     } else if (bounds.length === 1) map.setView(bounds[0], 15);
     else if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     else map.setView([48.8566, 2.3522], 5);
+
   } catch(e) {
     document.getElementById('mapLoading').style.display = 'none';
     console.error(e);
@@ -708,7 +884,7 @@ function openSearchOverlay() {
   history.pushState({ searchOpen: true }, '');
   searchOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
-  soInput.value = searchQuery;
+  soInput.value = displayQuery;
   soClearBtn.classList.toggle('visible', soInput.value.length > 0);
   soInput.focus();
   renderSoContent(soInput.value);
@@ -862,17 +1038,28 @@ function stripCityFromQuery(q) {
 
 function soUpdateMap(q) {
   focusId = 0;
-  const detectedCity = detectCityFromQuery(q);
-  currentCityOverride = detectedCity;
-  const cleanQ = detectedCity ? stripCityFromQuery(q) : q;
-  searchQuery = cleanQ;
+  currentCountriesList = []; // reset multi-country mode on new search
 
-  const params = new URLSearchParams(window.location.search);
+  var countryHint = detectCountryFromQuery(q);
+  detectedCountryHint = countryHint;
+  activeCountryCode = countryHint ? countryHint.code : countryCode;
+
+  var cleanQ = countryHint ? stripCountryFromQuery(q) : q;
+  var detectedCity = detectCityFromQuery(cleanQ);
+  currentCityOverride = detectedCity;
+  cleanQ = detectedCity ? stripCityFromQuery(cleanQ) : cleanQ;
+
+  searchQuery    = cleanQ;
+  displayQuery   = q;      // сохраняем оригинал (с городом/страной) для поля поиска
+  lastCleanQuery = cleanQ;
+
+  var params = new URLSearchParams(window.location.search);
   if (cleanQ) params.set('q', cleanQ); else params.delete('q');
   if (detectedCity) params.set('city_id', detectedCity); else params.delete('city_id');
+  if (countryHint) params.set('country', countryHint.code);
   history.replaceState({}, '', '/map.php?' + params.toString());
 
-  const span = document.getElementById('searchBarText');
+  var span = document.getElementById('searchBarText');
   if (span) {
     span.textContent = q || 'Поиск сервисов...';
     span.className = q ? 'has-query' : '';
