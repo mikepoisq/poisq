@@ -712,145 +712,6 @@ body {
 .cm-item-check { margin-left: auto; width: 18px; height: 18px; color: var(--primary); display: none; }
 .cm-item.selected .cm-item-check { display: block; }
 
-/* ── МОДАЛКА СВЕЖИЕ СЕРВИСЫ ─────────────────────── */
-.ann-modal {
-  position: fixed; inset: 0;
-  background: var(--bg-secondary);
-  z-index: 500;
-  display: none; flex-direction: column;
-}
-.ann-modal.active {
-  display: flex;
-  animation: slideUp 0.3s cubic-bezier(.4,0,.2,1);
-}
-@keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
-}
-
-.ann-header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 16px; height: 58px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border-light);
-  flex-shrink: 0;
-}
-.ann-header-icon { font-size: 20px; }
-.ann-title { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; flex: 1; }
-.ann-close {
-  width: 34px; height: 34px;
-  border-radius: 50%; border: none;
-  background: var(--bg-secondary);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: background 0.15s;
-}
-.ann-close:active { background: var(--border); }
-.ann-close svg { width: 16px; height: 16px; stroke: var(--text-secondary); fill: none; stroke-width: 2.5; }
-
-.ann-city {
-  padding: 10px 14px; background: var(--bg);
-  border-bottom: 1px solid var(--border-light); flex-shrink: 0;
-}
-.city-select {
-  width: 100%; padding: 9px 36px 9px 13px;
-  border: 1.5px solid var(--border); border-radius: var(--radius-xs);
-  font-size: 14px; font-weight: 600; color: var(--text);
-  background: var(--bg-secondary); outline: none; cursor: pointer;
-  -webkit-appearance: none; appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 11px center;
-  font-family: 'Manrope', sans-serif;
-  transition: border-color 0.15s;
-}
-.city-select:focus { border-color: var(--primary); }
-
-.ann-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px; }
-
-.ann-loading {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 60px 20px; gap: 14px;
-}
-.spinner {
-  width: 32px; height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.ann-loading p { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
-
-.ann-category { margin-bottom: 20px; }
-.ann-cat-title {
-  font-size: 15px; font-weight: 800; color: var(--text);
-  letter-spacing: -0.3px; margin-bottom: 10px; padding-left: 2px;
-}
-.ann-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
-
-.ann-item {
-  background: var(--bg);
-  border-radius: var(--radius-xs);
-  overflow: hidden; cursor: pointer;
-  transition: transform 0.15s;
-  border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-}
-.ann-item:active { transform: scale(0.94); }
-.ann-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--bg-secondary); }
-.ann-date {
-  position: absolute; top: 5px; right: 5px;
-  background: rgba(59,108,244,0.9);
-  color: white; padding: 3px 7px;
-  border-radius: 6px; font-size: 9.5px; font-weight: 700;
-  backdrop-filter: blur(4px);
-}
-.ann-item-name {
-  font-size: 11.5px; font-weight: 600; color: var(--text);
-  padding: 7px 8px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-align: center;
-}
-
-.ann-add-card {
-  background: var(--bg-secondary);
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-xs);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  aspect-ratio: 1; cursor: pointer;
-  transition: all 0.15s; gap: 5px; padding: 8px;
-}
-.ann-add-card:active { border-color: var(--primary); background: var(--primary-light); transform: scale(0.95); }
-.ann-add-card svg { width: 22px; height: 22px; stroke: var(--primary); fill: none; stroke-width: 2.5; }
-.ann-add-card span { font-size: 9.5px; color: var(--text-secondary); text-align: center; line-height: 1.3; font-weight: 600; }
-
-.ann-empty {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 50px 20px; text-align: center; gap: 10px;
-}
-.ann-empty-icon {
-  width: 64px; height: 64px; border-radius: 18px;
-  background: var(--bg); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
-}
-.ann-empty-icon svg { width: 30px; height: 30px; stroke: var(--text-light); fill: none; stroke-width: 1.5; }
-.ann-empty h3 { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-.ann-empty p  { font-size: 13.5px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; }
-.ann-add-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: var(--primary); color: white;
-  padding: 11px 22px; border-radius: var(--radius-xs);
-  font-size: 14px; font-weight: 700; text-decoration: none;
-  cursor: pointer; border: none; font-family: inherit;
-  box-shadow: 0 2px 10px rgba(59,108,244,0.28);
-  transition: opacity 0.15s, transform 0.1s;
-}
-.ann-add-btn:active { opacity: 0.85; transform: scale(0.97); }
-.ann-add-btn svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2.5; }
-.ann-add-free { font-size: 11.5px; color: var(--text-light); font-weight: 500; }
-
 /* ── МЕДИА ──────────────────────────────────────── */
 @media (max-height: 680px) {
   .logo { height: 64px; }
@@ -949,6 +810,7 @@ body {
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">
 <link rel="stylesheet" href="/assets/css/desktop.css">
+<link rel="stylesheet" href="/assets/css/ann-modal.css">
 </head>
 <body>
 <div class="app-container">
@@ -1107,7 +969,7 @@ body {
     </button>
   </div>
   <div class="ann-city">
-    <select id="citySelect" class="city-select" onchange="filterByCity()">
+    <select id="annCitySelect" class="city-select" onchange="filterByCity()">
       <option>Загрузка...</option>
     </select>
   </div>
@@ -1564,138 +1426,6 @@ document.getElementById('cmSearch').addEventListener('input', function() {
 })();
 
 
-
-// ════════════════════════════════════════
-// СВЕЖИЕ СЕРВИСЫ (РУПОР)
-// ════════════════════════════════════════
-let annCityId = null;
-
-async function openAnnModal() {
-  const modal   = document.getElementById('annModal');
-  const content = document.getElementById('annContent');
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
-  content.innerHTML = `<div class="ann-loading"><div class="spinner"></div><p>Загрузка...</p></div>`;
-
-  try {
-    // Сначала берём страну из localStorage (юзер мог выбрать вручную)
-    let cc = localStorage.getItem('poisq_country') || '';
-    if (!cc) {
-      const cr = await fetch('api/get-user-country.php');
-      const cd = await cr.json();
-      cc = cd.country_code || 'fr';
-    }
-    const cir = await fetch(`api/get-cities.php?country=${cc}`);
-    const cities = await cir.json();
-
-    const sel = document.getElementById('citySelect');
-    sel.innerHTML = '';
-    cities.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c.id;
-      o.textContent = c.name + (c.is_capital == 1 ? ' (столица)' : '');
-      sel.appendChild(o);
-      if (c.is_capital == 1 && !annCityId) annCityId = c.id;
-    });
-    if (!annCityId && cities.length) annCityId = cities[0].id;
-    if (annCityId) sel.value = annCityId;
-    await loadAnnServices(annCityId);
-  } catch {
-    document.getElementById('annContent').innerHTML = annErr('Ошибка загрузки', 'Проверьте соединение и попробуйте снова.');
-  }
-}
-
-function closeAnnModal() {
-  document.getElementById('annModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-async function filterByCity() {
-  annCityId = document.getElementById('citySelect').value;
-  await loadAnnServices(annCityId);
-}
-
-async function loadAnnServices(cityId) {
-  const content = document.getElementById('annContent');
-  content.innerHTML = `<div class="ann-loading"><div class="spinner"></div><p>Загрузка...</p></div>`;
-  try {
-    const r  = await fetch(`api/get-services.php?city_id=${cityId}&days=5`);
-    const d  = await r.json();
-    const sv = d.services || [];
-
-    if (!sv.length) {
-      content.innerHTML = `
-        <div class="ann-empty">
-          <div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
-          <h3>Пока нет сервисов</h3>
-          <p>В этом городе нет новых сервисов<br>за последние 5 дней</p>
-          <button class="ann-add-btn" onclick="goAdd()">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Добавить сервис
-          </button>
-          <span class="ann-add-free">бесплатно</span>
-        </div>`;
-      return;
-    }
-
-    const byCat = {};
-    sv.forEach(s => { (byCat[s.category] = byCat[s.category] || []).push(s); });
-
-    let html = '';
-    for (const [cat, list] of Object.entries(byCat)) {
-      html += `<div class="ann-category">
-        <div class="ann-cat-title">${cat}</div>
-        <div class="ann-grid">
-          ${list.map(s => {
-            let photo = 'https://via.placeholder.com/200?text=Poisq';
-            if (s.photo) {
-              try { const p = JSON.parse(s.photo); photo = Array.isArray(p) ? p[0] : s.photo; }
-              catch { photo = s.photo; }
-            }
-            return `
-            <div class="ann-item" onclick="location.href='/service.php?id=${s.id}'">
-              <img src="${photo}" alt="${s.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/200?text=Poisq'">
-              <div class="ann-date">${fmtDate(s.created_at)}</div>
-              <div class="ann-item-name">${s.name}</div>
-            </div>`;
-          }).join('')}
-          <div class="ann-add-card" onclick="goAdd()">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Добавить свой сервис</span>
-          </div>
-        </div>
-      </div>`;
-    }
-    content.innerHTML = html;
-  } catch {
-    content.innerHTML = annErr('Ошибка', 'Не удалось загрузить данные.');
-  }
-}
-function goAdd() {
-  <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
-  closeAnnModal(); setTimeout(() => openSlotsModal(), 300);
-  <?php elseif ($isLoggedIn): ?>
-  location.href = 'add-service.php';
-  <?php else: ?>
-  location.href = 'register.php';
-  <?php endif; ?>
-}
-
-function annErr(t, p) {
-  return `<div class="ann-empty">
-    <div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-    <h3>${t}</h3><p>${p}</p>
-  </div>`;
-}
-
-function fmtDate(ds) {
-  const d = new Date(ds), now = new Date();
-  const diff = Math.floor((now - d) / 86400000);
-  if (diff === 0) return 'Сегодня';
-  if (diff === 1) return 'Вчера';
-  if (diff < 5)  return diff + ' дн.';
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-}
 </script>
 <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
 <div id="slotsModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center;">
@@ -1719,5 +1449,7 @@ function closeSlotsModal(){document.getElementById("slotsModal").style.display="
 document.getElementById("slotsModal").addEventListener("click",function(e){if(e.target===this)closeSlotsModal();});
 </script>
 <?php endif; ?>
+<script>window.annAddUrl = '<?php echo $isLoggedIn ? '/add-service.php' : '/register.php' ?>';</script>
+<script src="/assets/js/ann-modal.js?v=2"></script>
 </body>
 </html>

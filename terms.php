@@ -101,33 +101,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 .footer-link { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
 .footer-link:active { color: var(--primary); }
 .footer-link.active { color: var(--primary); font-weight: 700; }
-/* ANN MODAL */
-.ann-modal { position: fixed; inset: 0; z-index: 500; background: var(--bg); transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; }
-.ann-modal.active { transform: translateY(0); }
-.ann-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
-.ann-header-icon { font-size: 20px; }
-.ann-title { flex: 1; font-size: 17px; font-weight: 800; color: var(--text); }
-.ann-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--bg-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.ann-close svg { width: 16px; height: 16px; stroke: var(--text); stroke-width: 2.5; fill: none; }
-.ann-city { padding: 12px 16px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
-.city-select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--border); font-family: inherit; font-size: 14px; font-weight: 600; background: var(--bg-secondary); color: var(--text); outline: none; appearance: none; }
-.ann-content { flex: 1; overflow-y: auto; padding: 16px; }
-.ann-loading { display: flex; flex-direction: column; align-items: center; padding: 48px 0; gap: 12px; }
-.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.ann-loading p { font-size: 14px; color: var(--text-light); font-weight: 500; }
-.ann-empty { display: flex; flex-direction: column; align-items: center; padding: 48px 20px; text-align: center; gap: 10px; }
-.ann-empty-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; }
-.ann-empty-icon svg { width: 26px; height: 26px; stroke: var(--text-light); fill: none; stroke-width: 1.8; }
-.ann-empty h3 { font-size: 17px; font-weight: 800; color: var(--text); }
-.ann-empty p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-.ann-category { margin-bottom: 20px; }
-.ann-cat-title { font-size: 12px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
-.ann-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
-.ann-item { border-radius: 12px; overflow: hidden; background: var(--bg-secondary); cursor: pointer; }
-.ann-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
-.ann-date { font-size: 10px; color: var(--text-light); font-weight: 600; padding: 6px 8px 2px; }
-.ann-item-name { font-size: 12px; font-weight: 700; color: var(--text); padding: 0 8px 8px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 @media (min-width: 1024px) {
   .app-container { max-width: 720px; padding-top: 64px; }
@@ -138,6 +111,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
+<link rel="stylesheet" href="/assets/css/ann-modal.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
@@ -352,41 +326,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
   <div class="ann-content" id="annContent"><div class="ann-loading"><div class="spinner"></div><p>Загрузка сервисов...</p></div></div>
 </div>
 
-<script>
-let annCityId = null;
-async function openAnnModal() {
-  const modal = document.getElementById('annModal'), content = document.getElementById('annContent');
-  modal.classList.add('active'); document.body.style.overflow = 'hidden';
-  content.innerHTML = '<div class="ann-loading"><div class="spinner"></div><p>Загрузка...</p></div>';
-  try {
-    const cr = await fetch('/api/get-user-country.php'), cd = await cr.json(), cc = cd.country_code || 'fr';
-    const cir = await fetch('/api/get-cities.php?country=' + cc), cities = await cir.json();
-    const sel = document.getElementById('annCitySelect'); sel.innerHTML = '';
-    cities.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name_lat ? c.name_lat + ' (' + c.name + ')' : c.name; sel.appendChild(o); if (c.is_capital == 1 && !annCityId) annCityId = c.id; });
-    if (!annCityId && cities.length) annCityId = cities[0].id;
-    if (annCityId) sel.value = annCityId;
-    await loadAnnServices(annCityId);
-  } catch(e) { document.getElementById('annContent').innerHTML = '<div class="ann-empty"><div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg></div><h3>Ошибка загрузки</h3><p>Проверьте соединение</p></div>'; }
-}
-function closeAnnModal() { document.getElementById('annModal').classList.remove('active'); document.body.style.overflow = ''; }
-async function filterByCity() { annCityId = document.getElementById('annCitySelect').value; await loadAnnServices(annCityId); }
-async function loadAnnServices(cityId) {
-  const content = document.getElementById('annContent');
-  content.innerHTML = '<div class="ann-loading"><div class="spinner"></div><p>Загрузка...</p></div>';
-  try {
-    const r = await fetch('/api/get-services.php?city_id=' + cityId + '&days=5'), d = await r.json(), sv = d.services || [];
-    if (!sv.length) { content.innerHTML = '<div class="ann-empty"><div class="ann-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><h3>Пока нет сервисов</h3><p>Нет новых за последние 5 дней</p></div>'; return; }
-    const byCat = {}; sv.forEach(s => { (byCat[s.category] = byCat[s.category] || []).push(s); });
-    let html = '';
-    for (const [cat, list] of Object.entries(byCat)) {
-      html += '<div class="ann-category"><div class="ann-cat-title">' + cat + '</div><div class="ann-grid">';
-      list.forEach(s => { let photo = 'https://via.placeholder.com/200?text=Poisq'; if (s.photo) { try { const p = JSON.parse(s.photo); photo = Array.isArray(p) ? p[0] : s.photo; } catch(e) {} } const now = new Date(), d2 = new Date(s.created_at), diff = Math.floor((now-d2)/86400000); const ds = diff===0?'Сегодня':diff===1?'Вчера':diff<5?diff+' дн.':d2.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}); html += '<div class="ann-item" onclick="location.href=\'/service/'+s.id+'\'"><img src="'+photo+'" loading="lazy" onerror="this.src=\'https://via.placeholder.com/200?text=Poisq\'"><div class="ann-date">'+ds+'</div><div class="ann-item-name">'+s.name+'</div></div>'; });
-      html += '</div></div>';
-    }
-    content.innerHTML = html;
-  } catch(e) { content.innerHTML = '<div class="ann-empty"><h3>Ошибка</h3></div>'; }
-}
-</script>
+
 <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
 <div id="slotsModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center;">
   <div style="background:#fff;width:100%;max-width:430px;border-radius:24px 24px 0 0;padding:32px 24px 40px;animation:slideUpSlots 0.3s ease-out;">
@@ -409,5 +349,7 @@ function closeSlotsModal(){document.getElementById("slotsModal").style.display="
 document.getElementById("slotsModal").addEventListener("click",function(e){if(e.target===this)closeSlotsModal();});
 </script>
 <?php endif; ?>
+<script>window.annAddUrl = '<?php echo $isLoggedIn ? '/add-service.php' : '/register.php' ?>';</script>
+<script src="/assets/js/ann-modal.js?v=2"></script>
 </body>
 </html>

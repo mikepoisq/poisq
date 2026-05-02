@@ -366,6 +366,7 @@ body {
 <script src="/assets/js/theme.js"></script>
 <link rel="stylesheet" href="/assets/css/desktop.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
+<link rel="stylesheet" href="/assets/css/ann-modal.css">
 <meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
 </head>
 <body>
@@ -374,7 +375,7 @@ body {
   <!-- ШАПКА -->
   <header class="header">
     <div class="header-side">
-      <button class="btn-grid" aria-label="Сервисы">
+      <button class="btn-grid" onclick="openAnnModal()" aria-label="Сервисы">
         <svg viewBox="0 0 24 24">
           <circle cx="5"  cy="5"  r="2"/><circle cx="12" cy="5"  r="2"/><circle cx="19" cy="5"  r="2"/>
           <circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
@@ -480,5 +481,26 @@ function togglePass(inputId, eyeId) {
     }
 }
 </script>
+<!-- МОДАЛКА СВЕЖИЕ СЕРВИСЫ -->
+<div class="ann-modal" id="annModal">
+  <div class="ann-header">
+    <span class="ann-header-icon">📢</span>
+    <span class="ann-title">Свежие сервисы</span>
+    <button class="ann-close" onclick="closeAnnModal()">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="ann-city">
+    <select id="annCitySelect" class="city-select" onchange="filterByCity()">
+      <option>Загрузка...</option>
+    </select>
+  </div>
+  <div class="ann-content" id="annContent">
+    <div class="ann-loading"><div class="spinner"></div><p>Загрузка сервисов...</p></div>
+  </div>
+</div>
+
+<script>window.annAddUrl = '/register.php';</script>
+<script src="/assets/js/ann-modal.js?v=2"></script>
 </body>
 </html>
