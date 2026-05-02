@@ -185,7 +185,150 @@ if (!$messengerFound) {
     }
 }
 
+// Словарь синонимов → подкатегория/категория
+$synonymMap = [
+    // health
+    'врач'            => ['subcategory' => 'Врачи'],
+    'врачи'           => ['subcategory' => 'Врачи'],
+    'доктор'          => ['subcategory' => 'Врачи'],
+    'доктора'         => ['subcategory' => 'Врачи'],
+    'стоматолог'      => ['subcategory' => 'Стоматология'],
+    'стоматологи'     => ['subcategory' => 'Стоматология'],
+    'дантист'         => ['subcategory' => 'Стоматология'],
+    'психолог'        => ['subcategory' => 'Психология'],
+    'психологи'       => ['subcategory' => 'Психология'],
+    'психотерапевт'   => ['subcategory' => 'Психология'],
+    'салон красоты'   => ['subcategory' => 'Салоны красоты'],
+    'салон'           => ['subcategory' => 'Салоны красоты'],
+    'красота'         => ['subcategory' => 'Салоны красоты'],
+    'парикмахер'      => ['subcategory' => 'Салоны красоты'],
+    'фитнес'          => ['subcategory' => 'Фитнес и спорт'],
+    'спортзал'        => ['subcategory' => 'Фитнес и спорт'],
+    'аптека'          => ['subcategory' => 'Аптеки'],
+    'аптеки'          => ['subcategory' => 'Аптеки'],
+    // legal
+    'юрист'           => ['subcategory' => 'Консультации', 'category' => 'legal'],
+    'юристы'          => ['subcategory' => 'Консультации', 'category' => 'legal'],
+    'адвокат'         => ['subcategory' => 'Адвокаты'],
+    'адвокаты'        => ['subcategory' => 'Адвокаты'],
+    'нотариус'        => ['subcategory' => 'Нотариус'],
+    'нотариусы'       => ['subcategory' => 'Нотариус'],
+    'иммиграция'      => ['subcategory' => 'Иммиграция'],
+    'виза'            => ['subcategory' => 'Иммиграция'],
+    'визы'            => ['subcategory' => 'Иммиграция'],
+    'вид на жительство' => ['subcategory' => 'Иммиграция'],
+    'внж'             => ['subcategory' => 'Иммиграция'],
+    // family
+    'няня'            => ['subcategory' => 'Няни'],
+    'няни'            => ['subcategory' => 'Няни'],
+    'бэбиситтер'      => ['subcategory' => 'Бэбиситтеры'],
+    'бебиситтер'      => ['subcategory' => 'Бэбиситтеры'],
+    'репетитор'       => ['subcategory' => 'Репетиторы'],
+    'репетиторы'      => ['subcategory' => 'Репетиторы'],
+    'детский кружок'  => ['subcategory' => 'Детские кружки'],
+    'кружок'          => ['subcategory' => 'Детские кружки'],
+    // education
+    'курсы'           => ['category' => 'education'],
+    'курс'            => ['category' => 'education'],
+    'обучение'        => ['category' => 'education'],
+    'языковые курсы'  => ['subcategory' => 'Языковые курсы'],
+    'русский язык'    => ['subcategory' => 'Русский язык'],
+    'музыкальная школа' => ['subcategory' => 'Музыка'],
+    'музыка'          => ['subcategory' => 'Музыка'],
+    // business
+    'бухгалтер'       => ['subcategory' => 'Бухгалтерия'],
+    'бухгалтеры'      => ['subcategory' => 'Бухгалтерия'],
+    'бухгалтерия'     => ['subcategory' => 'Бухгалтерия'],
+    'налоги'          => ['subcategory' => 'Налоги'],
+    'налог'           => ['subcategory' => 'Налоги'],
+    'страховка'       => ['subcategory' => 'Страхование'],
+    'страхование'     => ['subcategory' => 'Страхование'],
+    'перевод денег'   => ['subcategory' => 'Переводы денег'],
+    'денежный перевод' => ['subcategory' => 'Переводы денег'],
+    'банк'            => ['subcategory' => 'Банковские услуги'],
+    // home
+    'ремонт'          => ['subcategory' => 'Ремонт', 'category' => 'home'],
+    'уборка'          => ['subcategory' => 'Уборка'],
+    'клининг'         => ['subcategory' => 'Уборка'],
+    'переезд'         => ['subcategory' => 'Переезды'],
+    'переезды'        => ['subcategory' => 'Переезды'],
+    'грузчики'        => ['subcategory' => 'Переезды'],
+    'охрана'          => ['subcategory' => 'Охрана'],
+    'животные'        => ['subcategory' => 'Животные'],
+    'ветеринар'       => ['subcategory' => 'Животные'],
+    'химчистка'       => ['subcategory' => 'Химчистка'],
+    // transport
+    'такси'           => ['subcategory' => 'Такси/Трансфер'],
+    'трансфер'        => ['subcategory' => 'Такси/Трансфер'],
+    'автошкола'       => ['subcategory' => 'Автошкола'],
+    'аренда авто'     => ['subcategory' => 'Аренда авто'],
+    'автосервис'      => ['subcategory' => 'Авто сервис'],
+    'автомеханик'     => ['subcategory' => 'Авто сервис'],
+    'мотосервис'      => ['subcategory' => 'Мото сервис'],
+    // shops
+    'ресторан'        => ['subcategory' => 'Рестораны'],
+    'рестораны'       => ['subcategory' => 'Рестораны'],
+    'кафе'            => ['subcategory' => 'Рестораны'],
+    'магазин'         => ['category' => 'shops'],
+    'магазины'        => ['category' => 'shops'],
+    'доставка продуктов' => ['subcategory' => 'Доставка продуктов'],
+    'доставка еды'    => ['subcategory' => 'Доставка продуктов'],
+    'пекарня'         => ['subcategory' => 'Пекарни'],
+    'хлеб'            => ['subcategory' => 'Пекарни'],
+    'мясо'            => ['subcategory' => 'Мясные лавки'],
+    'мясная лавка'    => ['subcategory' => 'Мясные лавки'],
+    // realestate
+    'аренда квартиры' => ['subcategory' => 'Аренда', 'category' => 'realestate'],
+    'снять квартиру'  => ['subcategory' => 'Аренда', 'category' => 'realestate'],
+    'квартира'        => ['category' => 'realestate'],
+    'недвижимость'    => ['category' => 'realestate'],
+    'ипотека'         => ['subcategory' => 'Ипотека'],
+    // it
+    'программист'     => ['category' => 'it'],
+    'программисты'    => ['category' => 'it'],
+    'разработчик'     => ['subcategory' => 'Веб разработка'],
+    'разработчики'    => ['subcategory' => 'Веб разработка'],
+    'дизайнер'        => ['subcategory' => 'Дизайн'],
+    'дизайнеры'       => ['subcategory' => 'Дизайн'],
+    'smm'             => ['subcategory' => 'SMM/Маркетинг'],
+    'маркетинг'       => ['subcategory' => 'SMM/Маркетинг'],
+    // events
+    'фотограф'        => ['subcategory' => 'Фотографы'],
+    'фотографы'       => ['subcategory' => 'Фотографы'],
+    'видеограф'       => ['subcategory' => 'Видеографы'],
+    'видеографы'      => ['subcategory' => 'Видеографы'],
+    'туризм'          => ['subcategory' => 'Туризм'],
+    'тур'             => ['subcategory' => 'Туризм'],
+];
+
+// Ищем совпадение в словаре (сначала длинные фразы, потом короткие)
+$synonymMatched = false;
 if ($q && !$messengerFound) {
+    $qLowerSyn = mb_strtolower($q, 'UTF-8');
+    // Сортируем по длине ключа (длинные фразы приоритетнее)
+    $synonymKeys = array_keys($synonymMap);
+    usort($synonymKeys, fn($a,$b) => mb_strlen($b) - mb_strlen($a));
+    foreach ($synonymKeys as $keyword) {
+        if (mb_strpos($qLowerSyn, $keyword) !== false) {
+            $match = $synonymMap[$keyword];
+            if (isset($match['subcategory'])) {
+                $textWhere[]  = "s.subcategory = ?";
+                $textParams[] = $match['subcategory'];
+                if (isset($match['category']) && !$category) {
+                    $filterWhere[]  = "s.category = ?";
+                    $filterParams[] = $match['category'];
+                }
+            } elseif (isset($match['category']) && !$category) {
+                $textWhere[]  = "s.category = ?";
+                $textParams[] = $match['category'];
+            }
+            $synonymMatched = true;
+            break;
+        }
+    }
+}
+
+if ($q && !$messengerFound && !$synonymMatched) {
     $subStmt = $pdo->prepare("SELECT category_slug, name FROM service_subcategories WHERE is_active=1");
     $subStmt->execute();
     $allSubs = $subStmt->fetchAll(PDO::FETCH_ASSOC);
