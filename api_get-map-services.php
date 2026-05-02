@@ -141,6 +141,18 @@ if ($verified) {
 $textWhere  = [];
 $textParams = [];
 
+// Strip russian language words (same as results.php)
+$russianStopWords = [
+    'русскоязычный','русскоязычная','русскоязычное','русскоязычные','русскоязычных',
+    'русскоговорящий','русскоговорящая','русскоговорящие','русскоговорящих',
+    'русский','русская','русское','русские','русских','русского','русскому',
+];
+foreach ($russianStopWords as $sw) {
+    $q = trim(preg_replace('/'.preg_quote($sw,'/').'\b/iu', '', $q));
+}
+$q = trim(preg_replace('/\s+/', ' ', $q));
+$cleanQ = $q;
+
 // Messenger detection
 $messengerKeywords = [
     'WhatsApp группа' => ['ватсап','вотсап','whatsapp','ватсапп'],
@@ -155,6 +167,20 @@ foreach ($messengerKeywords as $subcatValue => $keywords) {
             $q = '';
             $messengerFound = true;
             break 2;
+        }
+    }
+}
+
+// Generic группа/группы — ищем по category=messengers
+if (!$messengerFound) {
+    $groupKeywords = ['группы','группа','group','groups'];
+    foreach ($groupKeywords as $gkw) {
+        if (mb_strpos(mb_strtolower($q, 'UTF-8'), $gkw) !== false) {
+            $textWhere[]  = "s.category = ?";
+            $textParams[] = 'messengers';
+            $messengerFound = true;
+            $q = '';
+            break;
         }
     }
 }
