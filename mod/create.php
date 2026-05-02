@@ -113,6 +113,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             null, $createdByMod
         ]);
         $newId = (int)$pdo->lastInsertId();
+        // Автогеокодирование через Nominatim
+        if (!empty($address)) {
+            try {
+                $geoQuery = $address;
+                $cityRow = $cityId ? $pdo->prepare("SELECT name FROM cities WHERE id=? LIMIT 1") : null;
+                if ($cityRow) { $cityRow->execute([$cityId]); $cityData = $cityRow->fetch(); if ($cityData) $geoQuery .= ', ' . $cityData['name']; }
+                $geoUrl = 'https://nominatim.openstreetmap.org/search?q=' . urlencode($geoQuery) . '&format=json&limit=1';
+                $ch = curl_init($geoUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Poisq/1.0 geocoder');
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                $geoResult = curl_exec($ch);
+                curl_close($ch);
+                $geoData = json_decode($geoResult, true);
+                if (!empty($geoData[0]['lat'])) {
+                    $pdo->prepare("UPDATE services SET lat=?, lng=? WHERE id=?")->execute([$geoData[0]['lat'], $geoData[0]['lon'], $newId]);
+                }
+            } catch (Exception $e) {}
+        }
 
         $serviceEmail = 'service_' . $newId . '@poisq.com';
         $passHash = password_hash($password, PASSWORD_DEFAULT);

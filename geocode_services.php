@@ -20,6 +20,7 @@ foreach ($services as $s) {
         if (!empty($data[0]['lat'])) {
             $lat = $data[0]['lat'];
             $lng = $data[0]['lon'];
+            try { $pdo->query("SELECT 1"); } catch (Exception $e) { $pdo = getDbConnection(); }
             $pdo->prepare("UPDATE services SET lat=?, lng=? WHERE id=?")->execute([$lat, $lng, $s['id']]);
             echo "✓ [{$s['id']}] {$s['name']}: {$lat}, {$lng}\n";
             $ok++;

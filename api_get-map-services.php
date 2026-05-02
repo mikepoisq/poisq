@@ -119,7 +119,7 @@ if (!$country && !$city_id) {
 $baseWhere = [
     "s.status = 'approved'",
     "s.is_visible = 1",
-    "(s.lat IS NOT NULL OR (s.category = 'messengers' AND c2.lat IS NOT NULL))",
+    "(s.lat IS NOT NULL OR c2.lat IS NOT NULL)",
 ];
 
 // Category / rating / verified filters
@@ -206,6 +206,9 @@ $synonymMap = [
     'спортзал'        => ['subcategory' => 'Фитнес и спорт'],
     'аптека'          => ['subcategory' => 'Аптеки'],
     'аптеки'          => ['subcategory' => 'Аптеки'],
+    'массажист'       => ['subcategory' => 'Альтернативная медицина'],
+    'массажисты'      => ['subcategory' => 'Альтернативная медицина'],
+    'массаж'          => ['subcategory' => 'Альтернативная медицина'],
     // legal
     'юрист'           => ['subcategory' => 'Консультации', 'category' => 'legal'],
     'юристы'          => ['subcategory' => 'Консультации', 'category' => 'legal'],
