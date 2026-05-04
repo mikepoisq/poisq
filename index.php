@@ -178,7 +178,7 @@ require_once __DIR__ . '/includes/header.php';
   -webkit-appearance: none; appearance: none;
   caret-color: var(--primary);
 }
-.search-input::placeholder { color: var(--text-light); font-weight: 500; }
+.search-input::placeholder { color: var(--text-light); font-weight: 500; font-size: 14px; }
 .search-input::-webkit-search-decoration,
 .search-input::-webkit-search-cancel-button { display: none; }
 
