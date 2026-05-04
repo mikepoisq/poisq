@@ -137,8 +137,8 @@ require_once __DIR__ . '/includes/header.php';
 }
 .logo-tagline {
   margin-top: 8px;
-  font-size: 12.5px; font-weight: 600;
-  color: var(--text-light);
+  font-size: 14px; font-weight: 600;
+  color: var(--text-secondary);
   letter-spacing: 0.3px;
 }
 
@@ -423,32 +423,27 @@ require_once __DIR__ . '/includes/header.php';
   transform: scale(0.96);
 }
 
-/* ── БЫСТРЫЕ ТЕГИ ───────────────────────────────── */
+/* ── ПРИМЕРЫ ЗАПРОСОВ ───────────────────────────── */
 .quick-tags {
-  display: flex; gap: 8px;
+  display: flex; gap: 6px;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   width: 100%;
 }
-.tag {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 13px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  font-size: 13px; font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.tag:active {
-  background: var(--primary-light);
-  border-color: var(--primary);
+.example-tag {
+  font-size: 13px; font-weight: 500;
   color: var(--primary);
-  transform: scale(0.96);
+  cursor: pointer; text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s;
 }
-.tag-icon { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.example-tag:active { opacity: 0.6; }
+.example-sep {
+  color: var(--text-light);
+  font-size: 13px;
+  user-select: none;
+}
 
 /* ── НИЖНЯЯ ПАНЕЛЬ ──────────────────────────────── */
 .bottom-bar {
@@ -579,7 +574,6 @@ require_once __DIR__ . '/includes/header.php';
 @media (max-height: 680px) {
   .logo { height: 64px; }
   .main { gap: 14px; }
-  .logo-tagline { display: none; }
 }
 @media (max-height: 600px) {
   .logo { height: 52px; }
@@ -588,7 +582,7 @@ require_once __DIR__ . '/includes/header.php';
 }
 @media (max-width: 360px) {
   .search-input { font-size: 15px; }
-  .tag { font-size: 12px; padding: 5px 11px; }
+  .example-tag { font-size: 12px; }
 }
 
 ::-webkit-scrollbar { display: none; }
@@ -627,10 +621,9 @@ require_once __DIR__ . '/includes/header.php';
     border-radius: var(--radius);
   }
 
-  /* Теги немного крупнее */
-  .tag {
+  /* Примеры запросов немного крупнее */
+  .example-tag {
     font-size: 14px;
-    padding: 8px 16px;
   }
 
   /* Нижняя панель: убираем жёсткий border-top, даём отступы */
@@ -711,7 +704,7 @@ require_once __DIR__ . '/includes/header.php';
       <a href="index.php">
         <img src="logo.png" alt="Poisq" class="logo">
       </a>
-      <div class="logo-tagline">русскоязычные сервисы за рубежом</div>
+      <div class="logo-tagline">Русские сервисы по всему миру</div>
     </div>
 
     <!-- Поиск -->
@@ -721,7 +714,7 @@ require_once __DIR__ . '/includes/header.php';
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
         </div>
         <input type="text" class="search-input" id="searchInput"
-               placeholder="Найти сервис…"
+               placeholder="Найдите сервис или специалиста..."
                autocomplete="off" autocorrect="off" autocapitalize="off"
                spellcheck="false" inputmode="search">
         <button type="button" class="search-clear" id="searchClear" aria-label="Очистить">
@@ -735,14 +728,12 @@ require_once __DIR__ . '/includes/header.php';
       </div>
     </div>
 
-    <!-- Быстрые теги -->
+    <!-- Примеры запросов -->
     <div class="quick-tags" id="quickTags">
-      <div class="tag" onclick="setSearch('Врач')"><svg class="tag-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Врач</div>
-      <div class="tag" onclick="setSearch('Юрист')"><svg class="tag-icon" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>Юрист</div>
-      <div class="tag" onclick="setSearch('Репетитор')"><svg class="tag-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Репетитор</div>
-      <div class="tag" onclick="setSearch('Переводчик')"><svg class="tag-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Переводчик</div>
-      <div class="tag" onclick="setSearch('Психолог')"><svg class="tag-icon" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>Психолог</div>
-      <div class="tag" onclick="setSearch('Красота')"><svg class="tag-icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>Красота</div>
+      <span style="font-size:13px;color:var(--text-secondary);">Например:</span>
+      <span class="example-tag" onclick="setSearch('врач в Цюрихе')">врач в Цюрихе</span>
+      <span class="example-sep">•</span>
+      <span class="example-tag" onclick="setSearch('юрист в Мадриде')">юрист в Мадриде</span>
     </div>
 
   </main>
