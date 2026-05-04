@@ -92,75 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Регистрация — Poisq</title>
-<meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/manifest.json?v=2">
-<meta name="theme-color" content="#ffffff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Poisq">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<?php
+$pageTitle       = 'Регистрация — Poisq';
+$pageRobots      = 'noindex, nofollow';
+$ogImage         = 'https://poisq.com/apple-touch-icon.png?v=2';
+require_once __DIR__ . '/includes/header.php';
+?>
 <style>
-*, *::before, *::after {
-  margin: 0; padding: 0; box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-:root {
-  --primary:       #3B6CF4;
-  --primary-light: #EEF2FF;
-  --primary-dark:  #2952D9;
-  --text:          #0F172A;
-  --text-secondary:#64748B;
-  --text-light:    #94A3B8;
-  --bg:            #FFFFFF;
-  --bg-secondary:  #F8FAFC;
-  --border:        #E2E8F0;
-  --border-light:  #F1F5F9;
-  --success:       #10B981;
-  --success-bg:    #ECFDF5;
-  --warning:       #F59E0B;
-  --warning-bg:    #FFFBEB;
-  --danger:        #EF4444;
-  --danger-bg:     #FEF2F2;
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --radius:    16px;
-  --radius-sm: 10px;
-  --radius-xs:  8px;
-}
-
-html { -webkit-overflow-scrolling: touch; overflow-y: auto; height: auto; }
-
-body {
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-secondary);
-  color: var(--text);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  touch-action: manipulation;
-  overflow-y: auto;
-}
-
-.app-container {
-  max-width: 430px;
-  margin: 0 auto;
-  background: var(--bg);
-  min-height: 100vh; min-height: 100dvh;
-  display: flex; flex-direction: column;
-  position: relative;
-}
-
 /* ── ШАПКА ── */
 .header {
   display: flex; align-items: center; justify-content: space-between;
@@ -377,16 +315,8 @@ body {
   .auth-title { font-size: 24px; }
 }
 </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/desktop.css">
-<link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/ann-modal.css">
-<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
-</head>
-<body>
-<div class="app-container">
 
-  <!-- ШАПКА -->
+<!-- ШАПКА -->
   <header class="header">
     <div class="header-side">
       <button class="btn-grid" onclick="openAnnModal()" aria-label="Сервисы">
@@ -554,8 +484,4 @@ function togglePass(inputId, eyeId) {
     <div class="ann-loading"><div class="spinner"></div><p>Загрузка сервисов...</p></div>
   </div>
 </div>
-
-<script>window.annAddUrl = '/register.php';</script>
-<script src="/assets/js/ann-modal.js?v=2"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

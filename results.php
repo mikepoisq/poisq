@@ -459,15 +459,8 @@ $categories = [
     'realestate'  => '🏢 Недвижимость',
 ];
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="robots" content="noindex, follow">
 <?php
-// ── SEO мета-теги для results.php ───────────────────────
-// Берём названия стран из БД (предложный падеж)
+// ── SEO мета-теги ────────────────────────────────────────
 $countryNames = [];
 try {
     $stCountries = $pdo->query("SELECT code, name_ru_in FROM countries WHERE is_active=1");
@@ -475,20 +468,16 @@ try {
         $countryNames[$row['code']] = $row['name_ru_in'] ?: $row['code'];
     }
 } catch (Exception $e) {}
-$countryNameIn     = $countryNames[$countryCode]  ?? $countryCode;
+$countryNameIn     = $countryNames[$countryCode] ?? $countryCode;
 $userCountryNameIn = $countryNames[$userCountry]  ?? $userCountry;
 
-// Формируем title и description в зависимости от контекста
 if (!empty($searchQuery) && $detectedCity) {
-    // "Врач в Париже — Poisq"
     $seoTitle = htmlspecialchars($searchQuery) . ' в ' . htmlspecialchars($detectedCity['name']) . ' — Poisq';
     $seoDesc  = 'Найдите русскоязычного специалиста «' . htmlspecialchars($searchQuery) . '» в ' . htmlspecialchars($detectedCity['name']) . '. Каталог русскоговорящих сервисов Poisq — ' . $totalCount . ' ' . (($totalCount === 1) ? 'результат' : ($totalCount < 5 ? 'результата' : 'результатов')) . '.';
 } elseif (!empty($searchQuery)) {
-    // "Врач во Франции — Poisq"
     $seoTitle = htmlspecialchars($searchQuery) . ' в ' . $countryNameIn . ' — Poisq';
     $seoDesc  = 'Найдите русскоязычного специалиста «' . htmlspecialchars($searchQuery) . '» в ' . $countryNameIn . '. Каталог русскоговорящих сервисов Poisq — ' . $totalCount . ' ' . (($totalCount === 1) ? 'результат' : ($totalCount < 5 ? 'результата' : 'результатов')) . '.';
 } else {
-    // Без запроса — общая страница страны
     $seoTitle = 'Русскоязычные сервисы в ' . $countryNameIn . ' — Poisq';
     $seoDesc  = 'Каталог русскоговорящих специалистов и сервисов в ' . $countryNameIn . ': врачи, юристы, репетиторы, переводчики и другие.';
 }
@@ -506,47 +495,13 @@ $extraParams = [];
 if ($categoryFilter) $extraParams[] = 'category=' . urlencode($categoryFilter);
 if ($page > 1)       $extraParams[] = 'page=' . $page;
 if (!empty($extraParams)) $canonicalUrl .= '?' . implode('&', $extraParams);
+
+$pageTitle       = $seoTitle;
+$pageRobots      = 'noindex, follow';
+$pageDescription = $seoDesc;
+require_once __DIR__ . '/includes/header.php';
 ?>
-<title><?php echo $seoTitle; ?></title>
-<meta name="description" content="<?php echo htmlspecialchars($seoDesc); ?>">
-<link rel="canonical" href="<?php echo htmlspecialchars($canonicalUrl); ?>">
-<meta property="og:title" content="<?php echo htmlspecialchars($seoTitle); ?>">
-<meta property="og:description" content="<?php echo htmlspecialchars($seoDesc); ?>">
-<meta property="og:url" content="<?php echo htmlspecialchars($canonicalUrl); ?>">
-<meta property="og:type" content="website">
-<meta property="og:image" content="https://poisq.com/og-image.png">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/manifest.json?v=2">
-<meta name="theme-color" content="#ffffff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Poisq">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-:root {
-  --primary: #3B6CF4;
-  --primary-light: #EEF2FF;
-  --primary-dark: #2952D9;
-  --text: #0F172A;
-  --text-secondary: #64748B;
-  --text-light: #94A3B8;
-  --bg: #FFFFFF;
-  --bg-secondary: #F8FAFC;
-  --border: #E2E8F0;
-  --border-light: #F1F5F9;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
-}
 html, body { min-height: 100%; overflow-x: hidden; }
 body {
   font-family: 'Manrope', sans-serif;
@@ -1266,15 +1221,8 @@ body {
   .results-list { padding-bottom: 32px; }
 }
 </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/desktop.css">
-<link rel="stylesheet" href="/assets/css/ann-modal.css">
-</head>
-<body>
-<div class="app-container">
 
-  <!-- HEADER / ДЕСКТОП САЙДБАР -->
+<!-- HEADER / ДЕСКТОП САЙДБАР -->
   <div class="results-header">
     <!-- Заголовок сайдбара (только десктоп) -->
     <span class="sidebar-title-desktop" style="display:none">Поиск и фильтры</span>
@@ -2424,7 +2372,4 @@ function closeSlotsModal(){document.getElementById("slotsModal").style.display="
 document.getElementById("slotsModal").addEventListener("click",function(e){if(e.target===this)closeSlotsModal();});
 </script>
 <?php endif; ?>
-<script>window.annAddUrl = '<?php echo $isLoggedIn ? '/add-service.php' : '/register.php' ?>';</script>
-<script src="/assets/js/ann-modal.js?v=2"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

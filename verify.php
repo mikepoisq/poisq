@@ -140,64 +140,11 @@ if (isset($_POST['resend'])) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Подтверждение email — Poisq</title>
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/favicon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<?php
+$pageTitle       = 'Подтверждение email — Poisq';
+require_once __DIR__ . '/includes/header.php';
+?>
 <style>
-*, *::before, *::after {
-  margin: 0; padding: 0; box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-:root {
-  --primary:       #3B6CF4;
-  --primary-light: #EEF2FF;
-  --primary-dark:  #2952D9;
-  --text:          #0F172A;
-  --text-secondary:#64748B;
-  --text-light:    #94A3B8;
-  --bg:            #FFFFFF;
-  --bg-secondary:  #F8FAFC;
-  --border:        #E2E8F0;
-  --border-light:  #F1F5F9;
-  --success:       #10B981;
-  --success-bg:    #ECFDF5;
-  --danger:        #EF4444;
-  --danger-bg:     #FEF2F2;
-  --radius:    16px;
-  --radius-sm: 10px;
-  --radius-xs:  8px;
-}
-
-html { -webkit-overflow-scrolling: touch; overflow-y: auto; height: auto; }
-
-body {
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-secondary);
-  color: var(--text);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  touch-action: manipulation;
-  overflow-y: auto;
-}
-
-.app-container {
-  max-width: 430px;
-  margin: 0 auto;
-  background: var(--bg);
-  min-height: 100vh; min-height: 100dvh;
-  display: flex; flex-direction: column;
-  position: relative;
-}
-
 /* ── ШАПКА ── */
 .header {
   display: flex; align-items: center;
@@ -385,13 +332,8 @@ body {
   .verify-wrap { padding: 32px 40px 28px; }
 }
 </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/theme.css">
-</head>
-<body>
-<div class="app-container">
 
-  <!-- ШАПКА -->
+<!-- ШАПКА -->
   <header class="header">
     <a href="register.php" class="btn-back" aria-label="Назад">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -534,5 +476,4 @@ body {
 
   window.addEventListener('beforeunload', () => { clearInterval(timer); });
 </script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

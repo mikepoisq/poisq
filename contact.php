@@ -87,33 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Контакт — Poisq</title>
-<meta name="description" content="Свяжитесь с командой Poisq. Poisq Solutions Ltd, 5 rue Henri-Christine, 1205 Женева. support@poisq.com">
-<link rel="canonical" href="https://poisq.com/contact.php">
-<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/manifest.json?v=2">
-<meta name="theme-color" content="#ffffff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Poisq">
+<?php
+$pageTitle       = 'Контакт — Poisq';
+$pageDescription = 'Свяжитесь с командой Poisq. Poisq Solutions Ltd, 5 rue Henri-Christine, 1205 Женева. support@poisq.com';
+$canonicalUrl    = 'https://poisq.com/contact.php';
+$ogImage         = 'https://poisq.com/apple-touch-icon.png?v=2';
+require_once __DIR__ . '/includes/header.php';
+?>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-:root {
-  --primary: #3B6CF4; --primary-light: #EEF2FF; --primary-dark: #2952D9;
-  --text: #0F172A; --text-secondary: #64748B; --text-light: #94A3B8;
-  --bg: #FFFFFF; --bg-secondary: #F8FAFC;
-  --border: #E2E8F0; --border-light: #F1F5F9;
-  --success: #10B981; --danger: #EF4444;
-  --radius-sm: 12px; --radius-xs: 10px;
-}
 html, body { min-height: 100%; overflow-x: hidden; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg-secondary); color: var(--text); -webkit-font-smoothing: antialiased; }
 .app-container { max-width: 430px; margin: 0 auto; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
@@ -300,16 +281,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
   .page-content { padding: 32px 24px 48px; }
 }
 </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/desktop.css">
-<link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/ann-modal.css">
-<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
-</head>
-<body>
-<div class="app-container">
 
-  <div class="page-header">
+<div class="page-header">
     <div class="header-top">
       <div style="width:84px;display:flex;align-items:center;">
         <button class="btn-grid" onclick="openAnnModal()" aria-label="Свежие сервисы">
@@ -587,7 +560,7 @@ if (form && submitBtn) {
     submitBtn.innerHTML = '<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div> Отправка...';
   });
 }
-
+</script>
 
 <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
 <div id="slotsModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center;">
@@ -611,7 +584,4 @@ function closeSlotsModal(){document.getElementById("slotsModal").style.display="
 document.getElementById("slotsModal").addEventListener("click",function(e){if(e.target===this)closeSlotsModal();});
 </script>
 <?php endif; ?>
-<script>window.annAddUrl = '<?php echo $isLoggedIn ? '/add-service.php' : '/register.php' ?>';</script>
-<script src="/assets/js/ann-modal.js?v=2"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

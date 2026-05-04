@@ -323,50 +323,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="robots" content="noindex, nofollow">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Добавить сервис — Poisq</title>
-<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/manifest.json?v=2">
-<meta name="theme-color" content="#ffffff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Poisq">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<?php
+$pageTitle       = 'Добавить сервис — Poisq';
+$pageRobots      = 'noindex, nofollow';
+$ogImage         = 'https://poisq.com/apple-touch-icon.png?v=2';
+require_once __DIR__ . '/includes/header.php';
+?>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-:root {
---primary: #2E73D8; --primary-light: #5EA1F0; --primary-dark: #1A5AB8;
---text: #1F2937; --text-secondary: #9CA3AF; --text-light: #6B7280;
---bg: #FFFFFF; --bg-secondary: #F5F5F7; --border: #D1D5DB; --border-light: #E5E7EB;
---success: #10B981; --warning: #F59E0B; --danger: #EF4444;
---shadow-sm: 0 2px 8px rgba(0,0,0,0.06); --shadow-md: 0 4px 16px rgba(46,115,216,0.15);
-}
-html { -webkit-overflow-scrolling: touch; overflow-y: auto; height: auto; }
-body {
--webkit-overflow-scrolling: touch; overflow-y: auto; height: auto;
-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-background: var(--bg-secondary); color: var(--text); line-height: 1.5;
--webkit-font-smoothing: antialiased; touch-action: manipulation;
-}
-.app-container {
-max-width: 430px; margin: 0 auto; background: var(--bg);
-min-height: 100vh; min-height: 100dvh;
-position: relative; display: flex; flex-direction: column;
-}
-.header {
-display: flex; align-items: center; justify-content: space-between;
-padding: 10px 14px; background: var(--bg);
-border-bottom: 1px solid var(--border-light); flex-shrink: 0; height: 56px;
-}
 .header-left { display: flex; align-items: center; gap: 12px; }
 .header-right { display: flex; align-items: center; }
 .btn-back {
@@ -1093,13 +1056,7 @@ color: white;
   .social-grid { grid-template-columns: repeat(3, 1fr); }
 }
 </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/desktop.css">
-<link rel="stylesheet" href="/assets/css/theme.css">
-<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
-</head>
-<body>
-<div class="app-container">
+
 <header class="header">
 <div class="header-left">
 <button onclick="history.back()" class="btn-back" aria-label="Назад">
@@ -2290,5 +2247,4 @@ if (desc && desc.value) {
 })();
 </script>
 <script src="/assets/js/address-autocomplete.js"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

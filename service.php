@@ -231,78 +231,9 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
     $ogImage = 'https://poisq.com/logo.png';
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title><?php echo $pageTitle; ?></title>
-    <meta name="description" content="<?php echo $pageDescription; ?>">
-    <link rel="canonical" href="<?php echo $canonicalUrl; ?>">
-    <meta property="og:title" content="<?php echo $pageTitle; ?>">
-    <meta property="og:description" content="<?php echo $pageDescription; ?>">
-    <meta property="og:image" content="<?php echo $ogImage; ?>">
-    <meta property="og:url" content="<?php echo $canonicalUrl; ?>">
-    <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-    <link rel="manifest" href="/manifest.json?v=2">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Poisq">
-    <script type="application/ld+json">
-    <?php
-    $jsonLd = [
-        '@context' => 'https://schema.org',
-        '@type'    => 'LocalBusiness',
-        'name'        => $service['name'],
-        'description' => substr($service['description'], 0, 200),
-        'url'         => 'https://poisq.com' . serviceUrl($service['id'], $service['name']),
-        'telephone'   => $service['phone'],
-        'address' => [
-            '@type'           => 'PostalAddress',
-            'streetAddress'   => $service['address'],
-            'addressLocality' => $service['city_name'],
-            'addressCountry'  => strtoupper($service['country_code'])
-        ],
-        'image' => isset($service['photos'][0]) ? 'https://poisq.com' . $service['photos'][0] : '',
-        'aggregateRating' => $service['rating'] > 0 ? [
-            '@type'       => 'AggregateRating',
-            'ratingValue' => $service['rating'],
-            'reviewCount' => max(1, $service['reviews_count'])
-        ] : null,
-    ];
-    $jsonLd = array_filter($jsonLd);
-    echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    ?>
-    </script>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        :root {
-            --primary: #2E73D8; --primary-light: #5EA1F0; --primary-dark: #1A5AB8;
-            --text: #1F2937; --text-secondary: #9CA3AF; --text-light: #6B7280;
-            --bg: #FFFFFF; --bg-secondary: #F5F5F7; --border: #D1D5DB; --border-light: #E5E7EB;
-            --success: #10B981; --warning: #F59E0B; --danger: #EF4444;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-        }
-        html { -webkit-overflow-scrolling: touch; overflow-y: auto; height: auto; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-secondary); color: var(--text);
-            line-height: 1.5; padding-bottom: 80px;
-        }
-        .app-container {
-            max-width: 430px; margin: 0 auto; background: var(--bg);
-            min-height: 100vh;
-        }
-        
-        /* 🔧 ШАПКА */
+<?php require_once __DIR__ . '/includes/header.php'; ?>
+<style>
+/* 🔧 ШАПКА */
         .service-header {
             position: sticky; top: 0; z-index: 100;
             background: var(--bg); border-bottom: 1px solid var(--border-light);
@@ -879,139 +810,9 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         }
         .fav-modal-footer button:active { opacity: 0.85; transform: scale(0.99); }
         .fav-modal-footer button:disabled { opacity: 0.6; }
-    </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/desktop.css">
-<style>
-/* ══════════════════════════════════════════════════════
-   service.php — десктоп (1024px+)
-   2-колонки: слева контент, справа галерея sticky
-   ══════════════════════════════════════════════════════ */
-@media (min-width: 1024px) {
-
-  body { padding-bottom: 0; background: var(--bg-secondary); }
-
-  /* ── Контейнер: CSS Grid 2 колонки ── */
-  .app-container {
-    max-width: 1100px;
-    display: grid;
-    grid-template-columns: 1fr 420px;
-    grid-template-areas:
-      "svc-hdr  svc-hdr"
-      "svc-body svc-img";
-    align-items: start;
-    gap: 0;
-    background: var(--bg-secondary);
-    /* нет padding-top: menu.php не подключён, d-header отсутствует */
-  }
-
-  /* ── Шапка: приклеена к самому верху браузера ── */
-  .service-header {
-    grid-area: svc-hdr;
-    display: block;
-    position: sticky;
-    top: 0;           /* прямо у верха, без разрыва */
-    z-index: 99;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border-light);
-  }
-  .header-nav {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 8px 20px;
-    height: 52px;
-    justify-content: space-between;
-  }
-  /* Кнопка назад: с текстом */
-  .btn-back {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 0 14px 0 10px;
-    width: auto;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    background: var(--bg-secondary);
-  }
-  .btn-back::after {
-    content: 'Назад';
-  }
-  /* Кнопки поделиться и избранное */
-  .btn-share, .btn-favorite {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-  }
-
-  /* ── Фото-галерея: правая колонка, sticky ── */
-  .service-slider {
-    grid-area: svc-img;
-    height: 480px;
-    position: sticky;
-    top: calc(52px + 16px); /* service-header (52px) + отступ */
-    margin: 16px 16px 16px 0;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-  }
-  .service-slider .slider-arrow { display: flex; }
-
-  /* ── Основной контент: левая колонка ── */
-  .service-content {
-    grid-area: svc-body;
-    padding: 24px 28px 40px;
-    background: var(--bg);
-    min-height: calc(100vh - 64px);
-  }
-
-  /* Заголовок сервиса крупнее */
-  .service-title { font-size: 26px; }
-  .service-category { font-size: 15px; margin-bottom: 12px; }
-
-  /* Рейтинг */
-  .service-rating-row { margin-bottom: 20px; gap: 12px; }
-
-  /* Кнопки действий — шире, без скролла */
-  .action-buttons {
-    overflow-x: visible;
-    flex-wrap: wrap;
-    margin-bottom: 28px;
-  }
-  .btn-action {
-    padding: 12px 22px;
-    font-size: 14px;
-  }
-
-  /* Секции: максимальная ширина и чуть крупнее текст */
-  .settings-section { border-radius: 12px; }
-  .settings-item-label { font-size: 15px; }
-  .settings-item-description { font-size: 14px; }
-
-  /* Социальные ссылки: 3 колонки на десктопе */
-  .social-links { grid-template-columns: repeat(3, 1fr); }
-
-  /* Карта выше */
-  .map-container { height: 280px; }
-
-  /* ── Скрываем плавающую нижнюю панель ── */
-  .bottom-bar { display: none !important; }
-
-}
-
-/* ── Планшет: service.php (768-1023px) ── */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .app-container { max-width: 720px; }
-  .service-slider { height: 340px; }
-  .service-content { padding: 20px; }
-  .bottom-bar { display: none !important; }
-}
 </style>
-</head>
-<body>
-    <div class="app-container">
-        <header class="service-header">
+
+<header class="service-header">
             <div class="header-nav">
                 <button class="btn-back" onclick="goBack()" aria-label="Назад">
                     <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -2683,6 +2484,4 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         </div>
     </div>
 </div>
-
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

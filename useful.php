@@ -25,55 +25,14 @@ if ($isLoggedIn) {
     } catch (Exception $e) { $slotsLeft = 3; }
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Полезное — Poisq</title>
-<meta name="description" content="Статьи и гайды для русскоязычных за рубежом: документы, финансы, здоровье, семья.">
-<link rel="canonical" href="https://poisq.com/useful.php">
-<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/manifest.json?v=2">
-<meta name="theme-color" content="#ffffff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Poisq">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<?php
+$pageTitle       = 'Полезное — Poisq';
+$pageDescription = 'Статьи и гайды для русскоязычных за рубежом: документы, финансы, здоровье, семья.';
+$canonicalUrl    = 'https://poisq.com/useful.php';
+$ogImage         = 'https://poisq.com/apple-touch-icon.png?v=2';
+require_once __DIR__ . '/includes/header.php';
+?>
 <style>
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-:root {
-  --primary: #3B6CF4;
-  --primary-light: #EEF2FF;
-  --primary-dark: #2952D9;
-  --text: #0F172A;
-  --text-secondary: #64748B;
-  --text-light: #94A3B8;
-  --bg: #FFFFFF;
-  --bg-secondary: #F8FAFC;
-  --border: #E2E8F0;
-  --border-light: #F1F5F9;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --radius-sm: 12px;
-  --radius-xs: 10px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
-  --serif: 'Playfair Display', Georgia, serif;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
-  /* редакционные токены */
-  --ink:   #0F172A;
-  --muted: #64748B;
-  --body:  #334155;
-  --hair:  rgba(0,0,0,0.07);
-  --accent: #3B6CF4;
-}
 html, body { min-height: 100%; overflow-x: hidden; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg-secondary); color: var(--text); -webkit-font-smoothing: antialiased; }
 .app-container { max-width: 430px; margin: 0 auto; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
@@ -202,16 +161,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe 
   .page-header { display: none; }
 }
 </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/desktop.css">
-<link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/ann-modal.css">
-<meta property="og:image" content="https://poisq.com/apple-touch-icon.png?v=2">
-</head>
-<body>
-<div class="app-container">
 
-  <!-- HEADER (точно как help.php) -->
+<!-- HEADER (точно как help.php) -->
   <div class="page-header">
     <div class="header-top">
       <div style="width:84px;display:flex;align-items:center;">
@@ -546,7 +497,4 @@ function selectCountry(code, name) {
 // ── СТАРТ ──
 loadArticles(currentCode);
 </script>
-<script>window.annAddUrl = '<?php echo $isLoggedIn ? '/add-service.php' : '/register.php' ?>';</script>
-<script src="/assets/js/ann-modal.js?v=2"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -68,49 +68,14 @@ if ($article) {
         ] . ' ' . date('Y', strtotime($article['created_at']));
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title><?php echo $article ? htmlspecialchars($article['title']) . ' — Poisq' : '404 — Poisq'; ?></title>
-<?php if ($article): ?>
-<meta name="description" content="<?php echo htmlspecialchars(mb_substr(strip_tags($article['excerpt'] ?? ''), 0, 160)); ?>">
-<link rel="canonical" href="<?php echo $canonicalUrl; ?>">
-<meta property="og:title" content="<?php echo htmlspecialchars($article['title']); ?>">
-<meta property="og:description" content="<?php echo htmlspecialchars(mb_substr(strip_tags($article['excerpt'] ?? ''), 0, 160)); ?>">
-<?php if ($article['photo']): ?><meta property="og:image" content="<?php echo htmlspecialchars($article['photo']); ?>"><?php endif; ?>
-<?php endif; ?>
-<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
-<link rel="manifest" href="/manifest.json?v=2">
-<meta name="theme-color" content="#ffffff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Poisq">
+<?php
+$pageTitle       = $article ? htmlspecialchars($article['title']) . ' — Poisq' : '404 — Poisq';
+$pageDescription = $article ? htmlspecialchars(mb_substr(strip_tags($article['excerpt'] ?? ''), 0, 160)) : '';
+if (!$article) $canonicalUrl = 'https://poisq.com/';
+$ogImage         = (!empty($article['photo'])) ? htmlspecialchars($article['photo']) : null;
+require_once __DIR__ . '/includes/header.php';
+?>
 <style>
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-:root {
-  --primary: #3B6CF4;
-  --primary-light: #EEF2FF;
-  --text: #0F172A;
-  --text-secondary: #64748B;
-  --text-light: #94A3B8;
-  --bg: #FFFFFF;
-  --bg-secondary: #F8FAFC;
-  --border: #E2E8F0;
-  --border-light: #F1F5F9;
-  --radius-sm: 12px;
-  --radius-xs: 10px;
-  --ink: #141414;
-  --body: #2A2A2A;
-  --muted: #6B6B6B;
-  --hair: rgba(0,0,0,0.08);
-  --accent: #1E88E5;
-  --quote-bg: #F7F5F1;
-}
 html, body { min-height: 100%; overflow-x: hidden; }
 body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
 .app-container { max-width: 430px; margin: 0 auto; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
@@ -223,13 +188,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI"
 @media (min-width: 430px) { .app-container { border-left: 1px solid var(--border-light); border-right: 1px solid var(--border-light); } }
 @media (min-width: 1024px) { .app-container { max-width: 720px; padding-top: 64px; } .page-header { display: none; } }
 </style>
-<script src="/assets/js/theme.js"></script>
-<link rel="stylesheet" href="/assets/css/desktop.css">
-<link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/ann-modal.css">
-</head>
-<body>
-<div class="app-container">
 
 <!-- HEADER -->
 <div class="page-header">
@@ -469,7 +427,4 @@ initLikes();
   }
 })();
 </script>
-<script>window.annAddUrl = '<?php echo $isLoggedIn ? '/add-service.php' : '/register.php' ?>';</script>
-<script src="/assets/js/ann-modal.js?v=2"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
