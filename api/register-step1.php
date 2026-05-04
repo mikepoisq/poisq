@@ -1,10 +1,6 @@
 <?php
 // api/register-step1.php — Шаг 1: валидация и отправка кода верификации
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.cookie_secure', '0');
-ini_set('session.cookie_path', '/');
-ini_set('session.cookie_httponly', '1');
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 header('Content-Type: application/json; charset=utf-8');
 

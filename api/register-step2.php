@@ -1,10 +1,6 @@
 <?php
 // api/register-step2.php — Шаг 2: проверка кода, создание аккаунта, вход
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.cookie_secure', '0');
-ini_set('session.cookie_path', '/');
-ini_set('session.cookie_httponly', '1');
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 header('Content-Type: application/json; charset=utf-8');
 

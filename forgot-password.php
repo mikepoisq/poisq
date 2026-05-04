@@ -1,12 +1,7 @@
 <?php
 // forgot-password.php — Запрос восстановления пароля Poisq
 ob_start();
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.cookie_secure', '0');
-ini_set('session.cookie_path', '/');
-ini_set('session.cookie_httponly', '1');
-ini_set('session.use_strict_mode', '1');
-session_start();
+require_once __DIR__ . '/config/session.php';
 
 require_once 'config/database.php';
 

@@ -27,6 +27,8 @@ try {
         FROM services s
         LEFT JOIN cities c ON s.city_id = c.id
         WHERE s.city_id = ?
+        AND s.status = 'approved'
+        AND s.is_visible = 1
         AND s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
         ORDER BY s.created_at DESC
     ");

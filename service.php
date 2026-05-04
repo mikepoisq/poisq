@@ -1,11 +1,6 @@
 <?php
 // service.php — Страница сервиса Poisq
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.cookie_secure', '0');
-ini_set('session.cookie_path', '/');
-ini_set('session.cookie_httponly', '1');
-ini_set('session.use_strict_mode', '1');
-session_start();
+require_once __DIR__ . '/config/session.php';
 
 $categories = [
     'health'     => ['name'=>'🏥 Здоровье и красота'],
@@ -84,8 +79,11 @@ try {
         exit;
     }
 
-    // Увеличиваем счётчик просмотров
-    $pdo->prepare("UPDATE services SET views = views + 1 WHERE id = ?")->execute([$serviceId]);
+    // Увеличиваем счётчик просмотров (не более одного раза за сессию на сервис)
+    if (empty($_SESSION['viewed_' . $serviceId])) {
+        $pdo->prepare("UPDATE services SET views = views + 1 WHERE id = ?")->execute([$serviceId]);
+        $_SESSION['viewed_' . $serviceId] = 1;
+    }
 
     // ── Декодируем JSON-поля ─────────────────────────
     // ── Фото: поддерживаем и JSON-массив и обычную ссылку ──
