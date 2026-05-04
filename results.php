@@ -141,16 +141,25 @@ if (!$__ok) {
 if (!empty($searchQuery) && $cityFilter === 0 && !empty($allCities)) {
     $qwords = array_filter(explode(' ', mb_strtolower($searchQuery)), fn($w) => mb_strlen($w) >= 3);
     foreach ($qwords as $qw) {
+        // Варианты с обрезанными окончаниями для падежных форм (Цюрихе→Цюрих, Париже→Париж)
+        $stems = [$qw];
+        for ($cut = 1; $cut <= 3; $cut++) {
+            $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
+            if (mb_strlen($s, 'UTF-8') >= 3) $stems[] = $s;
+        }
         foreach ($allCities as $cityRow) {
-            if (mb_strpos(mb_strtolower($cityRow['name'],    'UTF-8'), $qw) !== false ||
-                mb_strpos(mb_strtolower($cityRow['name_lat'], 'UTF-8'), $qw) !== false) {
-                $detectedCity = $cityRow;
-                $cityFilter   = (int)$cityRow['id'];
-                $countryCode  = $cityRow['country_code'];
-                $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name'],   '/').'/iu', '', $cleanQuery));
-                $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name_lat'],'/').'/iu', '', $cleanQuery));
-                $cleanQuery   = trim(preg_replace('/\s+/', ' ', $cleanQuery));
-                break 2;
+            $nameL    = mb_strtolower($cityRow['name'],    'UTF-8');
+            $nameLatL = mb_strtolower($cityRow['name_lat'], 'UTF-8');
+            foreach ($stems as $stem) {
+                if (mb_strpos($nameL, $stem) !== false || mb_strpos($nameLatL, $stem) !== false) {
+                    $detectedCity = $cityRow;
+                    $cityFilter   = (int)$cityRow['id'];
+                    $countryCode  = $cityRow['country_code'];
+                    $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name'],    '/').'/iu', '', $cleanQuery));
+                    $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name_lat'],'/').'/iu', '', $cleanQuery));
+                    $cleanQuery   = trim(preg_replace('/\s+/', ' ', $cleanQuery));
+                    break 3;
+                }
             }
         }
     }

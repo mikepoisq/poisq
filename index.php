@@ -1003,6 +1003,11 @@ async function renderSoContent(q) {
 
     let liveHtml = `<div class="so-section-label">Подсказки</div>`;
     suggestions.forEach((s, i) => {
+      // Разделитель — не кликабельный элемент
+      if (s.type === 'separator') {
+        liveHtml += `<div style="padding:8px 18px 4px;font-size:12px;color:var(--text-light);font-weight:500;font-style:italic;">${escHtml(s.text)}</div>`;
+        return;
+      }
       const c = s.country || country;
       const citySlug = s.city_slug || '';
       let url;
@@ -1022,8 +1027,9 @@ async function renderSoContent(q) {
         ? `<div class="so-item-icon suggest" style="background:none;padding:0;overflow:hidden;border-radius:8px;"><img src="${s.photo}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'"></div>`
         : `<div class="so-item-icon suggest"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></div>`;
       const subtitleParts = [];
-      if (s.subtitle) subtitleParts.push(escHtml(s.subtitle));
-      if (s.rating)   subtitleParts.push("⭐ " + s.rating);
+      if (s.subtitle)  subtitleParts.push(escHtml(s.subtitle));
+      if (s.city_name) subtitleParts.push(escHtml(s.city_name));
+      if (s.rating)    subtitleParts.push("⭐ " + s.rating);
       const subtitleHtml = subtitleParts.length
         ? `<span class="so-item-sub">${subtitleParts.join(" · ")}</span>`
         : "";

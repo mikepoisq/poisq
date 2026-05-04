@@ -30,7 +30,8 @@ function fallbackSearch(string $q, string $country, int $cityId): array {
 function formatHit(array $hit): array {
     return [
         'type'       => 'service',
-        'text'       => $hit['name'] . ($hit['city_name'] ? ' • ' . $hit['city_name'] : ''),
+        'text'       => $hit['name'],
+        'city_name'  => $hit['city_name'] ?: null,
         'q'          => $hit['name'],
         'city_id'    => (int)$hit['city_id'],
         'city_slug'  => isset($hit['city_slug']) ? strtolower($hit['city_slug']) : null,
@@ -45,32 +46,56 @@ function formatHit(array $hit): array {
 $results = [];
 $hits = [];
 
-// Парсим город из текста запроса
-$detectedCityId = $userCityId;
+// Парсим город из текста запроса — APCu кеш + стемминг (падежные формы)
+$detectedCityId   = $userCityId;
+$detectedCityName = '';
 $cleanQ = $q;
+$userCountry = $country; // сохраняем страну юзера до возможной перезаписи городом
 require_once __DIR__ . '/../config/database.php';
 $pdo = getDbConnection();
-$qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w) >= 3);
-foreach ($qwords as $qw) {
+
+$allCities = apcu_fetch('poisq_all_cities', $__ok);
+if (!$__ok) {
     try {
-        $cs = $pdo->prepare("SELECT id, name, name_lat, country_code FROM cities WHERE LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ? LIMIT 1");
-        $cs->execute(['%'.$qw.'%', '%'.$qw.'%']);
-        $fc = $cs->fetch(PDO::FETCH_ASSOC);
-        if ($fc) {
-            $detectedCityId = (int)$fc['id'];
-            $country = $fc['country_code'];
-            $cleanQ = trim(preg_replace('/'.preg_quote($fc['name'], '/').'/iu', '', $cleanQ));
-            $cleanQ = trim(preg_replace('/'.preg_quote($fc['name_lat'], '/').'/iu', '', $cleanQ));
-            $cleanQ = trim(preg_replace('/\s+/', ' ', $cleanQ));
-            if (empty($cleanQ)) $cleanQ = $q;
-            break;
-        }
-    } catch (Exception $e) {}
+        $allCities = $pdo->query("SELECT id, name, name_lat, country_code FROM cities")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) { $allCities = []; }
 }
 
+$qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w, 'UTF-8') >= 3);
+foreach ($qwords as $qw) {
+    $stems = [$qw];
+    for ($cut = 1; $cut <= 3; $cut++) {
+        $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
+        if (mb_strlen($s, 'UTF-8') >= 3) $stems[] = $s;
+    }
+    foreach ($allCities as $cityRow) {
+        $nameL    = mb_strtolower($cityRow['name'],    'UTF-8');
+        $nameLatL = mb_strtolower($cityRow['name_lat'], 'UTF-8');
+        foreach ($stems as $stem) {
+            if (mb_strpos($nameL, $stem) !== false || mb_strpos($nameLatL, $stem) !== false) {
+                $detectedCityId   = (int)$cityRow['id'];
+                $detectedCityName = $cityRow['name'];
+                $country = $cityRow['country_code'];
+                $cleanQ = trim(preg_replace('/'.preg_quote($cityRow['name'],    '/').'/iu', '', $cleanQ));
+                $cleanQ = trim(preg_replace('/'.preg_quote($cityRow['name_lat'],'/').'/iu', '', $cleanQ));
+                $cleanQ = trim(preg_replace('/\s+/', ' ', $cleanQ));
+                if (empty($cleanQ)) $cleanQ = $q;
+                break 3;
+            }
+        }
+    }
+}
+
+$prependSeparator = '';
 if ($detectedCityId > 0) {
     $r = meiliSearch($cleanQ, ['filter' => "city_id = $detectedCityId", 'limit' => 8]);
     $hits = $r['hits'] ?? [];
+    // Город определён из запроса (не из localStorage) и результатов нет
+    if (empty($hits) && $detectedCityId !== $userCityId && !empty($detectedCityName)) {
+        $prependSeparator = "В $detectedCityName пока нет результатов — вот похожее в вашей стране:";
+        $r2 = meiliSearch($cleanQ, ['filter' => "country_code = '$userCountry'", 'limit' => 6]);
+        $hits = $r2['hits'] ?? [];
+    }
 } else {
     $r2 = meiliSearch($cleanQ, ['filter' => "country_code = '$country'", 'limit' => 8]);
     $hits = $r2['hits'] ?? [];
@@ -94,6 +119,9 @@ if (empty($hits) && empty($r2)) {
     exit;
 }
 
+if (!empty($prependSeparator)) {
+    $results[] = ['type' => 'separator', 'text' => $prependSeparator];
+}
 $seen = [];
 foreach ($hits as $hit) {
     $key = mb_strtolower($hit['name']) . '_' . $hit['city_id'] . '_' . $hit['id'];
