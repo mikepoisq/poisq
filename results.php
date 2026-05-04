@@ -249,10 +249,8 @@ try {
         $r2opts = [
             'filter' => ($mf ? "$mf AND " : '') . "country_code = '$countryCode'$cityEx",
             'limit'  => $perPage, 'offset' => $offset,
+            'sort'   => ['verified:desc','rating:desc','views:desc'],
         ];
-        if (empty($cleanQuery)) {
-            $r2opts['sort'] = ['verified:desc','rating:desc','views:desc'];
-        }
         $r2 = meiliSearch($cleanQuery, $r2opts);
         if (isset($r2['hits'])) {
             $countryHits = array_column($r2['hits'], 'id');
@@ -771,7 +769,10 @@ body {
 .card-site-name {
   font-size: 13px; color: var(--text); font-weight: 600;
   display: flex; align-items: center; gap: 5px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  overflow: hidden;
+}
+.card-site-name-text {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .card-site-name .verified-dot {
   width: 15px; height: 15px; border-radius: 50%;
@@ -822,7 +823,7 @@ body {
   padding: 3px 10px; border-radius: 99px; white-space: nowrap;
 }
 .tag-lang { background: #E8F0FE; color: #1A73E8; }
-.tag-service { background: #E6F4EA; color: #188038; }
+.tag-service { background: #E6F4EA; color: #188038; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .tag-city { background: #FEF7E0; color: #B45309; }
 /* Строка 6: кнопки */
 .card-actions { display: flex; gap: 8px; }
@@ -1414,13 +1415,12 @@ body {
         </div>
         <div class="card-site-info">
           <div class="card-site-name">
-            <?php echo htmlspecialchars($svc['name']); ?>
+            <span class="card-site-name-text"><?php echo htmlspecialchars($svc['name']); ?></span>
             <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
               <span class="verified-dot" title="Проверено">
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg>
               </span>
             <?php endif; ?>
-
           </div>
           <div class="card-breadcrumb">
             poisq.com › <?php echo htmlspecialchars($crumbCat); ?><?php if ($crumbCity): ?> › <?php echo htmlspecialchars($crumbCity); ?><?php endif; ?>
@@ -1607,11 +1607,10 @@ body {
       </div>
       <div class="card-site-info">
         <div class="card-site-name">
-          <?php echo htmlspecialchars($svc['name']); ?>
+          <span class="card-site-name-text"><?php echo htmlspecialchars($svc['name']); ?></span>
           <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
             <span class="verified-dot"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg></span>
           <?php endif; ?>
-
         </div>
         <div class="card-breadcrumb">
           poisq.com › <?php echo htmlspecialchars($crumbCat); ?><?php if ($crumbCity): ?> › <?php echo htmlspecialchars($crumbCity); ?><?php endif; ?>
@@ -1737,11 +1736,10 @@ body {
       </div>
       <div class="card-site-info">
         <div class="card-site-name">
-          <?php echo htmlspecialchars($svc['name']); ?>
+          <span class="card-site-name-text"><?php echo htmlspecialchars($svc['name']); ?></span>
           <?php if ($svc['verified'] && ($svc['verified_until'] === null || $svc['verified_until'] >= date('Y-m-d'))): ?>
             <span class="verified-dot"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><path d="m5 13 4 4L19 7"/></svg></span>
           <?php endif; ?>
-
         </div>
         <div class="card-breadcrumb">
           poisq.com › <?php echo htmlspecialchars($crumbCat); ?><?php if ($crumbCity): ?> › <?php echo htmlspecialchars($crumbCity); ?><?php endif; ?>

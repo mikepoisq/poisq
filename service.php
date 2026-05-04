@@ -288,7 +288,7 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
         .slider-arrow svg { width: 20px; height: 20px; stroke: var(--text); fill: none; stroke-width: 2; }
         
         /* 🔧 КОНТЕНТ */
-        .service-content { padding: 16px; }
+        .service-content { padding: 16px 16px 80px; }
         .service-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
         .service-title { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.3; }
         .service-category { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
@@ -1107,6 +1107,25 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
             </div>
             <?php endif; ?>
 
+            <!-- 🔧 САЙТ -->
+            <?php if ($service['website']): ?>
+            <div class="settings-section">
+                <div class="settings-section-title">Сайт</div>
+                <div class="settings-item">
+                    <div class="settings-item-icon" style="background:#EEF2FF;color:#3B6CF4;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    </div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Вебсайт</div>
+                        <a href="<?php echo htmlspecialchars($service['website']); ?>" target="_blank" rel="nofollow noopener"
+                           style="color:var(--primary);font-size:14px;font-weight:600;word-break:break-all;">
+                            <?php echo htmlspecialchars($service['website']); ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- 🔧 ОТЗЫВЫ -->
             <?php
             $_revList   = $service['reviews'];
@@ -1262,25 +1281,6 @@ if (!empty($rawPhoto) && strpos($rawPhoto, 'placeholder') === false) {
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
-
-            <!-- 🔧 САЙТ -->
-            <?php if ($service['website']): ?>
-            <div class="settings-section">
-                <div class="settings-section-title">Сайт</div>
-                <div class="settings-item">
-                    <div class="settings-item-icon" style="background:#EEF2FF;color:#3B6CF4;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    </div>
-                    <div class="settings-item-content">
-                        <div class="settings-item-label">Вебсайт</div>
-                        <a href="<?php echo htmlspecialchars($service['website']); ?>" target="_blank" rel="nofollow noopener"
-                           style="color:var(--primary);font-size:14px;font-weight:600;word-break:break-all;">
-                            <?php echo htmlspecialchars($service['website']); ?>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <?php endif; ?>
 
             <!-- 🔧 АДРЕС И КАРТА -->
             <?php if ($service['address']): ?>

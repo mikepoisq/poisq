@@ -87,17 +87,18 @@ foreach ($qwords as $qw) {
 }
 
 $prependSeparator = '';
+$sort = ['verified:desc', 'rating:desc', 'views:desc'];
 if ($detectedCityId > 0) {
-    $r = meiliSearch($cleanQ, ['filter' => "city_id = $detectedCityId", 'limit' => 8]);
+    $r = meiliSearch($cleanQ, ['filter' => "city_id = $detectedCityId", 'limit' => 8, 'sort' => $sort]);
     $hits = $r['hits'] ?? [];
     // Город определён из запроса (не из localStorage) и результатов нет
     if (empty($hits) && $detectedCityId !== $userCityId && !empty($detectedCityName)) {
         $prependSeparator = "В $detectedCityName пока нет результатов — вот похожее в вашей стране:";
-        $r2 = meiliSearch($cleanQ, ['filter' => "country_code = '$userCountry'", 'limit' => 6]);
+        $r2 = meiliSearch($cleanQ, ['filter' => "country_code = '$userCountry'", 'limit' => 6, 'sort' => $sort]);
         $hits = $r2['hits'] ?? [];
     }
 } else {
-    $r2 = meiliSearch($cleanQ, ['filter' => "country_code = '$country'", 'limit' => 8]);
+    $r2 = meiliSearch($cleanQ, ['filter' => "country_code = '$country'", 'limit' => 8, 'sort' => $sort]);
     $hits = $r2['hits'] ?? [];
     if (count($hits) < 3) {
         $r3 = meiliSearch($cleanQ, ['filter' => "country_code != '$country'", 'limit' => 5, 'sort' => ['verified:desc', 'rating:desc', 'views:desc']]);

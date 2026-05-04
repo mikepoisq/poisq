@@ -2,6 +2,7 @@
 define('ADMIN_PANEL', true);
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../config/meilisearch.php";
 require_once __DIR__ . "/layout.php";
 requireAdmin();
 
@@ -41,6 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         $pdo->prepare("UPDATE services SET verified=1, verified_until=? WHERE id=?")
             ->execute([$until, $req['svc_id']]);
 
+        $svcRow = $pdo->query("SELECT s.*, c.name AS city_name, c.name_lat AS city_slug
+            FROM services s LEFT JOIN cities c ON s.city_id = c.id
+            WHERE s.id = {$req['svc_id']} LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        if ($svcRow) meiliUpdateDocument(meiliPrepareDoc($svcRow));
+
         $svcUrl = 'https://poisq.com/service/' . $req['svc_id'];
         sendVerificationApprovedEmail($req['user_email'], $req['user_name'], $req['service_name'], $svcUrl, $until);
 
@@ -55,6 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             ->execute([$comment, $reqId]);
         $pdo->prepare("UPDATE services SET verified=0 WHERE id=?")
             ->execute([$req['svc_id']]);
+
+        $svcRow = $pdo->query("SELECT s.*, c.name AS city_name, c.name_lat AS city_slug
+            FROM services s LEFT JOIN cities c ON s.city_id = c.id
+            WHERE s.id = {$req['svc_id']} LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        if ($svcRow) meiliUpdateDocument(meiliPrepareDoc($svcRow));
 
         sendVerificationRejectedEmail($req['user_email'], $req['user_name'], $req['service_name'], $comment);
 
