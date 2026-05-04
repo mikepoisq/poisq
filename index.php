@@ -6,15 +6,19 @@ $userName   = $isLoggedIn ? ($_SESSION['user_name']   ?? '') : '';
 $userAvatar = $isLoggedIn ? ($_SESSION['user_avatar'] ?? '') : '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 
-// Страны из БД для выбора страны
+// Страны из БД для выбора страны — с APCu кешем на 1 час
 require_once __DIR__ . '/config/database.php';
-$_jsCountries = [];
-try {
-    $_pdo = getDbConnection();
-    foreach ($_pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1 ORDER BY name_ru")->fetchAll(PDO::FETCH_ASSOC) as $_r) {
-        $_jsCountries[] = ['code' => $_r['code'], 'name' => $_r['name_ru']];
-    }
-} catch (Exception $_e) { error_log('Countries DB: ' . $_e->getMessage()); }
+$_jsCountries = apcu_fetch('poisq_js_countries', $_ok);
+if (!$_ok) {
+    $_jsCountries = [];
+    try {
+        $_pdo = getDbConnection();
+        foreach ($_pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1 ORDER BY name_ru")->fetchAll(PDO::FETCH_ASSOC) as $_r) {
+            $_jsCountries[] = ['code' => $_r['code'], 'name' => $_r['name_ru']];
+        }
+        if (!empty($_jsCountries)) apcu_store('poisq_js_countries', $_jsCountries, 3600);
+    } catch (Exception $_e) { error_log('Countries DB: ' . $_e->getMessage()); }
+}
 if (empty($_jsCountries)) {
     $_jsCountries = [
         ['code'=>'ae','name'=>'ОАЭ'],['code'=>'ar','name'=>'Аргентина'],['code'=>'au','name'=>'Австралия'],
@@ -44,70 +48,6 @@ if ($isLoggedIn) {
     } catch (Exception $e) { $slotsLeft = 3; }
 }
 
-function getCountryByIP() {
-    $ip = $_SERVER['HTTP_CLIENT_IP']
-        ?? $_SERVER['HTTP_X_FORWARDED_FOR']
-        ?? $_SERVER['HTTP_X_REAL_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? '';
-    if (in_array($ip, ['127.0.0.1', '::1', 'localhost', ''])) {
-        return ['code' => 'fr', 'name' => 'Франция'];
-    }
-    $cacheFile = sys_get_temp_dir() . '/poisq_geo_' . md5($ip);
-    if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < 86400)) {
-        $cached = json_decode(file_get_contents($cacheFile), true);
-        if ($cached) return $cached;
-    }
-    $context  = stream_context_create(['http' => ['timeout' => 3, 'user_agent' => 'Poisq/1.0']]);
-    $response = @file_get_contents('https://ipwhois.app/json/' . urlencode($ip), false, $context);
-    if ($response) {
-        $data = json_decode($response, true);
-        if (!empty($data['country_code'])) {
-            $code   = strtolower($data['country_code']);
-            $result = ['code' => $code, 'name' => getCountryName($code)];
-            @file_put_contents($cacheFile, json_encode($result));
-            return $result;
-        }
-    }
-    return ['code' => 'fr', 'name' => 'Франция'];
-}
-
-function getCountryName($code) {
-    $map = [
-        'af'=>'Афганистан','al'=>'Албания','dz'=>'Алжир','ar'=>'Аргентина',
-        'am'=>'Армения','au'=>'Австралия','at'=>'Австрия','az'=>'Азербайджан',
-        'bs'=>'Багамы','bh'=>'Бахрейн','bd'=>'Бангладеш','by'=>'Беларусь',
-        'be'=>'Бельгия','bz'=>'Белиз','bo'=>'Боливия','ba'=>'Босния и Герцеговина',
-        'br'=>'Бразилия','bg'=>'Болгария','kh'=>'Камбоджа','cm'=>'Камерун',
-        'ca'=>'Канада','cl'=>'Чили','cn'=>'Китай','co'=>'Колумбия',
-        'cr'=>'Коста-Рика','hr'=>'Хорватия','cu'=>'Куба','cy'=>'Кипр',
-        'cz'=>'Чехия','dk'=>'Дания','do'=>'Доминикана','ec'=>'Эквадор',
-        'eg'=>'Египет','sv'=>'Сальвадор','ee'=>'Эстония','fi'=>'Финляндия',
-        'fr'=>'Франция','ge'=>'Грузия','de'=>'Германия','gr'=>'Греция',
-        'gt'=>'Гватемала','hn'=>'Гондурас','hk'=>'Гонконг','hu'=>'Венгрия',
-        'is'=>'Исландия','in'=>'Индия','id'=>'Индонезия','ir'=>'Иран',
-        'iq'=>'Ирак','ie'=>'Ирландия','il'=>'Израиль','it'=>'Италия',
-        'jp'=>'Япония','jo'=>'Иордания','kz'=>'Казахстан','ke'=>'Кения',
-        'kw'=>'Кувейт','kg'=>'Кыргызстан','lv'=>'Латвия','lb'=>'Ливан',
-        'lt'=>'Литва','lu'=>'Люксембург','my'=>'Малайзия','mv'=>'Мальдивы',
-        'mt'=>'Мальта','mx'=>'Мексика','md'=>'Молдова','mc'=>'Монако',
-        'mn'=>'Монголия','me'=>'Черногория','ma'=>'Марокко','np'=>'Непал',
-        'nl'=>'Нидерланды','nz'=>'Новая Зеландия','ni'=>'Никарагуа','ng'=>'Нигерия',
-        'mk'=>'Северная Македония','no'=>'Норвегия','om'=>'Оман','pk'=>'Пакистан',
-        'pa'=>'Панама','py'=>'Парагвай','pe'=>'Перу','ph'=>'Филиппины',
-        'pl'=>'Польша','pt'=>'Португалия','qa'=>'Катар','ro'=>'Румыния',
-        'ru'=>'Россия','sa'=>'Саудовская Аравия','rs'=>'Сербия','sg'=>'Сингапур',
-        'sk'=>'Словакия','si'=>'Словения','za'=>'ЮАР','kr'=>'Южная Корея',
-        'es'=>'Испания','lk'=>'Шри-Ланка','se'=>'Швеция','ch'=>'Швейцария',
-        'sy'=>'Сирия','tw'=>'Тайвань','tj'=>'Таджикистан','tz'=>'Танзания',
-        'th'=>'Таиланд','tr'=>'Турция','tm'=>'Туркменистан','ua'=>'Украина',
-        'ae'=>'ОАЭ','gb'=>'Великобритания','us'=>'США','uy'=>'Уругвай',
-        'uz'=>'Узбекистан','ve'=>'Венесуэла','vn'=>'Вьетнам','xk'=>'Косово',
-    ];
-    return $map[$code] ?? $code;
-}
-
-$detectedCountry = getCountryByIP();
 ?>
 <?php
 $pageTitle       = 'Poisq — русскоязычные сервисы за рубежом';
@@ -811,13 +751,13 @@ require_once __DIR__ . '/includes/header.php';
   <div class="bottom-bar">
     <div class="country-selector" id="countrySelector">
       <div class="country-flag">
-        <img src="https://flagcdn.com/w80/<?php echo htmlspecialchars($detectedCountry['code']); ?>.png"
-             alt="<?php echo htmlspecialchars($detectedCountry['name']); ?>"
+        <img src="https://flagcdn.com/w80/fr.png"
+             alt="Франция"
              id="currentFlag" loading="lazy"
-             data-code="<?php echo htmlspecialchars($detectedCountry['code']); ?>">
+             data-code="fr">
       </div>
       <div class="country-info">
-        <div class="country-name" id="currentCountryName"><?php echo htmlspecialchars($detectedCountry['name']); ?></div>
+        <div class="country-name" id="currentCountryName">Франция</div>
         <div class="country-hint">Нажмите чтобы сменить страну</div>
       </div>
       <div class="country-chevron">

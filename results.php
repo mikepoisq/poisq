@@ -126,31 +126,44 @@ foreach ($russianStopWords as $sw) {
 $cleanQuery = trim(preg_replace('/\s+/', ' ', $cleanQuery));
 // Если после очистки запрос пустой — используем оригинал
 if (empty($cleanQuery)) $cleanQuery = $searchQuery;
+// Загружаем все города один раз — с APCu кешем на 1 час
+$allCities = apcu_fetch('poisq_all_cities', $__ok);
+if (!$__ok) {
+    try {
+        $allCities = $pdo->query(
+            "SELECT id, name, name_lat, country_code, is_capital, sort_order FROM cities"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        apcu_store('poisq_all_cities', $allCities, 3600);
+    } catch (Exception $e) { $allCities = []; }
+}
+
 // Парсим город из текста запроса
-if (!empty($searchQuery) && $cityFilter === 0) {
+if (!empty($searchQuery) && $cityFilter === 0 && !empty($allCities)) {
     $qwords = array_filter(explode(' ', mb_strtolower($searchQuery)), fn($w) => mb_strlen($w) >= 3);
     foreach ($qwords as $qw) {
-        try {
-            $cs = $pdo->prepare("SELECT id,name,name_lat,country_code FROM cities WHERE LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ? LIMIT 1");
-            $cs->execute(['%'.$qw.'%','%'.$qw.'%']);
-            $fc = $cs->fetch(PDO::FETCH_ASSOC);
-            if ($fc) {
-                $detectedCity = $fc;
-                $cityFilter   = (int)$fc['id'];
-                $countryCode  = $fc['country_code'];
-                $cleanQuery   = trim(preg_replace('/'.preg_quote($fc['name'],'/').'/iu','', $cleanQuery));
-                $cleanQuery   = trim(preg_replace('/'.preg_quote($fc['name_lat'],'/').'/iu','', $cleanQuery));
-                $cleanQuery   = trim(preg_replace('/\s+/',' ', $cleanQuery));
-                break;
+        foreach ($allCities as $cityRow) {
+            if (mb_strpos(mb_strtolower($cityRow['name'],    'UTF-8'), $qw) !== false ||
+                mb_strpos(mb_strtolower($cityRow['name_lat'], 'UTF-8'), $qw) !== false) {
+                $detectedCity = $cityRow;
+                $cityFilter   = (int)$cityRow['id'];
+                $countryCode  = $cityRow['country_code'];
+                $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name'],   '/').'/iu', '', $cleanQuery));
+                $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name_lat'],'/').'/iu', '', $cleanQuery));
+                $cleanQuery   = trim(preg_replace('/\s+/', ' ', $cleanQuery));
+                break 2;
             }
-        } catch (Exception $e) {}
+        }
     }
 }
 
 // Парсим страну из текста запроса (если город не найден или страна не определена из URL)
 if (!empty($searchQuery)) {
     try {
-        $countries_list = $pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1")->fetchAll(PDO::FETCH_ASSOC);
+        $countries_list = apcu_fetch('poisq_countries_list', $__ok2);
+        if (!$__ok2) {
+            $countries_list = $pdo->query("SELECT code, name_ru FROM countries WHERE is_active=1")->fetchAll(PDO::FETCH_ASSOC);
+            apcu_store('poisq_countries_list', $countries_list, 3600);
+        }
         $qLower = mb_strtolower($searchQuery, 'UTF-8');
         foreach ($countries_list as $cnt) {
             $cname = mb_strtolower($cnt['name_ru'], 'UTF-8');
@@ -436,14 +449,9 @@ foreach ($servicesGlobal as &$svc) {
 }
 unset($svc);
 
-// Города для фильтра
-try {
-    $cst = $pdo->prepare("SELECT id,name,name_lat,is_capital FROM cities WHERE country_code=? ORDER BY is_capital DESC,sort_order ASC");
-    $cst->execute([$countryCode]);
-    $cities = $cst->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    $cities = [];
-}
+// Города для фильтра — из уже загруженного массива, без дополнительного SQL
+$cities = array_values(array_filter($allCities, fn($c) => $c['country_code'] === $countryCode));
+usort($cities, fn($a, $b) => $b['is_capital'] <=> $a['is_capital'] ?: $a['sort_order'] <=> $b['sort_order']);
 // Категории для фильтра
 $categories = [
     'health'      => '🏥 Здоровье',
