@@ -796,8 +796,11 @@ async function loadServices() {
       if (bounds.length === 1) map.setView(bounds[0], 10);
       else if (bounds.length > 1) map.fitBounds(bounds, { padding: [60, 60], maxZoom: 6 });
       else map.setView([48.8566, 2.3522], 5);
-    } else if (data.fallback_level === 'country' && detectedCountryHint) {
-      map.setView([detectedCountryHint.lat, detectedCountryHint.lng], detectedCountryHint.zoom);
+    } else if (data.fallback_level === 'country') {
+      if (bounds.length === 1) map.setView(bounds[0], 13);
+      else if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      else if (detectedCountryHint) map.setView([detectedCountryHint.lat, detectedCountryHint.lng], detectedCountryHint.zoom);
+      else map.setView([48.8566, 2.3522], 5);
     } else if (bounds.length === 1) map.setView(bounds[0], 15);
     else if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     else map.setView([48.8566, 2.3522], 5);
