@@ -1,8 +1,51 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 require_once 'config/database.php';
+require_once 'config/meilisearch.php';
 
 $pdo = getDbConnection();
+
+// ── Helper: fetch full service rows by Meilisearch-ranked IDs ───────────────
+function fetchServicesByIds(PDO $pdo, array $ids): array {
+    if (empty($ids)) return [];
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $pdo->prepare("
+        SELECT s.id, s.name, s.category, s.subcategory,
+               COALESCE(s.lat, c2.lat) AS lat,
+               COALESCE(s.lng, c2.lng) AS lng,
+               s.phone, s.whatsapp, s.photo, s.address, s.description,
+               s.rating, s.reviews_count, c2.name AS city_name, s.country_code, s.group_link
+        FROM services s
+        LEFT JOIN cities c2 ON s.city_id = c2.id
+        WHERE s.id IN ($placeholders)
+          AND s.status = 'approved'
+          AND s.is_visible = 1
+          AND (s.lat IS NOT NULL OR c2.lat IS NOT NULL)
+    ");
+    $stmt->execute($ids);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $byId = [];
+    foreach ($rows as $row) $byId[(int)$row['id']] = $row;
+    $result = [];
+    foreach ($ids as $id) {
+        if (isset($byId[$id])) $result[] = $byId[$id];
+    }
+    return $result;
+}
+
+// ── Helper: run Meilisearch query, return ranked array of IDs ───────────────
+function doMeiliSearch(string $q, string $locationFilter, array $base, string $textFilter, int $limit): array {
+    $parts = array_filter(array_merge(
+        $base,
+        $textFilter     ? [$textFilter]     : [],
+        $locationFilter ? [$locationFilter] : []
+    ));
+    $opts = ['limit' => $limit, 'sort' => ['verified:desc', 'rating:desc', 'views:desc']];
+    if ($q) $opts['matchingStrategy'] = 'all';
+    if ($parts) $opts['filter'] = implode(' AND ', $parts);
+    $r = meiliSearch($q, $opts);
+    return array_column($r['hits'] ?? [], 'id');
+}
 
 $country     = $_GET['country'] ?? '';
 $city_id     = intval($_GET['city_id'] ?? 0);
@@ -57,19 +100,34 @@ if ($q && $city_id) {
 
 // Auto-detect city from query text (if city_id not given)
 if ($q && !$city_id) {
-    $qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w) >= 3);
+    $allCities = $pdo->query("SELECT id, name, name_lat, country_code FROM cities")->fetchAll(PDO::FETCH_ASSOC);
+    $qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w, 'UTF-8') >= 5);
     foreach ($qwords as $qw) {
-        $cs = $pdo->prepare("SELECT id, name, name_lat, country_code FROM cities
-            WHERE LOWER(name) LIKE ? OR LOWER(name_lat) LIKE ? LIMIT 1");
-        $cs->execute(['%'.$qw.'%', '%'.$qw.'%']);
-        $fc = $cs->fetch(PDO::FETCH_ASSOC);
-        if ($fc) {
-            $city_id = $fc['id'];
-            $country = $fc['country_code']; // always update country from detected city
-            $q = trim(preg_replace('/'.preg_quote($fc['name'], '/').'/iu', '', $q));
-            $q = trim(preg_replace('/'.preg_quote($fc['name_lat'], '/').'/iu', '', $q));
-            $q = trim(preg_replace('/\s+/', ' ', $q));
-            break;
+        $isCyrillic = (bool)preg_match('/[\p{Cyrillic}]/u', $qw);
+        foreach ($allCities as $cityRow) {
+            $nameL    = mb_strtolower($cityRow['name'],    'UTF-8');
+            $nameLatL = mb_strtolower($cityRow['name_lat'], 'UTF-8');
+            if ($isCyrillic) {
+                $stems = [$qw];
+                for ($cut = 1; $cut <= 3; $cut++) {
+                    $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
+                    if (mb_strlen($s, 'UTF-8') >= 4) $stems[] = $s;
+                }
+                $matched = false;
+                foreach ($stems as $stem) {
+                    if (mb_substr($stem, 0, mb_strlen($nameL, 'UTF-8'), 'UTF-8') === $nameL) { $matched = true; break; }
+                }
+            } else {
+                $matched = ($nameLatL === $qw);
+            }
+            if ($matched) {
+                $city_id = (int)$cityRow['id'];
+                $country = $cityRow['country_code'];
+                $q = trim(preg_replace('/'.preg_quote($cityRow['name'],    '/').'/iu', '', $q));
+                $q = trim(preg_replace('/'.preg_quote($cityRow['name_lat'],'/').'/iu', '', $q));
+                $q = trim(preg_replace('/\s+/', ' ', $q));
+                break 2;
+            }
         }
     }
 }
@@ -106,7 +164,6 @@ if (!$country && !$city_id) {
     foreach ($countryHints as $name => $code) {
         if (mb_strpos($qLowerForCountry, $name) !== false) {
             $country = $code;
-            // Убираем название страны из запроса
             $q = trim(preg_replace('/'.preg_quote($name, '/').'/iu', '', $q));
             $q = trim(preg_replace('/\s+/', ' ', $q));
             $cleanQ = $q;
@@ -115,31 +172,28 @@ if (!$country && !$city_id) {
     }
 }
 
-// Base conditions (always applied)
+// ── Meilisearch base filters (category, rating, verified) ──────────────────
+$meiliBase = [];
+if ($category) $meiliBase[] = "category = '" . addslashes($category) . "'";
+if ($rating > 0) $meiliBase[] = "rating >= $rating";
+if ($verified) $meiliBase[] = "verified = 1";
+
+/*
+// OLD SQL filter arrays (kept for rollback reference)
 $baseWhere = [
     "s.status = 'approved'",
     "s.is_visible = 1",
     "(s.lat IS NOT NULL OR c2.lat IS NOT NULL)",
 ];
-
-// Category / rating / verified filters
 $filterWhere  = [];
 $filterParams = [];
-if ($category) {
-    $filterWhere[] = "s.category = ?";
-    $filterParams[] = $category;
-}
-if ($rating > 0) {
-    $filterWhere[] = "s.rating >= ?";
-    $filterParams[] = $rating;
-}
-if ($verified) {
-    $filterWhere[] = "s.verified = 1";
-}
+if ($category) { $filterWhere[] = "s.category = ?"; $filterParams[] = $category; }
+if ($rating > 0) { $filterWhere[] = "s.rating >= ?"; $filterParams[] = $rating; }
+if ($verified) { $filterWhere[] = "s.verified = 1"; }
+*/
 
-// Text / search conditions
-$textWhere  = [];
-$textParams = [];
+// Text/search Meilisearch filter (subcategory or category matched from synonym/messenger)
+$meiliTextFilter = '';
 
 // Strip russian language words (same as results.php)
 $russianStopWords = [
@@ -162,8 +216,8 @@ $messengerFound = false;
 foreach ($messengerKeywords as $subcatValue => $keywords) {
     foreach ($keywords as $kw) {
         if (mb_strpos(mb_strtolower($q, 'UTF-8'), $kw) !== false) {
-            $textWhere[]  = "s.subcategory = ?";
-            $textParams[] = $subcatValue;
+            $meiliTextFilter = "subcategory = '" . addslashes($subcatValue) . "'";
+            // OLD: $textWhere[] = "s.subcategory = ?"; $textParams[] = $subcatValue;
             $q = '';
             $messengerFound = true;
             break 2;
@@ -176,8 +230,8 @@ if (!$messengerFound) {
     $groupKeywords = ['группы','группа','group','groups'];
     foreach ($groupKeywords as $gkw) {
         if (mb_strpos(mb_strtolower($q, 'UTF-8'), $gkw) !== false) {
-            $textWhere[]  = "s.category = ?";
-            $textParams[] = 'messengers';
+            $meiliTextFilter = "category = 'messengers'";
+            // OLD: $textWhere[] = "s.category = ?"; $textParams[] = 'messengers';
             $messengerFound = true;
             $q = '';
             break;
@@ -304,97 +358,111 @@ $synonymMap = [
     'тур'             => ['subcategory' => 'Туризм'],
 ];
 
-// Ищем совпадение в словаре (сначала длинные фразы, потом короткие)
+// Synonym map: used only to detect a match (sets $synonymMatched).
+// With Meilisearch full-text we pass $q directly — no subcategory filter needed.
+// (MySQL needed subcategory filter; Meilisearch finds "стоматолог" in name/description naturally.)
 $synonymMatched = false;
 if ($q && !$messengerFound) {
     $qLowerSyn = mb_strtolower($q, 'UTF-8');
-    // Сортируем по длине ключа (длинные фразы приоритетнее)
     $synonymKeys = array_keys($synonymMap);
     usort($synonymKeys, fn($a,$b) => mb_strlen($b) - mb_strlen($a));
     foreach ($synonymKeys as $keyword) {
-        if (mb_strpos($qLowerSyn, $keyword) !== false) {
-            $match = $synonymMap[$keyword];
-            if (isset($match['subcategory'])) {
-                $textWhere[]  = "s.subcategory = ?";
-                $textParams[] = $match['subcategory'];
-                if (isset($match['category']) && !$category) {
-                    $filterWhere[]  = "s.category = ?";
-                    $filterParams[] = $match['category'];
-                }
-            } elseif (isset($match['category']) && !$category) {
-                $textWhere[]  = "s.category = ?";
-                $textParams[] = $match['category'];
-            }
+        if (mb_strpos(' ' . $qLowerSyn . ' ', ' ' . $keyword . ' ') !== false) {
             $synonymMatched = true;
             break;
         }
     }
+    /*
+    // OLD SQL synonym matching (kept for rollback reference):
+    // foreach ($synonymKeys as $keyword) {
+    //     if (mb_strpos(' ' . $qLowerSyn . ' ', ' ' . $keyword . ' ') !== false) {
+    //         $match = $synonymMap[$keyword];
+    //         if (isset($match['subcategory'])) {
+    //             $textWhere[]  = "s.subcategory = ?";
+    //             $textParams[] = $match['subcategory'];
+    //             if (isset($match['category']) && !$category) {
+    //                 $filterWhere[]  = "s.category = ?";
+    //                 $filterParams[] = $match['category'];
+    //             }
+    //         } elseif (isset($match['category']) && !$category) {
+    //             $textWhere[]  = "s.category = ?";
+    //             $textParams[] = $match['category'];
+    //         }
+    //         $synonymMatched = true;
+    //         break;
+    //     }
+    // }
+    */
 }
 
-if ($q && !$messengerFound && !$synonymMatched) {
-    $subStmt = $pdo->prepare("SELECT category_slug, name FROM service_subcategories WHERE is_active=1");
-    $subStmt->execute();
-    $allSubs = $subStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $catStmt = $pdo->prepare("SELECT slug, name FROM service_categories WHERE is_active=1");
-    $catStmt->execute();
-    $allCats = $catStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $matchedSubcategory = null;
-    $matchedCategory    = null;
-    $qLower = mb_strtolower($q, 'UTF-8');
-
-    foreach ($allSubs as $sub) {
-        $subLower = mb_strtolower($sub['name'], 'UTF-8');
-        if ($subLower === $qLower || strpos($subLower, $qLower) !== false || strpos($qLower, $subLower) !== false) {
-            $matchedSubcategory = $sub['name'];
-            $matchedCategory    = $sub['category_slug'];
-            break;
-        }
-    }
-    if (!$matchedSubcategory) {
-        foreach ($allCats as $cat) {
-            $catLower = mb_strtolower($cat['name'], 'UTF-8');
-            if ($catLower === $qLower || strpos($catLower, $qLower) !== false || strpos($qLower, $catLower) !== false) {
-                $matchedCategory = $cat['slug'];
-                break;
-            }
-        }
-    }
-
-    if ($matchedSubcategory) {
-        $textWhere[]  = "s.subcategory = ?";
-        $textParams[] = $matchedSubcategory;
-    } elseif ($matchedCategory && !$category) {
-        $textWhere[]  = "s.category = ?";
-        $textParams[] = $matchedCategory;
-    } else {
-        $textWhere[]  = "(s.name LIKE ? OR s.description LIKE ? OR s.subcategory LIKE ?)";
-        $textParams[] = '%' . $q . '%';
-        $textParams[] = '%' . $q . '%';
-        $textParams[] = '%' . $q . '%';
-    }
-}
-
-$selectSql = "SELECT s.id, s.name, s.category, s.subcategory,
-               COALESCE(s.lat, c2.lat) as lat,
-               COALESCE(s.lng, c2.lng) as lng,
-               s.phone, s.whatsapp, s.photo, s.address, s.description,
-               s.rating, s.reviews_count, c2.name as city_name, s.country_code, s.group_link
-        FROM services s
-        LEFT JOIN cities c2 ON s.city_id = c2.id";
-$orderBy = "s.verified DESC, s.rating DESC, s.views DESC";
-
-function runQuery($pdo, $selectSql, $baseWhere, $locationWhere, $filterWhere, $textWhere,
-                  $locationParams, $filterParams, $textParams, $limit, $orderBy) {
-    $allWhere  = array_merge($baseWhere, $locationWhere, $filterWhere, $textWhere);
-    $allParams = array_merge($locationParams, $filterParams, $textParams);
-    $sql = $selectSql . ' WHERE ' . implode(' AND ', $allWhere)
-         . ' ORDER BY ' . $orderBy . ' LIMIT ' . $limit;
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($allParams);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+/*
+// OLD: DB subcategory/category matching when no synonym found — replaced by Meilisearch full-text
+// if ($q && !$messengerFound && !$synonymMatched) {
+//     $subStmt = $pdo->prepare("SELECT category_slug, name FROM service_subcategories WHERE is_active=1");
+//     $subStmt->execute();
+//     $allSubs = $subStmt->fetchAll(PDO::FETCH_ASSOC);
+//
+//     $catStmt = $pdo->prepare("SELECT slug, name FROM service_categories WHERE is_active=1");
+//     $catStmt->execute();
+//     $allCats = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+//
+//     $matchedSubcategory = null;
+//     $matchedCategory    = null;
+//     $qLower = mb_strtolower($q, 'UTF-8');
+//
+//     foreach ($allSubs as $sub) {
+//         $subLower = mb_strtolower($sub['name'], 'UTF-8');
+//         if ($subLower === $qLower || strpos($subLower, $qLower) !== false || strpos($qLower, $subLower) !== false) {
+//             $matchedSubcategory = $sub['name'];
+//             $matchedCategory    = $sub['category_slug'];
+//             break;
+//         }
+//     }
+//     if (!$matchedSubcategory) {
+//         foreach ($allCats as $cat) {
+//             $catLower = mb_strtolower($cat['name'], 'UTF-8');
+//             if ($catLower === $qLower || strpos($catLower, $qLower) !== false || strpos($qLower, $catLower) !== false) {
+//                 $matchedCategory = $cat['slug'];
+//                 break;
+//             }
+//         }
+//     }
+//
+//     if ($matchedSubcategory) {
+//         $textWhere[]  = "s.subcategory = ?";
+//         $textParams[] = $matchedSubcategory;
+//     } elseif ($matchedCategory && !$category) {
+//         $textWhere[]  = "s.category = ?";
+//         $textParams[] = $matchedCategory;
+//     } else {
+//         $textWhere[]  = "(s.name LIKE ? OR s.description LIKE ? OR s.subcategory LIKE ?)";
+//         $textParams[] = '%' . $q . '%';
+//         $textParams[] = '%' . $q . '%';
+//         $textParams[] = '%' . $q . '%';
+//     }
+// }
+//
+// OLD SQL helpers and 3-level query runner:
+// $selectSql = "SELECT s.id, s.name, s.category, s.subcategory,
+//                COALESCE(s.lat, c2.lat) as lat,
+//                COALESCE(s.lng, c2.lng) as lng,
+//                s.phone, s.whatsapp, s.photo, s.address, s.description,
+//                s.rating, s.reviews_count, c2.name as city_name, s.country_code, s.group_link
+//         FROM services s
+//         LEFT JOIN cities c2 ON s.city_id = c2.id";
+// $orderBy = "s.verified DESC, s.rating DESC, s.views DESC";
+//
+// function runQuery($pdo, $selectSql, $baseWhere, $locationWhere, $filterWhere, $textWhere,
+//                   $locationParams, $filterParams, $textParams, $limit, $orderBy) {
+//     $allWhere  = array_merge($baseWhere, $locationWhere, $filterWhere, $textWhere);
+//     $allParams = array_merge($locationParams, $filterParams, $textParams);
+//     $sql = $selectSql . ' WHERE ' . implode(' AND ', $allWhere)
+//          . ' ORDER BY ' . $orderBy . ' LIMIT ' . $limit;
+//     $stmt = $pdo->prepare($sql);
+//     $stmt->execute($allParams);
+//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+// }
+*/
 
 // Fetch searched city info for response (coords for JS zoom)
 $searchedCity    = null;
@@ -413,14 +481,12 @@ if (!$isGlobal) {
 
     // ── Level 1: specific city ──────────────────────────────────────────────
     if ($city_id) {
-        $services = runQuery($pdo, $selectSql, $baseWhere,
-            ["s.city_id = ?"], $filterWhere, $textWhere,
-            [$city_id], $filterParams, $textParams, 200, $orderBy);
+        $ids      = doMeiliSearch($q, "city_id = $city_id", $meiliBase, $meiliTextFilter, 200);
+        $services = fetchServicesByIds($pdo, $ids);
 
         if (!empty($services)) {
             $fallbackLevel = 'city';
         } else {
-            // City has 0 results — return immediately, JS zooms to city + shows expand banner
             echo json_encode([
                 'success'          => true,
                 'services'         => [],
@@ -435,14 +501,12 @@ if (!$isGlobal) {
 
     // ── Level 2: country search (no specific city) ──────────────────────────
     elseif ($country) {
-        $services = runQuery($pdo, $selectSql, $baseWhere,
-            ["s.country_code = ?"], $filterWhere, $textWhere,
-            [$country], $filterParams, $textParams, 200, $orderBy);
+        $ids      = doMeiliSearch($q, "country_code = '$country'", $meiliBase, $meiliTextFilter, 200);
+        $services = fetchServicesByIds($pdo, $ids);
 
         if (!empty($services)) {
             $fallbackLevel = 'country';
         } else {
-            // Country also empty — JS shows "nearby countries" banner
             echo json_encode([
                 'success'          => true,
                 'services'         => [],
@@ -457,20 +521,18 @@ if (!$isGlobal) {
 
     // ── Multi-country search (banner tap: "nearby countries") ───────────────
     elseif (!empty($countriesList)) {
-        $placeholders = implode(',', array_fill(0, count($countriesList), '?'));
-        $services = runQuery($pdo, $selectSql, $baseWhere,
-            ["s.country_code IN ($placeholders)"], $filterWhere, $textWhere,
-            $countriesList, $filterParams, $textParams, 30, $orderBy);
+        $countryStr    = implode("', '", array_map('addslashes', $countriesList));
+        $countryFilter = "country_code IN ['$countryStr']";
+        $ids           = doMeiliSearch($q, $countryFilter, $meiliBase, $meiliTextFilter, 30);
+        $services      = fetchServicesByIds($pdo, $ids);
         if (!empty($services)) $fallbackLevel = 'nearby';
-        // if still empty — falls through to global below
     }
 }
 
 // ── Level 3 (global): global=1 or nothing found above ──────────────────────
 if (empty($services)) {
-    $services = runQuery($pdo, $selectSql, $baseWhere,
-        [], $filterWhere, $textWhere,
-        [], $filterParams, $textParams, 20, $orderBy);
+    $ids      = doMeiliSearch($q, '', $meiliBase, $meiliTextFilter, 20);
+    $services = fetchServicesByIds($pdo, $ids);
     $fallbackLevel = 'global';
 }
 

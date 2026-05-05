@@ -64,16 +64,24 @@ if (!$__ok) {
 $qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w, 'UTF-8') >= 3);
 foreach ($qwords as $qw) {
     if (mb_strlen($qw, 'UTF-8') < 5) continue;
-    $stems = [$qw];
-    for ($cut = 1; $cut <= 3; $cut++) {
-        $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
-        if (mb_strlen($s, 'UTF-8') >= 4) $stems[] = $s;
-    }
+    $isCyrillic = (bool)preg_match('/[\p{Cyrillic}]/u', $qw);
     foreach ($allCities as $cityRow) {
         $nameL    = mb_strtolower($cityRow['name'],    'UTF-8');
         $nameLatL = mb_strtolower($cityRow['name_lat'], 'UTF-8');
-        foreach ($stems as $stem) {
-            if (mb_strpos($nameL, $stem) !== false || mb_strpos($nameLatL, $stem) !== false) {
+        if ($isCyrillic) {
+            $stems = [$qw];
+            for ($cut = 1; $cut <= 3; $cut++) {
+                $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
+                if (mb_strlen($s, 'UTF-8') >= 4) $stems[] = $s;
+            }
+            $matched = false;
+            foreach ($stems as $stem) {
+                if (mb_substr($stem, 0, mb_strlen($nameL, 'UTF-8'), 'UTF-8') === $nameL) { $matched = true; break; }
+            }
+        } else {
+            $matched = ($nameLatL === $qw);
+        }
+        if ($matched) {
                 $detectedCityId   = (int)$cityRow['id'];
                 $detectedCityName = $cityRow['name'];
                 $country = $cityRow['country_code'];
@@ -81,8 +89,7 @@ foreach ($qwords as $qw) {
                 $cleanQ = trim(preg_replace('/'.preg_quote($cityRow['name_lat'],'/').'/iu', '', $cleanQ));
                 $cleanQ = trim(preg_replace('/\s+/', ' ', $cleanQ));
                 if (empty($cleanQ)) $cleanQ = $q;
-                break 3;
-            }
+                break 2;
         }
     }
 }

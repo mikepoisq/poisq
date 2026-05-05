@@ -61,7 +61,7 @@ elseif ($countryName) $pageTitle .= ' — ' . $countryName;
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-<script src="/assets/js/theme.js"></script>
+<script src="/assets/js/theme.js?v=2"></script>
 <link rel="stylesheet" href="/assets/css/theme.css">
 <link rel="stylesheet" href="/assets/css/desktop.css">
 <style>
@@ -1004,18 +1004,60 @@ async function loadCityHints() {
 loadCityHints();
 
 function detectCityFromQuery(q) {
-  const lower = q.toLowerCase();
-  for (const [name, id] of Object.entries(CITY_HINTS)) {
-    if (lower.includes(name)) return id;
+  const words = q.toLowerCase().split(/\s+/).filter(w => w.length >= 5);
+  for (const word of words) {
+    const isCyrillic = /[Ѐ-ӿ]/.test(word);
+    if (isCyrillic) {
+      const stems = [word];
+      for (let cut = 1; cut <= 3; cut++) {
+        const s = [...word].slice(0, word.length - cut).join('');
+        if (s.length >= 4) stems.push(s);
+      }
+      for (const [name, id] of Object.entries(CITY_HINTS)) {
+        if (!/[Ѐ-ӿ]/.test(name)) continue;
+        for (const stem of stems) {
+          if (stem.substring(0, name.length) === name) {
+            return id;
+          }
+        }
+      }
+    } else {
+      for (const [name, id] of Object.entries(CITY_HINTS)) {
+        if (/[Ѐ-ӿ]/.test(name)) continue;
+        if (name === word) {
+          return id;
+        }
+      }
+    }
   }
   return 0;
 }
 
 function stripCityFromQuery(q) {
-  const lower = q.toLowerCase();
-  for (const name of Object.keys(CITY_HINTS)) {
-    if (lower.includes(name)) {
-      return q.replace(new RegExp(name, 'i'), '').replace(/\s+/g, ' ').trim();
+  const words = q.toLowerCase().split(/\s+/).filter(w => w.length >= 5);
+  for (const word of words) {
+    const isCyrillic = /[Ѐ-ӿ]/.test(word);
+    if (isCyrillic) {
+      const stems = [word];
+      for (let cut = 1; cut <= 3; cut++) {
+        const s = [...word].slice(0, word.length - cut).join('');
+        if (s.length >= 4) stems.push(s);
+      }
+      for (const name of Object.keys(CITY_HINTS)) {
+        if (!/[Ѐ-ӿ]/.test(name)) continue;
+        for (const stem of stems) {
+          if (stem.substring(0, name.length) === name) {
+            return q.replace(new RegExp(word, 'i'), '').replace(/\s+/g, ' ').trim();
+          }
+        }
+      }
+    } else {
+      for (const name of Object.keys(CITY_HINTS)) {
+        if (/[Ѐ-ӿ]/.test(name)) continue;
+        if (name === word) {
+          return q.replace(new RegExp(word, 'i'), '').replace(/\s+/g, ' ').trim();
+        }
+      }
     }
   }
   return q;

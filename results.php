@@ -142,25 +142,32 @@ if (!empty($searchQuery) && $cityFilter === 0 && !empty($allCities)) {
     $qwords = array_filter(explode(' ', mb_strtolower($searchQuery)), fn($w) => mb_strlen($w) >= 3);
     foreach ($qwords as $qw) {
         if (mb_strlen($qw, 'UTF-8') < 5) continue;
-        // Варианты с обрезанными окончаниями для падежных форм (Цюрихе→Цюрих, Париже→Париж)
-        $stems = [$qw];
-        for ($cut = 1; $cut <= 3; $cut++) {
-            $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
-            if (mb_strlen($s, 'UTF-8') >= 4) $stems[] = $s;
-        }
+        $isCyrillic = (bool)preg_match('/[\p{Cyrillic}]/u', $qw);
         foreach ($allCities as $cityRow) {
             $nameL    = mb_strtolower($cityRow['name'],    'UTF-8');
             $nameLatL = mb_strtolower($cityRow['name_lat'], 'UTF-8');
-            foreach ($stems as $stem) {
-                if (mb_strpos($nameL, $stem) !== false || mb_strpos($nameLatL, $stem) !== false) {
+            if ($isCyrillic) {
+                // Падежные формы: Мадриде→Мадрид, Париже→Париж
+                $stems = [$qw];
+                for ($cut = 1; $cut <= 3; $cut++) {
+                    $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
+                    if (mb_strlen($s, 'UTF-8') >= 4) $stems[] = $s;
+                }
+                $matched = false;
+                foreach ($stems as $stem) {
+                    if (mb_substr($stem, 0, mb_strlen($nameL, 'UTF-8'), 'UTF-8') === $nameL) { $matched = true; break; }
+                }
+            } else {
+                $matched = ($nameLatL === $qw);
+            }
+            if ($matched) {
                     $detectedCity = $cityRow;
                     $cityFilter   = (int)$cityRow['id'];
                     $countryCode  = $cityRow['country_code'];
                     $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name'],    '/').'/iu', '', $cleanQuery));
                     $cleanQuery   = trim(preg_replace('/'.preg_quote($cityRow['name_lat'],'/').'/iu', '', $cleanQuery));
                     $cleanQuery   = trim(preg_replace('/\s+/', ' ', $cleanQuery));
-                    break 3;
-                }
+                    break 2;
             }
         }
     }
@@ -205,6 +212,7 @@ foreach ($messengerKeywords as $subcatValue => $keywords) {
         }
     }
 }
+
 // Базовый фильтр Meilisearch
 $mf_parts = [];
 if ($verifiedFilter)             $mf_parts[] = "verified = 1";
@@ -2252,7 +2260,7 @@ function toggleRating(r) {
 }
 
 function goToMap() {
-  const q = '<?php echo addslashes($searchQuery); ?>';
+  const q = '<?php echo addslashes($cleanQuery); ?>';
   const params = new URLSearchParams();
   params.set('country', countryCode);
   if (currentCity > 0) params.set('city_id', currentCity);
