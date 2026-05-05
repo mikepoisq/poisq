@@ -128,6 +128,7 @@ if (!$geo && !$isLocal) {
     $apiData = fetchGeoData($ip);
     if ($apiData) {
         $geo = $apiData;
+        error_log("GEO: ip=$ip country={$geo['country_code']} city={$geo['city_raw']}");
     }
 }
 
