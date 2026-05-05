@@ -66,7 +66,7 @@ foreach ($qwords as $qw) {
     $stems = [$qw];
     for ($cut = 1; $cut <= 3; $cut++) {
         $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
-        if (mb_strlen($s, 'UTF-8') >= 3) $stems[] = $s;
+        if (mb_strlen($s, 'UTF-8') >= 4) $stems[] = $s;
     }
     foreach ($allCities as $cityRow) {
         $nameL    = mb_strtolower($cityRow['name'],    'UTF-8');
