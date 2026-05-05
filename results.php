@@ -141,6 +141,7 @@ if (!$__ok) {
 if (!empty($searchQuery) && $cityFilter === 0 && !empty($allCities)) {
     $qwords = array_filter(explode(' ', mb_strtolower($searchQuery)), fn($w) => mb_strlen($w) >= 3);
     foreach ($qwords as $qw) {
+        if (mb_strlen($qw, 'UTF-8') < 5) continue;
         // Варианты с обрезанными окончаниями для падежных форм (Цюрихе→Цюрих, Париже→Париж)
         $stems = [$qw];
         for ($cut = 1; $cut <= 3; $cut++) {

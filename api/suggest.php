@@ -63,6 +63,7 @@ if (!$__ok) {
 
 $qwords = array_filter(explode(' ', mb_strtolower($q, 'UTF-8')), fn($w) => mb_strlen($w, 'UTF-8') >= 3);
 foreach ($qwords as $qw) {
+    if (mb_strlen($qw, 'UTF-8') < 5) continue;
     $stems = [$qw];
     for ($cut = 1; $cut <= 3; $cut++) {
         $s = mb_substr($qw, 0, mb_strlen($qw, 'UTF-8') - $cut, 'UTF-8');
