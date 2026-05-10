@@ -318,7 +318,8 @@ function fetchFullByIds(PDO $pdo, array $ids): array {
                s.description, s.address, s.languages,
                s.services AS service_list, s.social,
                s.verified, s.verified_until, s.hours, s.created_at, s.group_link,
-               c.name AS city_name, c.name_lat AS city_name_lat
+               c.name AS city_name, c.name_lat AS city_name_lat,
+               s.lat, s.lng
         FROM services s LEFT JOIN cities c ON s.city_id = c.id
         WHERE s.id IN ($ph) ORDER BY FIELD(s.id, $ph)
     ");
@@ -525,6 +526,7 @@ $pageRobots      = 'noindex, follow';
 $pageDescription = $seoDesc;
 require_once __DIR__ . '/includes/header.php';
 ?>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 html, body { min-height: 100%; overflow-x: hidden; }
 body {
@@ -1054,6 +1056,10 @@ body {
 .lang-check-item .lang-flag { font-size: 20px; flex-shrink: 0; }
 
 
+/* ── Мобиль: правая колонка скрыта ── */
+.results-body { display: block; }
+.results-col-right { display: none; }
+
 /* ══════════════════════════════════════════════════════════════
    results.php — Google-style десктоп (1024px+)
    Горизонтальные фильтры сверху, результаты в одной колонке
@@ -1069,6 +1075,8 @@ body {
     max-width: none;
     min-height: calc(100vh - 64px);
     background: var(--bg);
+    display: flex;
+    flex-direction: column;
   }
 
   /* ── Шапка результатов: sticky полная ширина ── */
@@ -1089,9 +1097,9 @@ body {
   /* Скрываем заглушку сайдбара */
   .sidebar-title-desktop { display: none !important; }
 
-  /* ── Строка поиска: смещение влево как у Google ── */
+  /* ── Строка поиска ── */
   .header-search {
-    padding: 10px 40px 6px 195px;
+    padding: 10px 40px 6px 32px;
   }
   .search-bar {
     max-width: 640px;
@@ -1111,7 +1119,7 @@ body {
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 4px 40px 0 195px;
+    padding: 4px 32px 0 32px;
     gap: 0;
     border-bottom: none;
     scrollbar-width: none;
@@ -1143,7 +1151,7 @@ body {
 
   /* ── Мета-строка: счётчик результатов ── */
   .results-meta {
-    padding: 6px 40px 6px 195px;
+    padding: 6px 32px 6px 32px;
     border-top: 1px solid var(--border-light);
   }
   .results-count {
@@ -1154,11 +1162,10 @@ body {
   .results-count span { color: #70757A; font-weight: 400; }
   .sort-btn { display: none; }
 
-  /* ── Блоки результатов: смещение влево ── */
+  /* ── Блоки результатов: в левой колонке ── */
   .results-list {
-    padding: 8px 40px 40px 195px;
+    padding: 8px 32px 40px 32px;
     background: var(--bg);
-    max-width: 900px;
   }
 
   /* ── Карточки: чистый Google-стиль ── */
@@ -1237,6 +1244,28 @@ body {
 
   /* ── Пустое состояние ── */
   .empty-state { max-width: 500px; padding: 80px 24px; }
+
+  /* ── Two-column layout ── */
+  .results-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  .results-col-left {
+    flex: 0 0 60%;
+    overflow-y: auto;
+    max-width: 760px;
+  }
+  .results-col-right {
+    display: block;
+    flex: 1;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    border-left: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+    overflow: hidden;
+  }
 
 }
 
@@ -1328,6 +1357,7 @@ body {
     </div>
   </div>
 
+<div class="results-body"><div class="results-col-left">
   <!-- РЕЗУЛЬТАТЫ -->
   <div class="results-list" id="resultsList">
     <?php if (empty($services)): ?>
@@ -1811,6 +1841,11 @@ body {
   <?php endforeach; ?>
 </div>
 <?php endif; ?>
+</div><!-- /results-col-left -->
+<div class="results-col-right" id="resultsMapPanel">
+  <div id="resultsMap" style="width:100%;height:100%"></div>
+</div><!-- /results-col-right -->
+</div><!-- /results-body -->
 </div><!-- /app-container -->
 
 <?php include __DIR__ . '/includes/menu.php'; ?>
@@ -2396,4 +2431,50 @@ function closeSlotsModal(){document.getElementById("slotsModal").style.display="
 document.getElementById("slotsModal").addEventListener("click",function(e){if(e.target===this)closeSlotsModal();});
 </script>
 <?php endif; ?>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+if (window.innerWidth >= 1024) {
+  /* Align map panel below sticky results-header */
+  (function() {
+    var rh = document.querySelector('.results-header');
+    var rc = document.getElementById('resultsMapPanel');
+    if (!rh || !rc) return;
+    function fixMapTop() {
+      var top = 64 + rh.offsetHeight;
+      rc.style.top = top + 'px';
+      rc.style.height = 'calc(100vh - ' + top + 'px)';
+    }
+    fixMapTop();
+    window.addEventListener('resize', fixMapTop);
+  })();
+
+  var _rmap = L.map('resultsMap', { zoomControl: true });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+  }).addTo(_rmap);
+
+  var _services = <?php echo json_encode(array_map(fn($s) => [
+    'id'   => $s['id'],
+    'name' => $s['name'],
+    'lat'  => isset($s['lat']) && $s['lat'] !== null ? (float)$s['lat'] : null,
+    'lng'  => isset($s['lng']) && $s['lng'] !== null ? (float)$s['lng'] : null,
+    'city' => $s['city_name'] ?? '',
+  ], $services), JSON_UNESCAPED_UNICODE); ?>;
+
+  var _bounds = [];
+  _services.forEach(function(s) {
+    if (!s.lat || !s.lng) return;
+    L.marker([s.lat, s.lng])
+      .addTo(_rmap)
+      .bindPopup('<strong>' + s.name + '</strong><br>' + s.city);
+    _bounds.push([s.lat, s.lng]);
+  });
+
+  if (_bounds.length > 0) {
+    _rmap.fitBounds(_bounds, { padding: [30, 30] });
+  } else {
+    _rmap.setView([48.8566, 2.3522], 6);
+  }
+}
+</script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
