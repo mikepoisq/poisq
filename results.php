@@ -1099,7 +1099,7 @@ body {
 
   /* ── Строка поиска ── */
   .header-search {
-    padding: 10px 40px 6px 32px;
+    padding: 10px 40px 6px 195px;
   }
   .search-bar {
     max-width: 640px;
@@ -1119,7 +1119,7 @@ body {
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 4px 32px 0 32px;
+    padding: 4px 40px 0 195px;
     gap: 0;
     border-bottom: none;
     scrollbar-width: none;
@@ -1151,7 +1151,7 @@ body {
 
   /* ── Мета-строка: счётчик результатов ── */
   .results-meta {
-    padding: 6px 32px 6px 32px;
+    padding: 6px 40px 6px 195px;
     border-top: 1px solid var(--border-light);
   }
   .results-count {
@@ -1266,6 +1266,8 @@ body {
     border-left: 1px solid var(--border-light);
     background: var(--bg-secondary);
     overflow: hidden;
+    margin-right: 16px;
+    border-radius: 0 12px 12px 0;
   }
 
 }
