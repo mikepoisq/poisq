@@ -1279,6 +1279,18 @@ body {
   .header-search { padding: 10px 16px 6px; }
   .results-list { padding-bottom: 32px; }
 }
+
+/* ── Leaflet: маркеры и попапы карты результатов ── */
+.leaflet-popup-content { margin: 0 !important; width: 270px !important; }
+.leaflet-popup-tip-container { display: none; }
+.popup-card { font-family: 'Manrope', sans-serif; overflow: hidden; border-radius: 12px; }
+.popup-body { padding: 12px 14px 14px; }
+.popup-category { font-size: 11px; font-weight: 700; color: #1A73E8; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.6px; }
+.popup-name { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; line-height: 1.3; }
+.popup-more { display: block; width: 100%; padding: 10px; background: #3B6CF4; color: #fff !important; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; box-sizing: border-box; }
+.popup-more:hover { background: #2E5CD4; }
+.mk-wrap { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.mk-label { background: #fff; border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 700; color: #0F172A; font-family: 'Manrope', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); margin-bottom: 3px; pointer-events: none; }
 </style>
 
 <!-- HEADER / ДЕСКТОП САЙДБАР -->
@@ -1443,7 +1455,7 @@ body {
       $groupLink = trim($svc['group_link'] ?? '');
       $isTelegram = $groupLink && (strpos($groupLink, 't.me') !== false || strpos($groupLink, 'telegram') !== false);
     ?>
-    <div class="service-card" onclick="sessionStorage.setItem('resultsScroll',window.scrollY);window.location.href='<?php echo serviceUrl($svc['id'], $svc['name']); ?>'">
+    <div class="service-card" data-service-id="<?php echo (int)$svc['id']; ?>" onclick="sessionStorage.setItem('resultsScroll',window.scrollY);window.location.href='<?php echo serviceUrl($svc['id'], $svc['name']); ?>'">
 
       <!-- Строка 1: favicon + название + breadcrumb -->
       <div class="card-url-row">
@@ -1637,7 +1649,7 @@ body {
     $groupLink = trim($svc['group_link'] ?? '');
     $isTelegram = $groupLink && (strpos($groupLink, 't.me') !== false || strpos($groupLink, 'telegram') !== false);
   ?>
-  <div class="service-card" onclick="sessionStorage.setItem('resultsScroll',window.scrollY);window.location.href='<?php echo serviceUrl($svc['id'], $svc['name']); ?>'">
+  <div class="service-card" data-service-id="<?php echo (int)$svc['id']; ?>" onclick="sessionStorage.setItem('resultsScroll',window.scrollY);window.location.href='<?php echo serviceUrl($svc['id'], $svc['name']); ?>'">
     <div class="card-url-row">
       <div class="card-favicon" style="background:<?php echo $fc['bg']; ?>;color:<?php echo $fc['color']; ?>;border-color:<?php echo $fc['bg']; ?>">
         <?php if ($photo): ?>
@@ -1766,7 +1778,7 @@ body {
     $groupLink = trim($svc['group_link'] ?? '');
     $isTelegram = $groupLink && (strpos($groupLink, 't.me') !== false || strpos($groupLink, 'telegram') !== false);
   ?>
-  <div class="service-card" onclick="sessionStorage.setItem('resultsScroll',window.scrollY);window.location.href='<?php echo serviceUrl($svc['id'], $svc['name']); ?>'">
+  <div class="service-card" data-service-id="<?php echo (int)$svc['id']; ?>" onclick="sessionStorage.setItem('resultsScroll',window.scrollY);window.location.href='<?php echo serviceUrl($svc['id'], $svc['name']); ?>'">
     <div class="card-url-row">
       <div class="card-favicon" style="background:<?php echo $fc['bg']; ?>;color:<?php echo $fc['color']; ?>;border-color:<?php echo $fc['bg']; ?>">
         <?php if ($photo): ?>
@@ -2437,25 +2449,64 @@ document.getElementById("slotsModal").addEventListener("click",function(e){if(e.
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 if (window.innerWidth >= 1024) {
+  const _COLORS = {
+    health:'#EF4444', legal:'#8B5CF6', family:'#F59E0B',
+    education:'#3B82F6', business:'#1D4ED8', shops:'#10B981',
+    home:'#F97316', transport:'#6B7280', events:'#EC4899',
+    it:'#06B6D4', realestate:'#84CC16', messengers:'#3B6CF4', default:'#3B6CF4'
+  };
+  const _ICONS = {
+    health:'🏥', legal:'⚖️', family:'👨‍👩‍👧', education:'📚',
+    business:'💼', shops:'🛒', home:'🏠', transport:'🚗',
+    events:'📷', it:'💻', realestate:'🏢', messengers:'💬'
+  };
+  const _NAMES = {
+    health:'Здоровье и красота', legal:'Юридические', family:'Семья и дети',
+    education:'Образование', business:'Бизнес', shops:'Магазины',
+    home:'Дом и быт', transport:'Транспорт', events:'События',
+    it:'IT услуги', realestate:'Недвижимость', messengers:'Группы'
+  };
+
+  function _mkIcon(cat, name, highlighted) {
+    const color = highlighted ? '#FF6B35' : (_COLORS[cat] || _COLORS.default);
+    const emoji = _ICONS[cat] || '📍';
+    const raw = (name || '').length > 18 ? (name || '').slice(0, 17) + '…' : (name || '');
+    const safe = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const pin = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44"><filter id="rsh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.25)"/></filter><path d="M18 0C9.163 0 2 7.163 2 16c0 11 16 28 16 28S34 27 34 16C34 7.163 26.837 0 18 0z" fill="${color}" filter="url(#rsh)"/><circle cx="18" cy="16" r="9" fill="white" fill-opacity="0.92"/><text x="18" y="20" text-anchor="middle" font-size="10">${emoji}</text></svg>`;
+    const lbl = safe ? `<div class="mk-label">${safe}</div>` : '';
+    const h = safe ? 67 : 44;
+    return L.divIcon({ html: `<div class="mk-wrap">${lbl}${pin}</div>`, className: '', iconSize: [36, h], iconAnchor: [18, h], popupAnchor: [0, -(h + 2)] });
+  }
+
+  function _mkPopup(s) {
+    const cat = s.subcategory || _NAMES[s.category] || s.category || '';
+    const city = s.city ? `<div style="font-size:12px;color:#70757A;margin-bottom:10px">${s.city.replace(/</g,'&lt;')}</div>` : '';
+    return `<div class="popup-card"><div class="popup-body"><div class="popup-category">${cat}</div><div class="popup-name">${(s.name||'').replace(/</g,'&lt;')}</div>${city}<a href="/service/${s.id}" class="popup-more">Подробнее →</a></div></div>`;
+  }
+
+  const _markerById = new Map();
   var _rmap = L.map('resultsMap', { zoomControl: true });
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
   }).addTo(_rmap);
 
   var _services = <?php echo json_encode(array_map(fn($s) => [
-    'id'   => $s['id'],
-    'name' => $s['name'],
-    'lat'  => isset($s['lat']) && $s['lat'] !== null ? (float)$s['lat'] : null,
-    'lng'  => isset($s['lng']) && $s['lng'] !== null ? (float)$s['lng'] : null,
-    'city' => $s['city_name'] ?? '',
+    'id'          => $s['id'],
+    'name'        => $s['name'],
+    'category'    => $s['category'] ?? '',
+    'subcategory' => $s['subcategory'] ?? '',
+    'lat'         => isset($s['lat']) && $s['lat'] !== null ? (float)$s['lat'] : null,
+    'lng'         => isset($s['lng']) && $s['lng'] !== null ? (float)$s['lng'] : null,
+    'city'        => $s['city_name'] ?? '',
   ], $services), JSON_UNESCAPED_UNICODE); ?>;
 
   var _bounds = [];
   _services.forEach(function(s) {
     if (!s.lat || !s.lng) return;
-    L.marker([s.lat, s.lng])
-      .addTo(_rmap)
-      .bindPopup('<strong>' + s.name + '</strong><br>' + s.city);
+    var marker = L.marker([s.lat, s.lng], { icon: _mkIcon(s.category, s.name, false) });
+    marker.bindPopup(_mkPopup(s), { maxWidth: 270, minWidth: 220 });
+    marker.addTo(_rmap);
+    _markerById.set(String(s.id), { marker: marker, svc: s });
     _bounds.push([s.lat, s.lng]);
   });
 
@@ -2464,6 +2515,30 @@ if (window.innerWidth >= 1024) {
   } else {
     _rmap.setView([48.8566, 2.3522], 6);
   }
+
+  /* Hover на карточку → подсвечиваем маркер и открываем попап */
+  var _hoverId = null;
+  document.querySelectorAll('.service-card[data-service-id]').forEach(function(card) {
+    card.addEventListener('mouseenter', function() {
+      var id = card.dataset.serviceId;
+      var entry = _markerById.get(id);
+      if (!entry) return;
+      if (_hoverId && _hoverId !== id) {
+        var prev = _markerById.get(_hoverId);
+        if (prev) prev.marker.setIcon(_mkIcon(prev.svc.category, prev.svc.name, false));
+      }
+      entry.marker.setIcon(_mkIcon(entry.svc.category, entry.svc.name, true));
+      entry.marker.openPopup();
+      _hoverId = id;
+    });
+    card.addEventListener('mouseleave', function() {
+      var id = card.dataset.serviceId;
+      var entry = _markerById.get(id);
+      if (entry) entry.marker.setIcon(_mkIcon(entry.svc.category, entry.svc.name, false));
+      _rmap.closePopup();
+      _hoverId = null;
+    });
+  });
 }
 </script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
