@@ -262,6 +262,15 @@
   .d-dropdown-item.logout { color: var(--danger); }
   .d-dropdown-divider { height: 1px; background: var(--border-light); margin: 4px 0; }
 
+  /* ── Поиск на десктопе ──────────────────────────────────── */
+  .search-wrap {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .search-overlay {
+    display: none !important;
+  }
+
 }
 
 /* ════════════════════════════════════════════════════════════

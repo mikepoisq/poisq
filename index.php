@@ -909,6 +909,7 @@ window.addEventListener('popstate', () => {
 
 // Открываем — пушим в историю браузера чтобы кнопка Back работала
 function openSearchOverlay() {
+  if (window.innerWidth >= 1024) return;
   document.querySelector('.search-input').blur();
   history.pushState({ searchOpen: true }, '');
   searchOverlay.classList.add('active');
@@ -1119,6 +1120,13 @@ soClear.addEventListener('click', () => {
 
 // Теги на главной — открывают оверлей с уже введённым текстом
 function setSearch(val) {
+  if (window.innerWidth >= 1024) {
+    searchInput.value = val;
+    searchClear.classList.add('visible');
+    renderDesktopResults(val);
+    searchInput.focus();
+    return;
+  }
   openSearchOverlay();
   setTimeout(() => {
     soInput.value = val;
@@ -1281,6 +1289,136 @@ document.getElementById('cmSearch').addEventListener('input', function() {
   }
 })();
 
+// ════════════════════════════════════════
+// ДЕСКТОПНЫЙ ПОИСК (inline, без overlay)
+// ════════════════════════════════════════
+const searchInput   = document.getElementById('searchInput');
+const searchClear   = document.getElementById('searchClear');
+const searchResults = document.getElementById('searchResults');
+const recentSearchesList = document.getElementById('recentSearchesList');
+const suggestionsList    = document.getElementById('suggestionsList');
+const clearHistoryBtn    = document.getElementById('clearHistory');
+
+let deskSuggestAbort = null;
+let deskTimer = null;
+
+async function renderDesktopResults(q) {
+  if (window.innerWidth < 1024) return;
+  const hist = getHistory();
+
+  if (!q) {
+    if (hist.length) {
+      recentSearchesList.innerHTML = '<div class="search-section-label">Недавние</div>' +
+        hist.map(h => `<div class="search-result-item" onclick="deskSearch('${escHtml(h)}')">
+          <div class="search-result-icon history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg></div>
+          <span class="search-result-text">${escHtml(h)}</span>
+        </div>`).join('');
+      if (clearHistoryBtn) clearHistoryBtn.style.display = '';
+      searchResults.classList.add('visible');
+    } else {
+      recentSearchesList.innerHTML = '';
+      searchResults.classList.remove('visible');
+    }
+    suggestionsList.innerHTML = '';
+    return;
+  }
+
+  if (clearHistoryBtn) clearHistoryBtn.style.display = 'none';
+  recentSearchesList.innerHTML = '';
+  suggestionsList.innerHTML = '<div style="padding:12px 16px;color:var(--text-light);font-size:13px;">Ищем…</div>';
+  searchResults.classList.add('visible');
+
+  if (deskSuggestAbort) deskSuggestAbort.abort();
+  deskSuggestAbort = new AbortController();
+
+  const country  = localStorage.getItem('poisq_country')   || 'fr';
+  const cityId   = localStorage.getItem('poisq_city_id')   || '';
+  const citySlug = localStorage.getItem('poisq_city_slug') || '';
+  let url = `/api/suggest.php?q=${encodeURIComponent(q)}&country=${encodeURIComponent(country)}`;
+  if (cityId)   url += `&city_id=${encodeURIComponent(cityId)}`;
+  if (citySlug) url += `&city_slug=${encodeURIComponent(citySlug)}`;
+
+  try {
+    const resp  = await fetch(url, { signal: deskSuggestAbort.signal });
+    const items = await resp.json();
+    if (!items || !items.length) {
+      suggestionsList.innerHTML = '<div style="padding:12px 16px;color:var(--text-light);font-size:13px;">Ничего не найдено</div>';
+      return;
+    }
+    window._deskSuggest = items;
+    suggestionsList.innerHTML = items.map((s, i) => {
+      if (s.type === 'separator') return `<div class="search-section-label">${escHtml(s.text)}</div>`;
+      const icon = s.photo
+        ? `<div class="search-result-icon suggest" style="padding:0;overflow:hidden;"><img src="${s.photo}" style="width:32px;height:32px;object-fit:cover;" onerror="this.style.display='none'"></div>`
+        : `<div class="search-result-icon suggest"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></div>`;
+      return `<div class="search-result-item" onclick="deskGoTo(${i})">${icon}<span class="search-result-text">${hlMatch(escHtml(s.text), q)}</span></div>`;
+    }).join('');
+  } catch(e) {
+    if (e.name === 'AbortError') return;
+    suggestionsList.innerHTML = '';
+  }
+}
+
+function deskSearch(q) {
+  if (!q.trim()) return;
+  const clean = sanitizeQuery(q);
+  saveHistory(clean);
+  searchResults.classList.remove('visible');
+  const country = localStorage.getItem('poisq_country') || 'fr';
+  window.location.href = '/' + country + '/' + encodeURIComponent(clean);
+}
+
+function deskGoTo(i) {
+  const s = (window._deskSuggest || [])[i];
+  if (!s) return;
+  if (s.q) saveHistory(sanitizeQuery(s.q));
+  const c  = s.country || localStorage.getItem('poisq_country') || 'fr';
+  const cs = s.city_slug || '';
+  const pin = s.service_id ? '?pin=' + s.service_id : '';
+  const clean = s.q ? sanitizeQuery(s.q) : '';
+  if (clean && cs) window.location.href = '/' + c + '/' + cs + '/' + encodeURIComponent(clean) + pin;
+  else if (clean)  window.location.href = '/' + c + '/' + encodeURIComponent(clean) + pin;
+  else             window.location.href = '/' + c + '/';
+}
+
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim();
+    if (searchClear) searchClear.classList.toggle('visible', q.length > 0);
+    clearTimeout(deskTimer);
+    deskTimer = setTimeout(() => renderDesktopResults(q), 300);
+  });
+  searchInput.addEventListener('focus', () => {
+    if (window.innerWidth >= 1024) renderDesktopResults(searchInput.value.trim());
+  });
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && searchInput.value.trim()) deskSearch(searchInput.value.trim());
+    if (e.key === 'Escape') { searchResults.classList.remove('visible'); searchInput.blur(); }
+  });
+}
+
+if (searchClear) {
+  searchClear.addEventListener('click', () => {
+    if (window.innerWidth < 1024) return;
+    searchInput.value = '';
+    searchClear.classList.remove('visible');
+    searchResults.classList.remove('visible');
+    searchInput.focus();
+  });
+}
+
+if (clearHistoryBtn) {
+  clearHistoryBtn.addEventListener('click', () => {
+    localStorage.removeItem(HISTORY_KEY);
+    searchResults.classList.remove('visible');
+  });
+}
+
+document.addEventListener('click', e => {
+  if (window.innerWidth >= 1024 && !e.target.closest('.search-wrap')) {
+    searchResults.classList.remove('visible');
+  }
+});
 
 </script>
 <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
