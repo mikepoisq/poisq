@@ -589,6 +589,9 @@ require_once __DIR__ . '/includes/header.php';
 
 /* ── Десктоп: index.php специфичные стили (1024px+) ─────────── */
 @media (min-width: 1024px) {
+  /* Скрываем мобильную шапку */
+  .header { display: none; }
+
   /* Главная: центрируем контент вертикально с отступом от шапки */
   .main {
     padding: 60px 32px 20px;

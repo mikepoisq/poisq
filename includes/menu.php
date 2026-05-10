@@ -78,6 +78,19 @@ $menuUserInitial = $menuIsLoggedIn ? strtoupper(mb_substr($menuUserName, 0, 1, '
       <a href="/help.php" class="d-nav-link" id="d-nav-help">Помощь</a>
       <a href="/contact.php" class="d-nav-link" id="d-nav-contact">Контакт</a>
     </nav>
+    <button class="d-grid-btn" onclick="openAnnModal()" aria-label="Свежие сервисы">
+      <svg viewBox="0 0 24 24" width="18" height="18">
+        <circle cx="5" cy="5" r="2" fill="currentColor"/>
+        <circle cx="12" cy="5" r="2" fill="currentColor"/>
+        <circle cx="19" cy="5" r="2" fill="currentColor"/>
+        <circle cx="5" cy="12" r="2" fill="currentColor"/>
+        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+        <circle cx="19" cy="12" r="2" fill="currentColor"/>
+        <circle cx="5" cy="19" r="2" fill="currentColor"/>
+        <circle cx="12" cy="19" r="2" fill="currentColor"/>
+        <circle cx="19" cy="19" r="2" fill="currentColor"/>
+      </svg>
+    </button>
 
     <!-- Действия справа -->
     <div class="d-header-actions">
@@ -99,16 +112,29 @@ $menuUserInitial = $menuIsLoggedIn ? strtoupper(mb_substr($menuUserName, 0, 1, '
 
       <!-- Войти / Аватар -->
       <?php if ($menuIsLoggedIn): ?>
-        <a href="/profile.php" class="d-user-btn" title="Личный кабинет">
-          <div class="d-user-avatar">
-            <?php if ($menuUserAvatar): ?>
-              <img src="<?php echo htmlspecialchars($menuUserAvatar); ?>" alt="">
-            <?php else: ?>
-              <?php echo htmlspecialchars($menuUserInitial); ?>
-            <?php endif; ?>
+        <div class="d-dropdown">
+          <button class="d-user-btn" onclick="toggleUserDropdown(event)">
+            <div class="d-user-avatar">
+              <?php if ($menuUserAvatar): ?>
+                <img src="<?php echo htmlspecialchars($menuUserAvatar); ?>" alt="">
+              <?php else: ?>
+                <?php echo htmlspecialchars($menuUserInitial); ?>
+              <?php endif; ?>
+            </div>
+            <span class="d-user-name"><?php echo htmlspecialchars($menuUserName); ?></span>
+          </button>
+          <div class="d-dropdown-menu" id="dUserDropdown">
+            <a href="/profile.php" class="d-dropdown-item">👤 Личный кабинет</a>
+            <a href="/my-services.php" class="d-dropdown-item">📋 Мои сервисы</a>
+            <a href="/favorites.php" class="d-dropdown-item">❤️ Избранное
+              <?php if ($favCount > 0): ?>
+                <span style="margin-left:auto;background:var(--primary);color:white;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;min-width:20px;text-align:center;"><?php echo $favCount; ?></span>
+              <?php endif; ?>
+            </a>
+            <div class="d-dropdown-divider"></div>
+            <a href="/logout.php" class="d-dropdown-item logout">🚪 Выйти</a>
           </div>
-          <span class="d-user-name"><?php echo htmlspecialchars($menuUserName); ?></span>
-        </a>
+        </div>
       <?php else: ?>
         <a href="/login.php" class="d-btn-login">Войти</a>
       <?php endif; ?>
@@ -216,5 +242,13 @@ document.addEventListener('DOMContentLoaded', function() {
   if (t) t.addEventListener('click', openMenu);
   var o = document.getElementById('menuOverlay');
   if (o) o.addEventListener('click', closeMenu);
+});
+function toggleUserDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('dUserDropdown').classList.toggle('active');
+}
+document.addEventListener('click', function() {
+  var d = document.getElementById('dUserDropdown');
+  if (d) d.classList.remove('active');
 });
 </script>
