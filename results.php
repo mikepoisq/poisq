@@ -319,7 +319,7 @@ function fetchFullByIds(PDO $pdo, array $ids): array {
                s.services AS service_list, s.social,
                s.verified, s.verified_until, s.hours, s.created_at, s.group_link,
                c.name AS city_name, c.name_lat AS city_name_lat,
-               s.lat, s.lng
+               COALESCE(s.lat, c.lat) AS lat, COALESCE(s.lng, c.lng) AS lng
         FROM services s LEFT JOIN cities c ON s.city_id = c.id
         WHERE s.id IN ($ph) ORDER BY FIELD(s.id, $ph)
     ");
@@ -1255,13 +1255,14 @@ body {
     flex: 0 0 60%;
     overflow-y: auto;
     max-width: 760px;
+    padding: 0 20px 40px 195px;
   }
   .results-col-right {
     display: block;
     flex: 1;
     position: sticky;
-    top: 64px;
-    height: calc(100vh - 64px);
+    top: 130px;
+    height: calc(100vh - 64px - 130px);
     border-left: 1px solid var(--border-light);
     background: var(--bg-secondary);
     overflow: hidden;
@@ -2434,20 +2435,6 @@ document.getElementById("slotsModal").addEventListener("click",function(e){if(e.
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 if (window.innerWidth >= 1024) {
-  /* Align map panel below sticky results-header */
-  (function() {
-    var rh = document.querySelector('.results-header');
-    var rc = document.getElementById('resultsMapPanel');
-    if (!rh || !rc) return;
-    function fixMapTop() {
-      var top = 64 + rh.offsetHeight;
-      rc.style.top = top + 'px';
-      rc.style.height = 'calc(100vh - ' + top + 'px)';
-    }
-    fixMapTop();
-    window.addEventListener('resize', fixMapTop);
-  })();
-
   var _rmap = L.map('resultsMap', { zoomControl: true });
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
