@@ -334,7 +334,7 @@ function toggleAccord(id) {
   document.querySelectorAll('.accord-item.open').forEach(el => el.classList.remove('open'));
   if (!isOpen) item.classList.add('open');
 }
-
+</script>
 
 <?php if ($isLoggedIn && $slotsLeft <= 0): ?>
 <div id="slotsModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center;">
